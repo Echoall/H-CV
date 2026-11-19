@@ -18,6 +18,7 @@ PROBE = ROOT / "k230" / "exp" / "exp01_camera_modes.py"
 MODES = ((1280, 720, 90), (1280, 960, 60), (1920, 1080, 60), (1920, 1080, 30))
 SIZES = ((640, 360), (640, 480), (320, 180))
 COOLDOWN = 300
+NATIVE_960_90 = (1280, 960, 90, 640, 480, True, False)
 
 
 def quantiles(values, key):
@@ -29,7 +30,7 @@ def quantiles(values, key):
 
 
 def summarize(raw):
-    events, frames = {}, []
+    events, frames, gc_samples = {}, [], {}
     for line in raw.splitlines():
         if line.startswith("HCV_EXP01 "):
             entry = json.loads(line.partition(" ")[2])
@@ -37,6 +38,9 @@ def summarize(raw):
         elif line.startswith("HCV_FRAME,"):
             index, end, duration = map(int, line.split(",")[1:])
             frames.append((index, end, duration))
+        elif line.startswith("HCV_GC,"):
+            index, before, after = map(int, line.split(",")[1:])
+            gc_samples[index] = (before, after)
 
     result = {}
     if "mode" in events:
@@ -60,6 +64,26 @@ def summarize(raw):
     result.update(status="ok", frames=len(frames), fps=len(intervals) * 1e6 / sum(intervals))
     result.update(quantiles(intervals, "interval_"))
     result.update(quantiles([frame[2] for frame in frames], "snapshot_"))
+    nominal = result.get("actual", (0, 0, 0))[2]
+    if nominal:
+        threshold = 1_500_000 / nominal
+        delayed = [(frame[0], interval, frame[2])
+                   for frame, interval in zip(frames[1:], intervals) if interval > threshold]
+        result["over_1_5_nominal"] = len(delayed)
+        worst = max(delayed, key=lambda frame: frame[1], default=None)
+        if worst is not None:
+            result["worst_outlier"] = {
+                "index": worst[0], "interval": worst[1], "snapshot": worst[2],
+                "between_calls": worst[1] - worst[2],
+            }
+        if gc_samples:
+            result["heap_increase_during_snapshot"] = sum(
+                gc_samples[index][1] > gc_samples[index][0] for index in gc_samples
+            )
+            result["delayed_with_heap_increase"] = sum(
+                index in gc_samples and gc_samples[index][1] > gc_samples[index][0]
+                for index, _, _ in delayed
+            )
     result["image"] = {key: value for key, value in events["image"].items() if key != "event"}
     if "image_apis" in events:
         result["image_apis"] = events["image_apis"]
@@ -76,9 +100,11 @@ def key(case):
     return f"{w}x{h}-{fps}_{x}x{y}_chn1-{int(stream)}_crop-{int(crop)}"
 
 
-def capture(port, output, frames, smoke=False, selected=None):
+def capture(port, output, frames, smoke=False, selected=None, native_960_90=False):
     output.mkdir(parents=True, exist_ok=False)
     combinations = list(cases())[:1] if smoke else list(cases())
+    if native_960_90:
+        combinations = [NATIVE_960_90]
     if selected is not None:
         combinations = [case for case in combinations if key(case) in selected]
     original = PROBE.read_text(encoding="utf-8")
@@ -94,7 +120,7 @@ def capture(port, output, frames, smoke=False, selected=None):
                     remaining = COOLDOWN - (time.monotonic() - previous)
             case_id = key(case)
             program = (f"HCV_CASE = {case!r}\nHCV_FRAMES = {frames}\n"
-                       f"HCV_IMAGE_API_PROBE = {smoke!r}\n" + original)
+                       f"HCV_IMAGE_API_PROBE = {smoke!r}\nHCV_GC_PROFILE = {native_960_90!r}\n" + original)
             script.write_text(program,
                               encoding="utf-8")
             raw_log = output / (case_id + ".log")
@@ -157,6 +183,7 @@ def main():
     parser.add_argument("--port", default="auto")
     subset = parser.add_mutually_exclusive_group()
     subset.add_argument("--smoke", action="store_true")
+    subset.add_argument("--native-960-90", action="store_true", help="supplemental physical sensor mode")
     subset.add_argument("--case", action="append", choices=[key(case) for case in cases()],
                         metavar="CASE", help="run only the named case; may be repeated")
     args = parser.parse_args()
@@ -164,7 +191,7 @@ def main():
         write_summary(args.output)
         return 0
     result = capture(args.port, args.output, 30 if args.smoke else 1000,
-                     args.smoke, set(args.case) if args.case else None)
+                     args.smoke, set(args.case) if args.case else None, args.native_960_90)
     write_summary(args.output)
     return result
 

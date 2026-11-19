@@ -1,6 +1,7 @@
 """P0-EXP01: time one bounded CanMV camera configuration."""
 
 from array import array
+import gc
 import image as image_module
 import json
 import os
@@ -47,6 +48,9 @@ def measure(case, frames):
     errors = []
     ends = array("I", [0] * frames)
     durations = array("I", [0] * frames)
+    track_gc = globals().get("HCV_GC_PROFILE", False)
+    mem_before = array("I", [0] * frames) if track_gc else None
+    mem_after = array("I", [0] * frames) if track_gc else None
     acquired = 0
     started = None
     try:
@@ -89,11 +93,15 @@ def measure(case, frames):
         while acquired < frames:
             if hasattr(os, "exitpoint"):
                 os.exitpoint()
+            if track_gc:
+                mem_before[acquired] = gc.mem_free()
             before = time.ticks_us()
             if time.ticks_diff(before, started) > 90_000_000:
                 raise RuntimeError("90-second measurement budget exhausted")
             image = sensor.snapshot(chn=0, timeout=1000)
             after = time.ticks_us()
+            if track_gc:
+                mem_after[acquired] = gc.mem_free()
             ends[acquired] = time.ticks_diff(after, started)
             durations[acquired] = time.ticks_diff(after, before)
             acquired += 1
@@ -122,6 +130,8 @@ def measure(case, frames):
                 event("cleanup_error", stage="MediaManager.deinit", detail=repr(error))
         for index in range(acquired):
             print("HCV_FRAME,%d,%d,%d" % (index, ends[index], durations[index]))
+            if track_gc:
+                print("HCV_GC,%d,%d,%d" % (index, mem_before[index], mem_after[index]))
         event("done", expected=frames, acquired=acquired, failures=len(errors))
 
 
