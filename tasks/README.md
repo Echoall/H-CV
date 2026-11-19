@@ -13,7 +13,7 @@
 | P0-T02 | T | 板卡访问工具 | P0-T01 | | DONE | [报告](../reports/P0-T02-板卡工具.md) |
 | P0-EXP00 | EXP | 板卡基线盘点（固件、模块、API、内存） | P0-T02 | | DONE | [报告](../reports/P0-EXP00-板卡基线.md) |
 | P0-T03 | T | 串口回环与电平确认 | P0-T02 | 🖐 | TODO | [现场操作](../reports/P0-T03-现场操作清单.md) |
-| P0-EXP01 | EXP | 摄像头模式、帧率、多通道、硬件裁剪 | P0-EXP00 | | DOING | [阶段报告](../reports/P0-EXP01-摄像头性能.md) |
+| P0-EXP01 | EXP | 摄像头模式、帧率、多通道、硬件裁剪 | P0-EXP00 | | REVIEW | [实测报告](../reports/P0-EXP01-摄像头性能.md) |
 | P0-EXP02 | EXP | ISP 控制能力（曝光、增益、白平衡） | P0-EXP00 | 🖐 | TODO | |
 | P0-EXP03 | EXP | 视场角与畸变 → 安装高度 | P0-EXP01 | 🖐 | TODO | |
 

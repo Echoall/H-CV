@@ -76,7 +76,7 @@ def write_report(records, markdown, table, supplemental=None):
                          "snapshot p95 μs","snapshot p99 μs","最大 snapshot μs",">1.5×标称间隔次数","原因"))
         fields = ("status", "frames", "fps", "interval_p50", "interval_p95",
                   "interval_p99", "interval_max", "snapshot_p50", "snapshot_p95",
-                  "snapshot_p99", "snapshot_max", "detail")
+                  "snapshot_p99", "snapshot_max", "over_1_5_nominal", "detail")
         for case in planned:
             label = key(case)
             item = records.get(label, {"status":"pending"})

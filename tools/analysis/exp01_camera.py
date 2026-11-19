@@ -100,7 +100,7 @@ def key(case):
     return f"{w}x{h}-{fps}_{x}x{y}_chn1-{int(stream)}_crop-{int(crop)}"
 
 
-def capture(port, output, frames, smoke=False, selected=None, native_960_90=False):
+def capture(port, output, frames, smoke=False, selected=None, native_960_90=False, gc_profile=False):
     output.mkdir(parents=True, exist_ok=False)
     combinations = list(cases())[:1] if smoke else list(cases())
     if native_960_90:
@@ -120,7 +120,7 @@ def capture(port, output, frames, smoke=False, selected=None, native_960_90=Fals
                     remaining = COOLDOWN - (time.monotonic() - previous)
             case_id = key(case)
             program = (f"HCV_CASE = {case!r}\nHCV_FRAMES = {frames}\n"
-                       f"HCV_IMAGE_API_PROBE = {smoke!r}\nHCV_GC_PROFILE = {native_960_90!r}\n" + original)
+                       f"HCV_IMAGE_API_PROBE = {smoke!r}\nHCV_GC_PROFILE = {gc_profile!r}\n" + original)
             script.write_text(program,
                               encoding="utf-8")
             raw_log = output / (case_id + ".log")
@@ -184,6 +184,8 @@ def main():
     subset = parser.add_mutually_exclusive_group()
     subset.add_argument("--smoke", action="store_true")
     subset.add_argument("--native-960-90", action="store_true", help="supplemental physical sensor mode")
+    parser.add_argument("--gc-profile", action="store_true",
+                        help="record heap free space before and after each snapshot")
     subset.add_argument("--case", action="append", choices=[key(case) for case in cases()],
                         metavar="CASE", help="run only the named case; may be repeated")
     args = parser.parse_args()
@@ -191,7 +193,8 @@ def main():
         write_summary(args.output)
         return 0
     result = capture(args.port, args.output, 30 if args.smoke else 1000,
-                     args.smoke, set(args.case) if args.case else None, args.native_960_90)
+                     args.smoke, set(args.case) if args.case else None,
+                     args.native_960_90, args.gc_profile)
     write_summary(args.output)
     return result
 

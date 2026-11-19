@@ -1,0 +1,3 @@
+*.log binary
+*.stdout binary
+*.stderr binary
