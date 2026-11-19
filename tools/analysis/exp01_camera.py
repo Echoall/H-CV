@@ -60,6 +60,8 @@ def summarize(raw):
     result.update(quantiles(intervals, "interval_"))
     result.update(quantiles([frame[2] for frame in frames], "snapshot_"))
     result["image"] = {key: value for key, value in events["image"].items() if key != "event"}
+    if "image_apis" in events:
+        result["image_apis"] = events["image_apis"]
     return result
 
 
@@ -88,7 +90,9 @@ def capture(port, output, frames, smoke=False):
                     time.sleep(min(60, remaining))
                     remaining = COOLDOWN - (time.monotonic() - previous)
             case_id = key(case)
-            script.write_text(f"HCV_CASE = {case!r}\nHCV_FRAMES = {frames}\n" + original,
+            program = (f"HCV_CASE = {case!r}\nHCV_FRAMES = {frames}\n"
+                       f"HCV_IMAGE_API_PROBE = {smoke!r}\n" + original)
+            script.write_text(program,
                               encoding="utf-8")
             raw_log = output / (case_id + ".log")
             command = [sys.executable, str(BOARD), "--port", port, "run", str(script),

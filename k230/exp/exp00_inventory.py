@@ -4,6 +4,7 @@ import gc
 import json
 import os
 import sys
+import time
 
 
 MODULES = (
@@ -23,6 +24,16 @@ OBJECTS = (
 
 
 def inventory():
+    cutoff = time.ticks_add(time.ticks_ms(), 20_000)
+    if hasattr(os, "EXITPOINT_ENABLE"):
+        os.exitpoint(os.EXITPOINT_ENABLE)
+
+    def checkpoint():
+        if hasattr(os, "exitpoint"):
+            os.exitpoint()
+        if time.ticks_diff(cutoff, time.ticks_ms()) <= 0:
+            raise RuntimeError("inventory exceeded its board-side time budget")
+
     gc.collect()
     data = {
         "os_uname": str(os.uname()) if hasattr(os, "uname") else None,
@@ -34,6 +45,7 @@ def inventory():
     }
     imported = {}
     for name in MODULES:
+        checkpoint()
         try:
             module = __import__(name, None, None, ("*",))
             imported[name] = module
@@ -46,6 +58,7 @@ def inventory():
             data["modules"][name] = {"available": False, "error": repr(error)}
 
     for module, name in OBJECTS:
+        checkpoint()
         obj = getattr(imported.get(module), name, None)
         data["objects"][module + "." + name] = dir(obj) if obj is not None else None
 

@@ -1,0 +1,2 @@
+case,status,detail,frames,fps,interval_p50,interval_p95,interval_p99,interval_max,snapshot_p50,snapshot_p95,snapshot_p99,snapshot_max
+1280x720-90_640x360_chn1-0_crop-0,ok,,30,89.79523589827748,11056,12286,12534,12534,10987,12275,12523,12523

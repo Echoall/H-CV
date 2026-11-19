@@ -79,39 +79,42 @@ def verify(port, output, stage):
                     raise RuntimeError(prefix + ": transferred result or print sequence differs")
                 print(f"{trial}/{TRIALS}: result matched, {LINES} lines", flush=True)
 
-        if stage in ("all", "timeouts"):
-            cooperative = (
-                "import os, time\n"
-                "deadline = time.ticks_add(time.ticks_ms(), 30000)\n"
-                "while True:\n"
-                "    if hasattr(os, 'exitpoint'):\n"
-                "        os.exitpoint()\n"
-                "    if time.ticks_diff(deadline, time.ticks_ms()) <= 0:\n"
-                "        print('HCV_TIMEOUT_GUARD')\n"
-                "        break\n"
+        if stage != "transfer":
+            if stage == "sleep":
+                name = "sleep-loop"
+                setup = ""
+                action = "time.sleep_ms(1)"
+            else:
+                name = "cooperative-busy"
+                setup = "os.exitpoint(os.EXITPOINT_ENABLE)\n"
+                action = "os.exitpoint()"
+            source = (
+                "import os, time\n" + setup
+                + "deadline = time.ticks_add(time.ticks_ms(), 30000)\n"
+                + "while True:\n"
+                + f"    {action}\n"
+                + "    if time.ticks_diff(deadline, time.ticks_ms()) <= 0:\n"
+                + "        print('HCV_TIMEOUT_GUARD')\n"
+                + "        break\n"
             )
-            for name, source in (
-                ("cooperative-busy", cooperative),
-                ("sleep", "import time\ntime.sleep(100)\n"),
-            ):
-                blocked = work / (name + ".py")
-                blocked.write_text(source, encoding="utf-8")
-                started = time.monotonic()
-                stopped = board("run", blocked, "--timeout", "5",
-                                name="timeout-" + name, expect_success=False)
-                elapsed = time.monotonic() - started
-                if (stopped.returncode != 1 or b"board script timed out" not in stopped.stderr
-                        or b"HCV_TIMEOUT_GUARD" in stopped.stdout or elapsed >= 25):
-                    raise RuntimeError(name + ": 5-second timeout recovery was not verified")
-                board("info", name="after-timeout-" + name)
-                print(f"{name}: timeout recovered and the following info succeeded.")
+            blocked = work / (name + ".py")
+            blocked.write_text(source, encoding="utf-8")
+            started = time.monotonic()
+            stopped = board("run", blocked, "--timeout", "5",
+                            name="timeout-" + name, expect_success=False)
+            elapsed = time.monotonic() - started
+            board("info", name="after-timeout-" + name)
+            if (stopped.returncode != 1 or b"board script timed out" not in stopped.stderr
+                    or b"HCV_TIMEOUT_GUARD" in stopped.stdout or elapsed >= 25):
+                raise RuntimeError(name + ": 5-second timeout recovery was not verified")
+            print(f"{name}: timeout recovered and the following info succeeded.")
 
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", required=True)
-    parser.add_argument("--stage", choices=("all", "transfer", "timeouts"), default="all")
+    parser.add_argument("--stage", choices=("all", "transfer", "timeouts", "sleep"), default="all")
     parser.add_argument("--output", type=Path, required=True,
                         help="new directory for raw logs")
     args = parser.parse_args()

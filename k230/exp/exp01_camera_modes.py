@@ -1,6 +1,7 @@
 """P0-EXP01: time one bounded CanMV camera configuration."""
 
 from array import array
+import image as image_module
 import json
 import os
 import time
@@ -12,6 +13,30 @@ from media.sensor import Sensor
 def event(kind, **fields):
     fields["event"] = kind
     print("HCV_EXP01 " + json.dumps(fields))
+
+
+def image_api_probe(img):
+    results = {}
+    for name, arguments in (
+        ("to_numpy_ref", ()),
+        ("find_blobs", ([(0, 255)],)),
+        ("get_statistics", ()),
+        ("get_histogram", ()),
+    ):
+        if hasattr(os, "exitpoint"):
+            os.exitpoint()
+        method = getattr(img, name, None)
+        if method is None:
+            results[name] = {"available": False}
+            continue
+        try:
+            result = method(*arguments)
+            results[name] = {"available": True, "worked": True,
+                             "type": type(result).__name__}
+        except Exception as error:
+            results[name] = {"available": True, "worked": False,
+                             "error": repr(error)}
+    return results
 
 
 def measure(case, frames):
@@ -35,8 +60,9 @@ def measure(case, frames):
         name = sensor.sensor_name
         if isinstance(name, bytes):
             name = name.decode()
+        name = name.split("\x00", 1)[0]
         event("mode", requested=[width, height, fps], actual=actual,
-              sensor=name, sensor_type=sensor.get_type(), sensor_id=sensor.get_id())
+              sensor=name, sensor_type=sensor.get_type(), sensor_id=getattr(sensor, "_csi_bus", None))
         equivalent = actual[:2] == [width, height] and abs(actual[2] - fps) <= 1
         if not equivalent:
             event("unsupported", reason="sensor selected a different physical mode")
@@ -71,8 +97,12 @@ def measure(case, frames):
             ends[acquired] = time.ticks_diff(after, started)
             durations[acquired] = time.ticks_diff(after, before)
             acquired += 1
+        if globals().get("HCV_IMAGE_API_PROBE", False):
+            event("image_apis", type=type(image).__name__, results=image_api_probe(image),
+                  sensor_instance=dir(sensor))
         event("image", width=image.width(), height=image.height(), format=image.format(),
-              gray_constant=Sensor.GRAYSCALE, crop=window,
+              gray_constant=getattr(image_module, "GRAYSCALE", None),
+              sensor_gray_constant=Sensor.GRAYSCALE, crop=window,
               channel1=list(sensor.get_framesize(1)) if second_channel else None)
     except Exception as error:
         errors.append(repr(error))
