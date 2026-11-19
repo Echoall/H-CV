@@ -5,6 +5,7 @@ from collections import Counter
 import csv
 import json
 from pathlib import Path
+from statistics import median
 
 from exp01_camera import summarize, cases, key
 
@@ -39,6 +40,25 @@ def recommendation(records):
         row[1]["interval_p99"],
         -row[1]["fps"],
     ))
+
+
+def comparisons(records, flag):
+    pairs = []
+    for case in cases():
+        if case[flag]:
+            continue
+        matching = list(case)
+        matching[flag] = True
+        baseline = records.get(key(case), {})
+        enabled = records.get(key(matching), {})
+        if (baseline.get("status") == enabled.get("status") == "ok"
+                and baseline["actual"] == enabled["actual"]):
+            pairs.append((
+                enabled["fps"] - baseline["fps"],
+                enabled["interval_p99"] - baseline["interval_p99"],
+                enabled["snapshot_p95"] - baseline["snapshot_p95"],
+            ))
+    return pairs
 
 
 def write_report(records, markdown, table):
@@ -77,6 +97,7 @@ def write_report(records, markdown, table):
         lines += [
             f"{mark}推荐 {label}。实测 {info['fps']:.3f} fps，"
             f"帧间隔 p99 {info['interval_p99']/1000:.3f} ms，"
+            f"最大帧间隔 {info['interval_max']/1000:.3f} ms，"
             f"snapshot 调用 p95 {info['snapshot_p95']/1000:.3f} ms。",
             "",
             "选择顺序为满足验收阈值、优先 640×360、优先保留视野，再比较帧间隔 p99。",
@@ -85,6 +106,18 @@ def write_report(records, markdown, table):
     modes = sorted({tuple(item["actual"]) for item in successful})
     if modes:
         lines += ["", "实测成功的传感器模式为 " + "、".join(f"{w}×{h}@{fps}" for w,h,fps in modes) + "。"]
+    lines += ["", "## 开关第二通道和裁剪的对比", ""]
+    for title, flag in (("启用 CHN1", 5), ("启用 CHN0 裁剪", 6)):
+        differences = comparisons(records, flag)
+        if differences:
+            dfps, dp99, dsnapshot = map(median, zip(*differences))
+            lines.append(
+                f"- {title}有 {len(differences)} 组可配对。"
+                f"变化的中位数分别为 {dfps:+.3f} fps、"
+                f"帧间隔 p99 {dp99/1000:+.3f} ms、snapshot p95 {dsnapshot/1000:+.3f} ms。"
+            )
+        else:
+            lines.append(f"- {title}尚无可配对的完整数据。")
     cropped = [item for item in successful if item["case"][5] and item["case"][6]]
     lines += [
         "",
