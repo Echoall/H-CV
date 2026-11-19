@@ -261,7 +261,7 @@ E,<k230_ms>,<event_name>,<detail>
 
 - 参与计算的字段只能取 int、bool、str、null 这几种类型。
 - 用自己实现的规范化序列化：键按字典序排序，不加空格。
-- 哈希函数由 EXP-00 确认 `hashlib` 支持哪些算法后决定：优先 sha256，没有就用 `binascii.crc32`。
+- 哈希函数：**sha256**（EXP-00 已确认 CanMV v1.4 的 `hashlib` 支持 sha256）。指纹取 sha256 十六进制字符串的前 16 位。
 - 必须用测试证明 CPython 和板上计算出的指纹一致。
 
 ### 5.2 `calib.json`（标定结果，由标定工具生成，保存在 `/sdcard/hcv/calib.json`，同时备份到电脑上）
