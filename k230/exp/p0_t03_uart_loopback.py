@@ -69,7 +69,7 @@ def voltage():
     guard.start(95)
     link = UART1Link(115200)
     try:
-        print("HCV_UART_TX_READY: measure physical pin 8 relative to pin 6, no jumper.")
+        print("HCV_UART_TX_READY: measure physical pin 8 relative to GND pin 20, no jumper.")
         until = time.ticks_add(time.ticks_ms(), 90_000)
         while time.ticks_diff(until, time.ticks_ms()) > 0:
             guard.tick()
