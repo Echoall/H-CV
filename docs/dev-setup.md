@@ -32,7 +32,7 @@ backup 单独执行，显示进度并使用 10 分钟预算。它记录全部文
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 run tools/board/hello_k230.py --timeout 5 --stream
 
 
-首次 info 和 backup 成功后，运行以下真实板卡验收。把 COM3 换成板卡端口。命令会做 20 次上传、运行、取回，检查每次 1000 行都连续无丢失，分别验证 Python 忙循环与 time.sleep(100) 在 5 秒超时后恢复，并确认 info 还能成功。output 必须是尚不存在的目录。
+首次 info 和 backup 成功后，运行以下真实板卡验收。把 COM3 换成板卡端口。命令会做 20 次上传、运行、取回，检查每次 1000 行都连续无丢失，分别验证调用 os.exitpoint() 的 Python 循环与 time.sleep(100) 在 5 秒超时后恢复，并确认 info 还能成功。循环带 30 秒板端保护，保护触发不会记作五秒恢复。用 --stage transfer 或 --stage timeouts 可单独复验。无保护忙循环的首次实机结果见 P0-T02 报告。output 必须是尚不存在的目录。
 
     .\.venv\Scripts\python.exe tools/board/verify.py --port COM3 --output reports/data/P0-T02/board-01
 

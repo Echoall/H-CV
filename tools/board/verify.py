@@ -20,7 +20,7 @@ TRIALS = 20
 LINES = 1000
 
 
-def verify(port, output):
+def verify(port, output, stage):
     require_backup()
     output.mkdir(parents=True, exist_ok=False)
 
@@ -58,49 +58,65 @@ def verify(port, output):
         payload = work / "payload.py"
         received = work / "received.bin"
         board("info", name="info")
-        for trial in range(1, TRIALS + 1):
-            expected = f"P0-T02 trial {trial}\n".encode()
-            payload.write_text(
-                f"with open('{REMOTE}/result.bin', 'wb') as f:\n"
-                f"    f.write({expected!r})\n"
-                f"for i in range({LINES}):\n    print(i)\n",
-                encoding="utf-8",
-            )
-            prefix = f"trial-{trial:02}"
-            board("put", payload, REMOTE + "/payload.py", name=prefix + "-put")
-            board("run", starter, "--timeout", "30", "--stream",
-                  "--log", output / (prefix + ".log"), name=prefix + "-run")
-            board("get", REMOTE + "/result.bin", received, name=prefix + "-get")
-            actual = received.read_bytes()
-            (output / (prefix + "-get.bin")).write_bytes(actual)
-            lines = (output / (prefix + ".log")).read_bytes().splitlines()
-            if actual != expected or lines != [str(index).encode() for index in range(LINES)]:
-                raise RuntimeError(prefix + ": transferred result or print sequence differs")
-            print(f"{trial}/{TRIALS}: result matched, {LINES} lines", flush=True)
+        if stage in ("all", "transfer"):
+            for trial in range(1, TRIALS + 1):
+                expected = f"P0-T02 trial {trial}\n".encode()
+                payload.write_text(
+                    f"with open('{REMOTE}/result.bin', 'wb') as f:\n"
+                    f"    f.write({expected!r})\n"
+                    f"for i in range({LINES}):\n    print(i)\n",
+                    encoding="utf-8",
+                )
+                prefix = f"trial-{trial:02}"
+                board("put", payload, REMOTE + "/payload.py", name=prefix + "-put")
+                board("run", starter, "--timeout", "30", "--stream",
+                      "--log", output / (prefix + ".log"), name=prefix + "-run")
+                board("get", REMOTE + "/result.bin", received, name=prefix + "-get")
+                actual = received.read_bytes()
+                (output / (prefix + "-get.bin")).write_bytes(actual)
+                lines = (output / (prefix + ".log")).read_bytes().splitlines()
+                if actual != expected or lines != [str(index).encode() for index in range(LINES)]:
+                    raise RuntimeError(prefix + ": transferred result or print sequence differs")
+                print(f"{trial}/{TRIALS}: result matched, {LINES} lines", flush=True)
 
-        for name, source in (
-            ("busy", "while True:\n    pass\n"),
-            ("sleep", "import time\ntime.sleep(100)\n"),
-        ):
-            blocked = work / (name + ".py")
-            blocked.write_text(source, encoding="utf-8")
-            stopped = board("run", blocked, "--timeout", "5",
-                            name="timeout-" + name, expect_success=False)
-            if stopped.returncode != 1 or b"board script timed out" not in stopped.stderr:
-                raise RuntimeError(name + ": timeout did not produce the expected error")
-            board("info", name="after-timeout-" + name)
-            print(f"{name}: timeout recovered and the following info succeeded.")
+        if stage in ("all", "timeouts"):
+            cooperative = (
+                "import os, time\n"
+                "deadline = time.ticks_add(time.ticks_ms(), 30000)\n"
+                "while True:\n"
+                "    if hasattr(os, 'exitpoint'):\n"
+                "        os.exitpoint()\n"
+                "    if time.ticks_diff(deadline, time.ticks_ms()) <= 0:\n"
+                "        print('HCV_TIMEOUT_GUARD')\n"
+                "        break\n"
+            )
+            for name, source in (
+                ("cooperative-busy", cooperative),
+                ("sleep", "import time\ntime.sleep(100)\n"),
+            ):
+                blocked = work / (name + ".py")
+                blocked.write_text(source, encoding="utf-8")
+                started = time.monotonic()
+                stopped = board("run", blocked, "--timeout", "5",
+                                name="timeout-" + name, expect_success=False)
+                elapsed = time.monotonic() - started
+                if (stopped.returncode != 1 or b"board script timed out" not in stopped.stderr
+                        or b"HCV_TIMEOUT_GUARD" in stopped.stdout or elapsed >= 25):
+                    raise RuntimeError(name + ": 5-second timeout recovery was not verified")
+                board("info", name="after-timeout-" + name)
+                print(f"{name}: timeout recovered and the following info succeeded.")
 
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", required=True)
+    parser.add_argument("--stage", choices=("all", "transfer", "timeouts"), default="all")
     parser.add_argument("--output", type=Path, required=True,
                         help="new directory for raw logs")
     args = parser.parse_args()
     try:
-        verify(args.port, args.output)
+        verify(args.port, args.output, args.stage)
     except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
         parser.exit(1, f"P0-T02: {error}\n")
 
