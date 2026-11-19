@@ -114,7 +114,11 @@ def write_report(records, markdown, table, supplemental=None):
         seen = sorted({tuple(item["actual"]) for item in records.values()
                        if tuple(item["case"][:3]) == mode and "actual" in item})
         description = "、".join(f"{w}×{h}@{fps}" for w,h,fps in seen) or "待取得"
-        lines.append(f"- 请求 {mode[0]}×{mode[1]}@{mode[2]}，板端报告 {description}。")
+        valid_fps = [item["fps"] for item in records.values()
+                     if tuple(item["case"][:3]) == mode and item["status"] == "ok"]
+        note = (f"有效 {len(valid_fps)} 组，平均帧率范围 {min(valid_fps):.3f}–{max(valid_fps):.3f} fps。"
+                if valid_fps else "")
+        lines.append(f"- 请求 {mode[0]}×{mode[1]}@{mode[2]}，板端报告 {description}。{note}")
     lines += ["", "## 开关第二通道和裁剪的对比", ""]
     for title, flag in (("启用 CHN1", 5), ("启用 CHN0 裁剪", 6)):
         differences = comparisons(records, flag)
