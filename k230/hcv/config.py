@@ -97,7 +97,7 @@ def _validate(config):
     width, height, fps = sensor["width"], sensor["height"], sensor["fps"]
     _require(sensor["id"] in (0, 1, 2), "sensor.id")
     _require((width, height, fps) in (
-        (1920, 1080, 30), (1920, 1080, 60), (1280, 960, 60), (1280, 720, 90),
+        (1280, 720, 90), (1920, 1080, 30), (1920, 1080, 60),
     ), "sensor.width/height/fps")
 
     detect = config["chn_detect"]
