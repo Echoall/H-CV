@@ -1,4 +1,4 @@
-﻿组合,状态,帧数,fps,间隔 p50 μs,间隔 p95 μs,间隔 p99 μs,最大间隔 μs,snapshot p50 μs,snapshot p95 μs,snapshot p99 μs,最大 snapshot μs,原因
+﻿组合,状态,帧数,fps,间隔 p50 μs,间隔 p95 μs,间隔 p99 μs,最大间隔 μs,snapshot p50 μs,snapshot p95 μs,snapshot p99 μs,最大 snapshot μs,>1.5×标称间隔次数,原因
 1280x720-90_640x360_chn1-0_crop-0,ok,1000,90.01080940621067,11063,12492,12574,13786,11051,12479,12562,13774,
 1280x720-90_640x360_chn1-0_crop-1,board-command-failed,0,,,,,,,,,,
 1280x720-90_640x360_chn1-1_crop-0,ok,1000,90.01887963529649,11049,12421,12541,12588,11037,12398,12525,12575,
@@ -11,18 +11,18 @@
 1280x720-90_320x180_chn1-0_crop-1,ok,1000,89.92491674518969,11106,11151,11163,23664,11093,11109,11149,23652,
 1280x720-90_320x180_chn1-1_crop-0,ok,1000,90.01954478404771,11063,12479,12574,13078,11051,12467,12558,13067,
 1280x720-90_320x180_chn1-1_crop-1,ok,1000,90.01470240139223,11106,11158,11164,12132,11093,11106,11150,12116,
-1280x960-60_640x360_chn1-0_crop-0,pending,,,,,,,,,,,
-1280x960-60_640x360_chn1-0_crop-1,pending,,,,,,,,,,,
-1280x960-60_640x360_chn1-1_crop-0,pending,,,,,,,,,,,
-1280x960-60_640x360_chn1-1_crop-1,pending,,,,,,,,,,,
-1280x960-60_640x480_chn1-0_crop-0,pending,,,,,,,,,,,
-1280x960-60_640x480_chn1-0_crop-1,pending,,,,,,,,,,,
-1280x960-60_640x480_chn1-1_crop-0,pending,,,,,,,,,,,
-1280x960-60_640x480_chn1-1_crop-1,pending,,,,,,,,,,,
-1280x960-60_320x180_chn1-0_crop-0,pending,,,,,,,,,,,
-1280x960-60_320x180_chn1-0_crop-1,pending,,,,,,,,,,,
-1280x960-60_320x180_chn1-1_crop-0,pending,,,,,,,,,,,
-1280x960-60_320x180_chn1-1_crop-1,pending,,,,,,,,,,,
+1280x960-60_640x360_chn1-0_crop-0,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_640x360_chn1-0_crop-1,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_640x360_chn1-1_crop-0,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_640x360_chn1-1_crop-1,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_640x480_chn1-0_crop-0,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_640x480_chn1-0_crop-1,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_640x480_chn1-1_crop-0,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_640x480_chn1-1_crop-1,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_320x180_chn1-0_crop-0,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_320x180_chn1-0_crop-1,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_320x180_chn1-1_crop-0,unsupported,,,,,,,,,,,sensor selected a different physical mode
+1280x960-60_320x180_chn1-1_crop-1,unsupported,,,,,,,,,,,sensor selected a different physical mode
 1920x1080-60_640x360_chn1-0_crop-0,pending,,,,,,,,,,,
 1920x1080-60_640x360_chn1-0_crop-1,pending,,,,,,,,,,,
 1920x1080-60_640x360_chn1-1_crop-0,pending,,,,,,,,,,,
