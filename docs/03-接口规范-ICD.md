@@ -1,6 +1,6 @@
 # 03 接口规范（ICD）
 
-版本 **ICD v1.0**（2026-11-19，Manager）。本文是 K230 与控制组 MCU、K230 与场外笔记本之间的**唯一权威定义**。
+版本 **ICD v1.0.1**（2026-11-20，Manager；v1.0.1 补充 §5.1.1 配置加载与校验规则）。本文是 K230 与控制组 MCU、K230 与场外笔记本之间的**唯一权威定义**。
 实现必须逐字节遵守。要改动就走变更请求（CR），并把版本号升级（字段只增不改：新增字段用新的报文 ID，或者在末尾追加，同时升级版本号）。
 
 ---
@@ -218,6 +218,51 @@ E,<k230_ms>,<event_name>,<detail>
 ```
 
 上面的数值都是占位用的默认值。真实取值由各实验确定，并通过 CR 更新本节。
+
+#### 5.1.1 加载与校验规则（v1.0.1 补充，必须实现）
+
+**合并**：先读 `config.json`，再用 `config.local.json` 递归覆盖：对象按字段合并，数组和标量整体替换。合并完成后，再对最终结果做校验。`config.local.json` 不存在时跳过；存在但格式错误时报错。
+
+**严格键**：除 `detector.params` 外，**任何未知键都报错**，并在错误信息里给出完整路径（例如 `unknown key wifi.pasword`）。这是为了防止把键名拼错后被静默忽略。
+
+**取值规则**（违反就报错，错误信息里带上字段路径）：
+
+| 字段 | 规则 |
+|---|---|
+| `sensor.id` | 只能是 0、1、2 |
+| `sensor.{width,height,fps}` | 必须是 04 文档 / 硬件资料中列出的模式之一：1920×1080@30、1920×1080@60、1280×960@60、1280×720@90。EXP-01 实测后可以通过 CR 增删 |
+| `chn_detect.width`、`chn_stream.width` | 必须是 16 的倍数（Sensor 会自动对齐到 16 像素，不对齐会导致 ROI 坐标错位）；高度必须是偶数；长和宽都不能超过 sensor 的分辨率 |
+| `chn_detect.format` | 只能是 `GRAYSCALE`、`RGB565`、`RGB888`、`YUV420SP` 之一；`chn_stream.format` 只能是 `YUV420SP` |
+| `chn_detect.crop` | 为 null，或者是 `[x, y, w, h]`，且整个裁剪框落在 sensor 画面范围内 |
+| `isp.exposure_us`、`isp.gain` | 为 null（表示不控制），或者是正数 |
+| `markers.x_mm` | 3 个值严格递增，并且都在 ±125 之内；`polarity` 只能是 `dark` 或 `bright` |
+| `detector.name` | 只能是 `blob` 或 `profile` |
+| `tracker.*` | 都必须为正数；`coast_max` 和 `reacquire_frames` 是 1–10 之间的整数 |
+| `uart.id` | 只能是 1–4，**不能是 0**（0 是系统控制台）。`(id, tx_pin, rx_pin)` 必须是硬件资料 §3 中列出的组合之一：UART1 用 (3,4) 或 (40,41)；UART2 用 (11,12) 或 (5,6)；UART3 用 (50,51)；UART4 用 (36,37)（UART4 的 (48,49) 与 CSI0 的 I2C 冲突，**禁止**使用） |
+| `uart.baud` | 只能是 115200、230400、460800、921600 之一 |
+| `status_hz` | 范围 0.5–10 |
+| `latency_const_ms` | 范围 0–255 |
+| `wifi.mode` | 只能是 `ap`、`sta`、`off` |
+| `wifi.channel` | 范围 1–13 |
+| `wifi.password` | 当 `mode` 不是 `off` 时，**不能是占位符 `SEE_LOCAL`**，并且长度在 8–63 之间（WPA2 的要求）。这是因为仓库是公开的，占位符等于公开的密码 |
+| `stream.fps` | 必须 ≤ `sensor.fps` |
+| `stream.port`、`telemetry.hello_port`、`telemetry.data_port` | 都在 1–65535 之间，并且三者两两不同 |
+| `log.level` | 只能是 `debug`、`info`、`warn`、`error` 之一 |
+
+**兼容性**：同一份代码必须能在 CPython 和 CanMV MicroPython 下运行。
+
+- 不要用 `os.path`（MicroPython 没有），判断文件是否存在用 `os.stat` 加 try。
+- 不要依赖 `json.dumps` 的 `sort_keys` 参数（MicroPython 不支持），也不要依赖 dict 的遍历顺序。
+- 不要用 `copy`、`pathlib`、`typing`。
+
+**日志脱敏**：打印配置或出错时，`wifi.password` 一律显示为 `***`。
+
+**标定指纹**（ICD §5.2 中的 `fingerprint`）：
+
+- 参与计算的字段只能取 int、bool、str、null 这几种类型。
+- 用自己实现的规范化序列化：键按字典序排序，不加空格。
+- 哈希函数由 EXP-00 确认 `hashlib` 支持哪些算法后决定：优先 sha256，没有就用 `binascii.crc32`。
+- 必须用测试证明 CPython 和板上计算出的指纹一致。
 
 ### 5.2 `calib.json`（标定结果，由标定工具生成，保存在 `/sdcard/hcv/calib.json`，同时备份到电脑上）
 
