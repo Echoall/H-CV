@@ -11,7 +11,9 @@ python -m venv .venv
 
 在 macOS 或 Linux 上，把 `.\.venv\Scripts\python.exe` 换成 `.venv/bin/python`。
 
-测试会在临时目录中读取配置，无需连接板卡。开始配置实机时，把 `k230/config.example.json` 复制为 `k230/config.json`，再根据实测调整参数。可在同目录放置 `config.local.json`，仅保存本机覆盖项，例如 Wi-Fi 密码。嵌套对象按字段覆盖，数组和标量整体替换。配置先合并再校验。示例参数来自 ICD §5.1，板卡和摄像头实测安排在 P0。
+测试会在临时目录中读取配置，无需连接板卡。开始配置实机时，把 `k230/config.example.json` 复制为 `k230/config.json`，再根据实测调整参数。可在同目录放置 `config.local.json`，仅保存本机覆盖项，例如 Wi-Fi 密码。嵌套对象按字段覆盖，数组和标量整体替换。配置先合并再校验。示例参数来自 ICD §5.1，板卡和摄像头实测安排在 P0。示例的 Wi-Fi 密码是占位符，启用 AP 或 STA 时必须在本地配置提供 8–63 字符密码。仅调试板卡时，可用本地配置 {"wifi": {"mode": "off"}}。日志通过 format_config_for_log() 输出脱敏配置。
+
+requirements.lock 是本次 Windows / CPython 3.14 的依赖快照，可在相同环境用 -r requirements.lock 复现。其他 Python 3.10+ 环境用 requirements.txt。
 
 ## P0-T02 板卡访问原型
 

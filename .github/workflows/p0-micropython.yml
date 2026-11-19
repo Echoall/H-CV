@@ -1,0 +1,34 @@
+name: P0 MicroPython compatibility
+
+on:
+  push:
+    branches: [codex/P0]
+    paths:
+      - 'k230/hcv/config.py'
+      - 'k230/config.example.json'
+      - 'tests/config_cases.json'
+      - 'tests/config_micropython.py'
+      - '.github/workflows/p0-micropython.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  micropython-unix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the upstream MicroPython Unix port
+        run: |
+          git clone --depth 1 --branch v1.26.1 https://github.com/micropython/micropython.git "$RUNNER_TEMP/micropython"
+          make -C "$RUNNER_TEMP/micropython/mpy-cross" -j2
+          make -C "$RUNNER_TEMP/micropython/ports/unix" submodules
+          make -C "$RUNNER_TEMP/micropython/ports/unix" -j2
+      - name: Run the shared configuration cases
+        run: |
+          binary="$RUNNER_TEMP/micropython/ports/unix/build-standard/micropython"
+          "$binary" -c 'import sys; print(sys.implementation)'
+          work_dir="$(mktemp -d)"
+          "$binary" tests/config_micropython.py "$work_dir"

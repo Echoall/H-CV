@@ -1,13 +1,15 @@
-from copy import deepcopy
+import errno
 import json
 from pathlib import Path
 
 import pytest
 
-from k230.hcv.config import load_config
+from k230.hcv.config import format_config_for_log, load_config
 
 
-EXAMPLE = Path(__file__).resolve().parents[1] / "k230" / "config.example.json"
+ROOT = Path(__file__).resolve().parents[1]
+EXAMPLE = ROOT / "k230" / "config.example.json"
+CASES = json.loads(Path(__file__).with_name("config_cases.json").read_text(encoding="utf-8"))
 
 
 def write_json(path, data):
@@ -17,6 +19,7 @@ def write_json(path, data):
 @pytest.fixture
 def example(tmp_path):
     config = json.loads(EXAMPLE.read_text(encoding="utf-8"))
+    config["wifi"]["mode"] = "off"
     write_json(tmp_path / "config.json", config)
     return config
 
@@ -32,7 +35,22 @@ def test_recursively_overrides_local_fields(tmp_path, example):
     assert config["status_hz"] == 4
 
 
-@pytest.mark.parametrize(("override", "message"), [
+@pytest.mark.parametrize(
+    ("override", "field"),
+    [(item[1], item[2]) for item in CASES],
+    ids=[item[0] for item in CASES],
+)
+def test_icd_v101(tmp_path, example, override, field):
+    write_json(tmp_path / "config.local.json", override)
+    if field is None:
+        load_config(tmp_path)
+    else:
+        with pytest.raises(ValueError) as caught:
+            load_config(tmp_path)
+        assert field in str(caught.value)
+
+
+@pytest.mark.parametrize(("override", "field"), [
     ({"schema": True}, "schema"),
     ({"schema": 2}, "schema"),
     ({"sensor": None}, "sensor"),
@@ -42,26 +60,46 @@ def test_recursively_overrides_local_fields(tmp_path, example):
     ({"markers": {"x_mm": [0, -110, 110]}}, "markers.x_mm"),
     ({"stream": {"port": 65536}}, "stream.port"),
 ])
-def test_validates_effective_config(tmp_path, example, override, message):
+def test_effective_config_regressions(tmp_path, example, override, field):
     write_json(tmp_path / "config.local.json", override)
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(ValueError) as caught:
         load_config(tmp_path)
+    assert field in str(caught.value)
 
 
 def test_missing_nested_field_is_rejected(tmp_path, example):
-    config = deepcopy(example)
-    del config["uart"]["baud"]
-    write_json(tmp_path / "config.json", config)
+    del example["uart"]["baud"]
+    write_json(tmp_path / "config.json", example)
     with pytest.raises(ValueError, match=r"uart\.baud"):
         load_config(tmp_path)
 
 
 def test_malformed_local_config_is_not_skipped(tmp_path, example):
-    (tmp_path / "config.local.json").write_text("{", encoding="utf-8")
-    with pytest.raises(ValueError):
+    (tmp_path / "config.local.json").write_text('{"wifi":{"password":"test-only', encoding="utf-8")
+    with pytest.raises(ValueError) as caught:
         load_config(tmp_path)
+    assert "invalid JSON" in str(caught.value)
+    assert "test-only" not in str(caught.value)
 
 
 def test_missing_base_config_is_an_error(tmp_path):
-    with pytest.raises(OSError):
+    with pytest.raises(OSError) as caught:
         load_config(tmp_path)
+    assert caught.value.args[0] == errno.ENOENT
+
+
+def test_redacted_log_preserves_original_password(tmp_path, example):
+    write_json(tmp_path / "config.local.json", {"wifi": {"mode": "ap", "password": "test-only"}})
+    config = load_config(tmp_path)
+    logged = format_config_for_log(config)
+    assert "test-only" not in logged
+    assert json.loads(logged)["wifi"]["password"] == "***"
+    assert config["wifi"]["password"] == "test-only"
+
+
+def test_invalid_password_error_is_redacted(tmp_path, example):
+    write_json(tmp_path / "config.local.json", {"wifi": {"mode": "ap", "password": "secret"}})
+    with pytest.raises(ValueError) as caught:
+        load_config(tmp_path)
+    assert "secret" not in str(caught.value)
+    assert "***" in str(caught.value)
