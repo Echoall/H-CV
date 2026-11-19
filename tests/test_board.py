@@ -11,7 +11,10 @@ class FakeBoard:
     def __init__(self, *streams):
         self.streams = iter(streams)
         self.calls = []
-        self.serial = SimpleNamespace(write=lambda data: self.calls.append(data))
+        self.serial = SimpleNamespace(
+            write=lambda data: self.calls.append(data),
+            flush=lambda: self.calls.append("flush"),
+        )
 
     def exec_raw_no_follow(self, source):
         self.calls.append(source)
@@ -50,7 +53,7 @@ def test_no_eof_times_out_and_recovers_without_reset():
     with pytest.raises(TimeoutError):
         run_script(board, b"program", 3, output.extend)
     assert output == b"working"
-    assert board.calls == [b"program", b"\x03\x03", "exit", ("reenter", False, 3), "cleanup"]
+    assert board.calls == [b"program", b"\x03", "flush", "exit", ("reenter", False, 3), "cleanup"]
 
 
 def test_script_error_is_captured():
@@ -136,7 +139,7 @@ def test_timeout_when_output_never_stops(monkeypatch):
     with pytest.raises(TimeoutError):
         run_script(board, b"program", 1, output.extend)
     assert output == b"a"
-    assert board.calls[-4:] == [b"\x03\x03", "exit", ("reenter", False, 3), "cleanup"]
+    assert board.calls[-5:] == [b"\x03", "flush", "exit", ("reenter", False, 3), "cleanup"]
 
 
 def test_soft_reset_is_used_when_first_interrupt_fails():

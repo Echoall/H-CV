@@ -27,12 +27,12 @@ TF 卡通过 USB 显示成电脑磁盘时，请停止从该磁盘写入、删除
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 ls /sdcard
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 backup
 
-backup 单独执行，显示进度并使用 10 分钟预算。它记录全部文件的路径与大小，保存 /sdcard 根目录的 Python 文件，并对这些脚本和不超过 1 MiB 的小文件计算 SHA-256。大文件只记录元数据并标记 hashed=false。备份目录为 reports/data/P0-EXP00/board-backup/。更换 TF 卡或板卡时，将旧备份归档到其他本机目录，再备份新卡。原始备份在本机忽略，公开仓库只提交检查过的证据。put、run 和实机验收脚本启动前都要求已有完整备份，写入目标限于 /sdcard/hcv/。上传先写临时文件，再比较 SHA-256。旧文件会保留到新文件校验和替换成功。run 超时会先尝试 Ctrl-C 回到 raw REPL，再尝试软复位和媒体清理。退出码 3 表示需要现场断电重接。cleanup 可单独尝试媒体清理。reset 命令会显式触发 MicroPython 软重启。
+backup 单独执行，显示进度并使用 10 分钟预算。它记录全部文件的路径与大小，保存 /sdcard 根目录的 Python 文件，并对这些脚本和不超过 1 MiB 的小文件计算 SHA-256。大文件只记录元数据并标记 hashed=false。备份目录为 reports/data/P0-EXP00/board-backup/。更换 TF 卡或板卡时，将旧备份归档到其他本机目录，再备份新卡。原始备份在本机忽略，公开仓库只提交检查过的证据。put、run 和实机验收脚本启动前都要求已有完整备份，写入目标限于 /sdcard/hcv/。上传先写临时文件，再比较 SHA-256。旧文件会保留到新文件校验和替换成功。run 超时会先发送一个独立 Ctrl-C 回到 raw REPL，再尝试软复位和媒体清理。退出码 3 表示需要现场断电重接。cleanup 可单独尝试媒体清理。reset 命令会显式触发 MicroPython 软重启。
 
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 run tools/board/hello_k230.py --timeout 5 --stream
 
 
-首次 info 和 backup 成功后，运行以下真实板卡验收。把 COM3 换成板卡端口。命令会做 20 次上传、运行、取回，检查每次 1000 行都连续无丢失，分别验证调用 os.exitpoint() 的 Python 循环与 time.sleep(100) 在 5 秒超时后恢复，并确认 info 还能成功。循环带 30 秒板端保护，保护触发不会记作五秒恢复。用 --stage transfer 或 --stage timeouts 可单独复验。无保护忙循环的首次实机结果见 P0-T02 报告。output 必须是尚不存在的目录。
+首次 info 和 backup 成功后，运行以下真实板卡验收。把 COM3 换成板卡端口。命令会做 20 次上传、运行、取回，检查每次 1000 行都连续无丢失，验证调用 os.exitpoint() 的 Python 循环在 5 秒超时后中断，并确认 info 还能成功。循环带 30 秒板端保护，保护触发不计入五秒验收。用 --stage transfer、--stage timeouts 或 --stage sleep 可单独复验传输、协作循环或短休眠循环。无保护忙循环的首次实机结果见 P0-T02 报告。output 必须是尚不存在的目录。
 
     .\.venv\Scripts\python.exe tools/board/verify.py --port COM3 --output reports/data/P0-T02/board-01
 

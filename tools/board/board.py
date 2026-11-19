@@ -231,7 +231,10 @@ def cleanup_media(board):
 def recover(board):
     for soft_reset, timeout in ((False, 3), (True, 10)):
         try:
-            board.serial.write(b"\x03\x03")
+            # CanMV v1.4 recognizes a standalone Ctrl-C, not two bytes in one read.
+            board.serial.write(b"\x03")
+            board.serial.flush()
+            time.sleep(0.25)
             board.exit_raw_repl()
             board.enter_raw_repl(soft_reset=soft_reset, timeout_overall=timeout)
         except (OSError, TransportError):
