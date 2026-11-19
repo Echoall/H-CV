@@ -24,10 +24,10 @@ TF 卡通过 USB 显示成电脑磁盘时，请停止从该磁盘写入、删除
 
     .\.venv\Scripts\python.exe tools/board/board.py ports
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 info
-    .\.venv\Scripts\python.exe tools/board/board.py --port COM3 backup
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 ls /sdcard
+    .\.venv\Scripts\python.exe tools/board/board.py --port COM3 backup
 
-backup 读取 TF 卡目录，记录文件数、总大小和 SHA-256，并保存 /sdcard 根目录的 Python 文件。备份目录为 reports/data/P0-EXP00/board-backup/。更换 TF 卡或板卡时，将旧备份归档到其他本机目录，再备份新卡。原始备份在本机忽略，公开仓库只提交检查过的证据。首次 put 或 run 会先检查备份，写入目标限于 /sdcard/hcv/。上传先写临时文件，再比较 SHA-256。旧文件会保留到新文件校验和替换成功。run 超时会先尝试 Ctrl-C 回到 raw REPL，再尝试软复位和媒体清理。退出码 3 表示需要现场断电重接。cleanup 可单独尝试媒体清理。reset 命令会显式触发 MicroPython 软重启。
+backup 单独执行，显示进度并使用 10 分钟预算。它记录全部文件的路径与大小，保存 /sdcard 根目录的 Python 文件，并对这些脚本和不超过 1 MiB 的小文件计算 SHA-256。大文件只记录元数据并标记 hashed=false。备份目录为 reports/data/P0-EXP00/board-backup/。更换 TF 卡或板卡时，将旧备份归档到其他本机目录，再备份新卡。原始备份在本机忽略，公开仓库只提交检查过的证据。put、run 和实机验收脚本启动前都要求已有完整备份，写入目标限于 /sdcard/hcv/。上传先写临时文件，再比较 SHA-256。旧文件会保留到新文件校验和替换成功。run 超时会先尝试 Ctrl-C 回到 raw REPL，再尝试软复位和媒体清理。退出码 3 表示需要现场断电重接。cleanup 可单独尝试媒体清理。reset 命令会显式触发 MicroPython 软重启。
 
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 run tools/board/hello_k230.py --timeout 5 --stream
 
@@ -41,7 +41,7 @@ backup 读取 TF 卡目录，记录文件数、总大小和 SHA-256，并保存 
 
 ## P0-EXP00 盘点准备
 
-串口工具完成 P0-T02 的实机验收后，可以开始板卡盘点。命令只采集固件、内存和 API 数据，摄像头取帧留给确认固件之后的单独验证。
+串口工具完成 P0-T02 的实机验收后，可以开始板卡盘点。命令只采集固件、内存和 API 数据。确认固件后单独验证摄像头取帧，并记录 raw REPL 软复位是否启动原 main.py。
 
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 run k230/exp/exp00_inventory.py --timeout 60 --stream --log reports/data/P0-EXP00/inventory.raw.log
     .\.venv\Scripts\python.exe tools/board/config_smoke.py --port COM3 --log reports/data/P0-EXP00/config-smoke.log

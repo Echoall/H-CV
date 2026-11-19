@@ -19,6 +19,7 @@ REPO = Path(__file__).resolve().parents[2]
 BACKUP = REPO / "reports" / "data" / "P0-EXP00" / "board-backup"
 SDCARD = "/sdcard"
 CANMV_USB_ID = (0x1209, 0xABD1)
+HASH_LIMIT = 1024 * 1024
 
 
 class BoardRecoveryError(TransportError):
@@ -60,17 +61,46 @@ class ControlledSerialTransport(SerialTransport):
         self.serial.open()
 
 
-def backup_sdcard(board, directory):
+def require_backup(directory=BACKUP):
+    if not (directory / "sdcard.json").is_file():
+        raise FileNotFoundError("run the board.py backup command before put, run or verify")
+
+
+def board_has_sha256(board):
+    result = board.exec(
+        "try:\n"
+        "    import hashlib\n"
+        "    hashlib.sha256()\n"
+        "except (ImportError, AttributeError):\n"
+        "    print('HCV_SHA256=0')\n"
+        "else:\n"
+        "    print('HCV_SHA256=1')\n"
+    )
+    return result.strip().endswith(b"HCV_SHA256=1")
+
+
+def backup_sdcard(board, directory, timeout=600):
     directory.mkdir(parents=True, exist_ok=True)
     manifest = directory / "sdcard.json"
     if manifest.is_file():
+        print("Using existing TF-card backup.", file=sys.stderr, flush=True)
         return
 
-    entries = []
-    pending = [SDCARD]
+    deadline = time.monotonic() + timeout
+
+    def check_time(*_progress):
+        if time.monotonic() >= deadline:
+            raise TimeoutError("TF-card backup exceeded its 10-minute budget")
+
+    print("Reading TF-card directory and selected files...", file=sys.stderr, flush=True)
+    device_hash = board_has_sha256(board)
+    entries, pending = [], [SDCARD]
+    file_count = total_bytes = hashed = skipped = 0
     while pending:
+        check_time()
         parent = pending.pop()
         for item in sorted(board.fs_listdir(parent), key=lambda entry: entry.name):
+            check_time()
             if item.name in (".", ".."):
                 continue
             path = parent + "/" + item.name
@@ -79,25 +109,48 @@ def backup_sdcard(board, directory):
             entries.append(entry)
             if is_directory:
                 pending.append(path)
-            elif parent == SDCARD and item.name.lower().endswith(".py"):
-                if "/" in item.name or "\\" in item.name:
-                    raise ValueError("invalid filename on the SD card")
-                content = board.fs_readfile(path)
-                (directory / item.name).write_bytes(content)
+                continue
+
+            file_count += 1
+            total_bytes += item.st_size
+            root_script = parent == SDCARD and item.name.lower().endswith(".py")
+            hash_file = root_script or item.st_size <= HASH_LIMIT
+            entry["hashed"] = hash_file
+            if not hash_file:
+                skipped += 1
+                try:
+                    entry["mtime"] = board.fs_stat(path).st_mtime
+                except (AttributeError, OSError, TransportError):
+                    pass
+            elif root_script or not device_hash:
+                content = board.fs_readfile(path, progress_callback=check_time)
                 entry["sha256"] = sha256(content).hexdigest()
+                hashed += 1
+                if root_script:
+                    if "/" in item.name or "\\" in item.name:
+                        raise ValueError("invalid filename on the SD card")
+                    (directory / item.name).write_bytes(content)
             else:
                 entry["sha256"] = board.fs_hashfile(path, "sha256").hex()
+                hashed += 1
 
-    files = [entry for entry in entries if not entry["directory"]]
+            if file_count == 1 or file_count % 10 == 0:
+                print(f"Backup: {file_count} files listed, {hashed} hashed, {skipped} skipped",
+                      file=sys.stderr, flush=True)
+    check_time()
     summary = {
-        "file_count": len(files),
-        "total_bytes": sum(entry["bytes"] for entry in files),
+        "file_count": file_count,
+        "total_bytes": total_bytes,
+        "hashed_file_count": hashed,
+        "unhashed_file_count": skipped,
         "entries": entries,
     }
     temporary = manifest.with_suffix(".tmp")
     temporary.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
                          encoding="utf-8")
     temporary.replace(manifest)
+    print(f"Backup complete: {file_count} files, {hashed} hashed, {skipped} skipped",
+          file=sys.stderr, flush=True)
 
 
 def project_path(path):
@@ -300,12 +353,12 @@ def main():
                 args.local.write_bytes(board.fs_readfile(args.remote))
             elif args.command == "put":
                 project_path(args.remote)
-                backup_sdcard(board, BACKUP)
+                require_backup()
                 upload(board, args.local, args.remote)
             elif args.command == "run":
                 if not args.script.is_file():
                     raise FileNotFoundError(str(args.script))
-                backup_sdcard(board, BACKUP)
+                require_backup()
                 run_command(board, args)
             elif args.command == "cleanup":
                 print(cleanup_media(board))

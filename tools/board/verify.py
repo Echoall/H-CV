@@ -8,6 +8,11 @@ import sys
 import tempfile
 import time
 
+if __package__:
+    from .board import require_backup
+else:
+    from board import require_backup
+
 
 CLI = Path(__file__).with_name("board.py")
 REMOTE = "/sdcard/hcv/p0_t02"
@@ -16,6 +21,7 @@ LINES = 1000
 
 
 def verify(port, output):
+    require_backup()
     output.mkdir(parents=True, exist_ok=False)
 
     def board(*args, name, expect_success=True, timeout=90):
@@ -52,7 +58,6 @@ def verify(port, output):
         payload = work / "payload.py"
         received = work / "received.bin"
         board("info", name="info")
-        board("backup", name="backup", timeout=600)
         for trial in range(1, TRIALS + 1):
             expected = f"P0-T02 trial {trial}\n".encode()
             payload.write_text(

@@ -87,8 +87,12 @@ def test_backup_lists_nested_files_and_saves_original_startup(tmp_path):
     }
     from hashlib import sha256
 
-    board = SimpleNamespace(fs_listdir=dirs.__getitem__, fs_readfile=lambda path: b"hello",
-                            fs_hashfile=lambda path, algorithm: sha256(b"other").digest())
+    board = SimpleNamespace(
+        exec=lambda code: b"HCV_SHA256=1",
+        fs_listdir=dirs.__getitem__,
+        fs_readfile=lambda path, progress_callback: b"hello",
+        fs_hashfile=lambda path, algorithm: sha256(b"other").digest(),
+    )
     backup_sdcard(board, tmp_path)
     manifest = json.loads((tmp_path / "sdcard.json").read_text(encoding="utf-8"))
     assert [entry["path"] for entry in manifest["entries"]] == [
@@ -208,3 +212,62 @@ def test_upload_checks_before_replacing_and_preserves_previous_file(tmp_path, fa
         with pytest.raises((ValueError, TransportError)):
             upload(board, local, remote)
         assert files[remote] == b"old"
+
+
+def test_backup_without_board_hash_skips_large_files(tmp_path):
+    from hashlib import sha256
+
+    large_size = 50 * 1024 * 1024
+    reads = []
+    entries = [
+        SimpleNamespace(name="demo.kmodel", st_mode=0, st_size=large_size),
+        SimpleNamespace(name="license.txt", st_mode=0, st_size=3),
+    ]
+
+    def read(path, *, progress_callback):
+        reads.append(path)
+        assert path == "/sdcard/license.txt"
+        progress_callback(3, 3)
+        return b"abc"
+
+    def hash_file(*args):
+        pytest.fail("a board without hashlib cannot hash files")
+
+    board = SimpleNamespace(
+        exec=lambda code: b"HCV_SHA256=0\r\n",
+        fs_listdir=lambda parent: entries,
+        fs_stat=lambda path: SimpleNamespace(st_mtime=123),
+        fs_readfile=read,
+        fs_hashfile=hash_file,
+    )
+    backup_sdcard(board, tmp_path)
+    manifest = json.loads((tmp_path / "sdcard.json").read_text(encoding="utf-8"))
+    assert reads == ["/sdcard/license.txt"]
+    assert manifest["hashed_file_count"] == 1
+    assert manifest["unhashed_file_count"] == 1
+    assert manifest["total_bytes"] == large_size + 3
+    assert manifest["entries"][0] == {
+        "path": "/sdcard/demo.kmodel", "directory": False, "bytes": large_size,
+        "hashed": False, "mtime": 123,
+    }
+    assert manifest["entries"][1]["sha256"] == sha256(b"abc").hexdigest()
+
+
+def test_backup_deadline_leaves_no_complete_manifest(tmp_path, monkeypatch):
+    from tools.board import board as board_module
+
+    ticks = iter((0.0, 11.0))
+    monkeypatch.setattr(board_module.time, "monotonic", lambda: next(ticks))
+    board = SimpleNamespace(exec=lambda code: b"HCV_SHA256=0")
+    with pytest.raises(TimeoutError, match="10-minute"):
+        backup_sdcard(board, tmp_path, timeout=10)
+    assert not (tmp_path / "sdcard.json").exists()
+
+
+def test_explicit_backup_is_required_before_writes_and_verifier(tmp_path):
+    from tools.board.board import require_backup
+
+    with pytest.raises(FileNotFoundError, match="backup command"):
+        require_backup(tmp_path)
+    (tmp_path / "sdcard.json").write_text("{}", encoding="utf-8")
+    require_backup(tmp_path)
