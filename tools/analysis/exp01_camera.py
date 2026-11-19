@@ -76,9 +76,11 @@ def key(case):
     return f"{w}x{h}-{fps}_{x}x{y}_chn1-{int(stream)}_crop-{int(crop)}"
 
 
-def capture(port, output, frames, smoke=False):
+def capture(port, output, frames, smoke=False, selected=None):
     output.mkdir(parents=True, exist_ok=False)
     combinations = list(cases())[:1] if smoke else list(cases())
+    if selected is not None:
+        combinations = [case for case in combinations if key(case) in selected]
     original = PROBE.read_text(encoding="utf-8")
     previous = None
     failures = 0
@@ -129,8 +131,13 @@ def capture(port, output, frames, smoke=False):
 
 
 def write_summary(directory):
-    cases = [(file.stem, json.loads(file.read_text(encoding="utf-8")))
-             for file in sorted(directory.glob("*.json"))]
+    cases = []
+    for file in sorted(directory.glob("*.json")):
+        case = json.loads(file.read_text(encoding="utf-8"))
+        raw = file.with_suffix(".log")
+        if raw.is_file() and case["status"] not in ("board-command-failed", "host-timeout"):
+            case.update(summarize(raw.read_text(encoding="utf-8", errors="replace")))
+        cases.append((file.stem, case))
     headers = ["case", "status", "detail", "frames", "fps",
                "interval_p50", "interval_p95", "interval_p99", "interval_max",
                "snapshot_p50", "snapshot_p95", "snapshot_p99", "snapshot_max"]
@@ -148,12 +155,16 @@ def main():
     parser.add_argument("command", choices=("capture", "summary"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--port", default="auto")
-    parser.add_argument("--smoke", action="store_true")
+    subset = parser.add_mutually_exclusive_group()
+    subset.add_argument("--smoke", action="store_true")
+    subset.add_argument("--case", action="append", choices=[key(case) for case in cases()],
+                        metavar="CASE", help="run only the named case; may be repeated")
     args = parser.parse_args()
     if args.command == "summary":
         write_summary(args.output)
         return 0
-    result = capture(args.port, args.output, 30 if args.smoke else 1000, args.smoke)
+    result = capture(args.port, args.output, 30 if args.smoke else 1000,
+                     args.smoke, set(args.case) if args.case else None)
     write_summary(args.output)
     return result
 
