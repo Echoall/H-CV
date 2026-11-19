@@ -1,4 +1,4 @@
-"""Read ICD v1.0 configuration on CPython and CanMV."""
+"""Read ICD v1.0.1 configuration on CPython and CanMV."""
 
 import errno
 import json

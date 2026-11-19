@@ -2,6 +2,7 @@
 
 import argparse
 from contextlib import ExitStack
+from hashlib import sha256
 import json
 from math import isfinite
 from pathlib import Path, PurePosixPath
@@ -10,17 +11,49 @@ import time
 
 from mpremote.transport import TransportError
 from mpremote.transport_serial import SerialTransport
+from serial import serial_for_url
 from serial.tools import list_ports
 
 
 REPO = Path(__file__).resolve().parents[2]
 BACKUP = REPO / "reports" / "data" / "P0-EXP00" / "board-backup"
 SDCARD = "/sdcard"
+CANMV_USB_ID = (0x1209, 0xABD1)
 
 
 def detect_ports():
     for port in list_ports.comports():
         print(port.device, port.description, port.hwid, sep="\t")
+
+
+
+def select_port(requested):
+    if requested != "auto":
+        return requested
+    candidates = [port.device for port in list_ports.comports()
+                  if (port.vid, port.pid) == CANMV_USB_ID]
+    if len(candidates) != 1:
+        raise ValueError("expected one CanMV USB port, found " + str(len(candidates))
+                         + "; use ports and pass --port explicitly")
+    return candidates[0]
+
+
+class ControlledSerialTransport(SerialTransport):
+    """The pinned raw REPL transport with explicit initial line levels."""
+
+    def __init__(self, device, dtr, rts):
+        self.device_name = device
+        self.in_raw_repl = False
+        self.use_raw_paste = True
+        self.mounted = False
+        self.is_pty = self._is_pty_device(device)
+        self.serial = serial_for_url(device, do_not_open=True, baudrate=115200,
+                                     timeout=1, exclusive=True, write_timeout=2)
+        if dtr != "default":
+            self.serial.dtr = dtr == "1"
+        if rts != "default":
+            self.serial.rts = rts == "1"
+        self.serial.open()
 
 
 def backup_sdcard(board, directory):
@@ -64,7 +97,33 @@ def upload(board, local, remote):
     for parent in reversed(destination.parents):
         if parent.is_relative_to("/sdcard/hcv") and not board.fs_isdir(str(parent)):
             board.fs_mkdir(str(parent))
-    board.fs_writefile(str(destination), content)
+    staged = destination.with_name("." + destination.name + ".hcv-upload")
+    previous = destination.with_name("." + destination.name + ".hcv-previous")
+    if board.fs_exists(str(previous)):
+        if board.fs_exists(str(destination)):
+            board.fs_rmfile(str(previous))
+        else:
+            rename(board, previous, destination)
+
+    board.fs_writefile(str(staged), content, chunk_size=256)
+    if board.fs_hashfile(str(staged), "sha256") != sha256(content).digest():
+        raise ValueError("upload checksum mismatch; original file was kept")
+
+    had_original = board.fs_exists(str(destination))
+    if had_original:
+        rename(board, destination, previous)
+    try:
+        rename(board, staged, destination)
+    except TransportError:
+        if had_original:
+            rename(board, previous, destination)
+        raise
+    if had_original:
+        board.fs_rmfile(str(previous))
+
+
+def rename(board, source, destination):
+    board.exec("import os\nos.rename({!r}, {!r})".format(str(source), str(destination)))
 
 
 def run_script(board, source, timeout, emit):
@@ -100,8 +159,8 @@ def run_script(board, source, timeout, emit):
         at_prompt = True
     finally:
         if not at_prompt:
-            board.serial.write(b"\x03\x03")
             try:
+                board.serial.write(b"\x03\x03")
                 board.exit_raw_repl()
                 board.enter_raw_repl(soft_reset=False, timeout_overall=5)
             except (OSError, TransportError):
@@ -147,7 +206,9 @@ def positive_timeout(text):
 
 def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--port", help="USB serial port, e.g. COM3")
+    parser.add_argument("--port", default="auto", help="auto or explicit USB serial port")
+    parser.add_argument("--dtr", choices=("default", "0", "1"), default="default")
+    parser.add_argument("--rts", choices=("default", "0", "1"), default="default")
     commands = parser.add_subparsers(dest="command", required=True)
     for command in ("ports", "info", "backup", "reset"):
         commands.add_parser(command)
@@ -164,10 +225,7 @@ def arguments():
     run.add_argument("--timeout", type=positive_timeout, default=30.0)
     run.add_argument("--stream", action="store_true")
     run.add_argument("--log", type=Path)
-    args = parser.parse_args()
-    if args.command != "ports" and not args.port:
-        parser.error("--port is required; use the ports command to list candidates")
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -177,7 +235,14 @@ def main():
         return 0
 
     try:
-        board = SerialTransport(args.port, timeout=1)
+        device = select_port(args.port)
+        try:
+            if args.dtr == args.rts == "default":
+                board = SerialTransport(device, timeout=1)
+            else:
+                board = ControlledSerialTransport(device, args.dtr, args.rts)
+        except (OSError, TransportError) as error:
+            raise TransportError(str(error) + "; close CanMV IDE and other serial tools") from error
         try:
             board.serial.write_timeout = 2
             board.enter_raw_repl(soft_reset=False)

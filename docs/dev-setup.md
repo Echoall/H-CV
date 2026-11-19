@@ -19,14 +19,14 @@ requirements.lock 是本次 Windows / CPython 3.14 的依赖快照，可在相�
 
 使用 MicroPython 的 mpremote USB raw REPL 传输。它提供脚本执行和板上文件读写，便于在命令行采集原始输出。庐山派当前固件是否响应 raw REPL 要通过实机确认。电脑没有枚举到板卡时，先确认数据线和 TF 卡。若 CanMV IDE 已连接到同一个串口，先断开 IDE 中的连接。
 
-在板卡连接前后分别执行 ports，对照新增设备，然后用实际端口替换下例 COM3。
+在板卡连接前后分别执行 ports，对照新增设备，已知 CanMV USB VID/PID（1209:abd1）只有一个时，默认自动选口。也可以用实际端口替换下例 COM3。需要排查握手线影响时，可在子命令前加 --dtr 0 --rts 0；默认沿用 mpremote 的设置。
 
     .\.venv\Scripts\python.exe tools/board/board.py ports
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 info
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 backup
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 ls /sdcard
 
-backup 读取 TF 卡目录和已有 /sdcard/main.py，保存在 reports/data/P0-EXP00/board-backup/。原始备份在本机忽略，公开仓库只提交检查过的证据。首次 put 会先检查备份，写入目标限于 /sdcard/hcv/。reset 命令会显式触发 MicroPython 软重启。
+backup 读取 TF 卡目录和已有 /sdcard/main.py，保存在 reports/data/P0-EXP00/board-backup/。原始备份在本机忽略，公开仓库只提交检查过的证据。首次 put 会先检查备份，写入目标限于 /sdcard/hcv/。上传先写临时文件，再比较 SHA-256。旧文件会保留到新文件校验和替换成功。reset 命令会显式触发 MicroPython 软重启。
 
     .\.venv\Scripts\python.exe tools/board/board.py --port COM3 run tools/board/hello_k230.py --timeout 5 --stream
 

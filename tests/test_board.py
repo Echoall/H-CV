@@ -88,3 +88,92 @@ def test_backup_lists_nested_files_and_saves_original_startup(tmp_path):
     assert (tmp_path / "main.py").read_bytes() == b"hello"
     dirs.clear()
     backup_sdcard(board, tmp_path)
+
+
+def test_auto_selects_only_known_canmv_port(monkeypatch):
+    from tools.board import board as board_module
+
+    def device(name, vid, pid):
+        return SimpleNamespace(device=name, vid=vid, pid=pid)
+
+    monkeypatch.setattr(board_module.list_ports, "comports",
+                        lambda: [device("COM1", None, None), device("COM3", 0x1209, 0xABD1)])
+    assert board_module.select_port("auto") == "COM3"
+    assert board_module.select_port("COM8") == "COM8"
+
+    monkeypatch.setattr(board_module.list_ports, "comports",
+                        lambda: [device("COM3", 0x1209, 0xABD1),
+                                 device("COM4", 0x1209, 0xABD1)])
+    with pytest.raises(ValueError, match="found 2"):
+        board_module.select_port("auto")
+
+
+def test_timeout_when_output_never_stops(monkeypatch):
+    from tools.board import board as board_module
+
+    ticks = iter((0.0, 0.0, 0.5, 1.1))
+    monkeypatch.setattr(board_module.time, "monotonic", lambda: next(ticks))
+    board = FakeBoard(b"abcdefgh\n\x04")
+    output = bytearray()
+    with pytest.raises(TimeoutError):
+        run_script(board, b"program", 1, output.extend)
+    assert output == b"a"
+    assert board.calls[-3:] == [b"\x03\x03", "exit", "reenter"]
+
+
+def test_failed_recovery_is_reported_without_hiding_timeout(capsys):
+    from mpremote.transport import TransportError
+
+    board = FakeBoard(b"no EOF")
+
+    def fail_to_enter(**kwargs):
+        raise TransportError("board still busy")
+
+    board.enter_raw_repl = fail_to_enter
+    with pytest.raises(TimeoutError):
+        run_script(board, b"program", 1, lambda data: None)
+    assert "Could not recover raw REPL" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("failure", [None, "hash", "rename"])
+def test_upload_checks_before_replacing_and_preserves_previous_file(tmp_path, failure):
+    from ast import literal_eval
+    from hashlib import sha256
+    from mpremote.transport import TransportError
+    from tools.board.board import upload
+
+    remote = "/sdcard/hcv/main.py"
+    staged = "/sdcard/hcv/.main.py.hcv-upload"
+    files = {remote: b"old"}
+    local = tmp_path / "main.py"
+    local.write_bytes(b"\x00\xff\x04\nnew")
+
+    def write(path, data, chunk_size):
+        assert chunk_size <= 256
+        files[path] = data
+
+    def digest(path, algorithm):
+        assert algorithm == "sha256"
+        return sha256(b"corrupt" if failure == "hash" else files[path]).digest()
+
+    def execute(source):
+        old, new = literal_eval(source.split("os.rename", 1)[-1])
+        if failure == "rename" and old == staged:
+            raise TransportError("staging rename failed")
+        files[new] = files.pop(old)
+
+    board = SimpleNamespace(
+        fs_isdir=lambda path: path == "/sdcard/hcv",
+        fs_exists=files.__contains__,
+        fs_rmfile=files.pop,
+        fs_hashfile=digest,
+        fs_writefile=write,
+        exec=execute,
+    )
+    if failure is None:
+        upload(board, local, remote)
+        assert files == {remote: local.read_bytes()}
+    else:
+        with pytest.raises((ValueError, TransportError)):
+            upload(board, local, remote)
+        assert files[remote] == b"old"
