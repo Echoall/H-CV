@@ -2,7 +2,7 @@
   ["unknown wifi key",{"wifi":{"pasword":"test-only"}},"wifi.pasword"],
   ["reject placeholder in AP",{"wifi":{"mode":"ap"}},"wifi.password"],
   ["reject console",{"uart":{"id":0}},"uart.id"],
-  ["reject wrong UART2 pins",{"uart":{"tx_pin":50,"rx_pin":51}},"uart.id/tx_pin/rx_pin"],
+  ["reject wrong UART2 pins",{"uart":{"tx_pin":50,"rx_pin":51,"id":2}},"uart.id/tx_pin/rx_pin"],
   ["reject nonaligned detect width",{"chn_detect":{"width":650}},"chn_detect.width"],
   ["reject impossible capture fps",{"sensor":{"fps":200}},"sensor.width/height/fps"],
   ["reject unknown detector",{"detector":{"name":"yolo"}},"detector.name"],
@@ -25,8 +25,8 @@
   ["positive tracking gate",{"tracker":{"gate_mm":0}},"tracker.gate_mm"],
   ["coast limit",{"tracker":{"coast_max":11}},"tracker.coast_max"],
   ["reacquire minimum",{"tracker":{"reacquire_frames":0}},"tracker.reacquire_frames"],
-  ["reject I2C-conflicting UART4 pins",{"uart":{"id":4,"tx_pin":48,"rx_pin":49}},"uart.id/tx_pin/rx_pin"],
-  ["alternate UART2 pins",{"uart":{"tx_pin":5,"rx_pin":6}},null],
+  ["unapproved UART4 pins",{"uart":{"id":4,"tx_pin":48,"rx_pin":49}},"uart.id/tx_pin/rx_pin"],
+  ["reject alternate UART2 pins",{"uart":{"id":2,"tx_pin":5,"rx_pin":6}},"uart.id/tx_pin/rx_pin"],
   ["reject too slow STATUS",{"status_hz":0.25},"status_hz"],
   ["reject negative latency",{"latency_const_ms":-1},"latency_const_ms"],
   ["reject unknown WiFi mode",{"wifi":{"mode":"adhoc"}},"wifi.mode"],
@@ -38,5 +38,8 @@
   ["reject overlapping telemetry ports",{"telemetry":{"hello_port":9100}},"telemetry.data_port"],
   ["log level enumeration",{"log":{"level":"warning"}},"log.level"],
   ["strict top-level keys",{"wfi":{}},"wfi"],
-  ["allow arbitrary detector parameters",{"detector":{"params":{"contrast_floor":12,"extra":{"allows":true}}}},null]
+  ["allow arbitrary detector parameters",{"detector":{"params":{"contrast_floor":12,"extra":{"allows":true}}}},null],
+  ["system UART3 is reserved",{"uart":{"id":3,"tx_pin":50,"rx_pin":51}},"uart.id"],
+  ["reject old LCKFB default UART2",{"uart":{"id":2,"tx_pin":11,"rx_pin":12}},"uart.id/tx_pin/rx_pin"],
+  ["permit Hiwonder provisional UART1",{"uart":{"id":1,"tx_pin":3,"rx_pin":4}},null]
 ]

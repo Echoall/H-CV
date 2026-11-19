@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from k230.hcv.config import format_config_for_log, load_config
+from k230.hcv.config import calibration_fingerprint, format_config_for_log, load_config
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -103,3 +103,12 @@ def test_invalid_password_error_is_redacted(tmp_path, example):
         load_config(tmp_path)
     assert "secret" not in str(caught.value)
     assert "***" in str(caught.value)
+
+
+def test_fingerprint_matches_canonical_sha256_without_credentials(example):
+    assert calibration_fingerprint(example) == "e5aa30a19ada5159"
+    example["wifi"]["password"] = "changed-secret"
+    assert calibration_fingerprint(example) == "e5aa30a19ada5159"
+    example["sensor"]["hmirror"] = True
+    example["chn_detect"]["crop"] = [10, 20, 640, 360]
+    assert calibration_fingerprint(example) == "c0470b14ff91def9"

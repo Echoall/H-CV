@@ -1,4 +1,4 @@
-"""Read ICD v1.0.1 configuration on CPython and CanMV."""
+"""Read ICD v1.1 configuration on CPython and CanMV."""
 
 import errno
 import json
@@ -135,10 +135,9 @@ def _validate(config):
         _require(1 <= tracker[name] <= 10, "tracker." + name)
 
     uart = config["uart"]
-    _require(uart["id"] in (1, 2, 3, 4), "uart.id")
-    _require((uart["id"], uart["tx_pin"], uart["rx_pin"]) in (
-        (1, 3, 4), (1, 40, 41), (2, 11, 12), (2, 5, 6), (3, 50, 51), (4, 36, 37),
-    ), "uart.id/tx_pin/rx_pin")
+    _require(uart["id"] in (1, 2, 4), "uart.id")
+    _require((uart["id"], uart["tx_pin"], uart["rx_pin"]) == (1, 3, 4),
+             "uart.id/tx_pin/rx_pin")
     _require(uart["baud"] in (115200, 230400, 460800, 921600), "uart.baud")
     _require(0.5 <= config["status_hz"] <= 10, "status_hz")
     _require(0 <= config["latency_const_ms"] <= 255, "latency_const_ms")
@@ -181,3 +180,33 @@ def load_config(directory="."):
     _merge(config, _read(prefix + "config.local.json", optional=True))
     _validate(config)
     return config
+
+
+def _canonical_json(value):
+    if isinstance(value, dict):
+        pairs = [json.dumps(key) + ":" + _canonical_json(value[key]) for key in sorted(value)]
+        return "{" + ",".join(pairs) + "}"
+    if isinstance(value, (list, tuple)):
+        return "[" + ",".join(_canonical_json(item) for item in value) + "]"
+    if value is None or type(value) in (int, bool, str):
+        return json.dumps(value)
+    raise ValueError("calibration fingerprint supports integer, boolean, string and null values")
+
+
+def calibration_fingerprint(config):
+    """Return the ICD v1.1 16-hex-character calibration fingerprint."""
+    import binascii
+    import hashlib
+
+    sensor = config["sensor"]
+    payload = {
+        "sensor": sensor,
+        "chn_detect": config["chn_detect"],
+        "roi": config["roi"],
+        "hmirror": sensor["hmirror"],
+        "vflip": sensor["vflip"],
+        "detector.name": config["detector"]["name"],
+    }
+    digest = hashlib.sha256()
+    digest.update(_canonical_json(payload).encode("utf-8"))
+    return binascii.hexlify(digest.digest()).decode("ascii")[:16]

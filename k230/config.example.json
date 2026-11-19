@@ -8,7 +8,7 @@
   "markers": {"enabled": true, "x_mm": [-110.0, 0.0, 110.0], "search_px": 12, "polarity": "dark"},
   "detector": {"name": "profile", "params": {}},
   "tracker": {"q_accel": 2000.0, "r_meas": 0.3, "gate_mm": 15.0, "coast_max": 3, "reacquire_frames": 3},
-  "uart": {"id": 2, "tx_pin": 11, "rx_pin": 12, "baud": 115200},
+  "uart": {"id": 1, "tx_pin": 3, "rx_pin": 4, "baud": 115200},
   "status_hz": 2,
   "latency_const_ms": 0,
   "wifi": {"mode": "ap", "ssid": "HCV-0000", "channel": 6, "password": "SEE_LOCAL"},
