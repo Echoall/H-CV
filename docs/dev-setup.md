@@ -47,3 +47,14 @@ backup 单独执行，显示进度并使用 10 分钟预算。它记录全部文
     .\.venv\Scripts\python.exe tools/board/config_smoke.py --port COM3 --log reports/data/P0-EXP00/config-smoke.log
 
 固件镜像的文件名和 SHA-256 通过用户原来的镜像文件另记。脚本不读取 Wi-Fi 本地配置。配置测试使用公开示例和测试用密码。
+
+
+## P0-EXP02 光照阶跃
+
+白纸放在镜头下方。开始前准备台灯，跟着串口输出里 HCV_LIGHT 提示在 off 和 on 之间切换。每个状态持续 3 秒，共五轮。采集当前用经实测的 1280×720@90 和 640×360 灰度通道配置。
+
+    .\.venv\Scripts\python.exe tools/board/board.py --port COM3 put k230/hcv/guard.py /sdcard/hcv/guard.py
+    .\.venv\Scripts\python.exe tools/board/board.py --port COM3 run k230/exp/exp02_isp_step_response.py --timeout 55 --stream --log exp02-auto.log
+    .\.venv\Scripts\python.exe tools/analysis/exp02_response.py exp02-auto.log exp02-steps.csv
+
+稳定时间以灯光操作的提示事件为起点，包含人工操作延迟。传感器源码列出的曝光、增益和白平衡接口待另测实际作用。
