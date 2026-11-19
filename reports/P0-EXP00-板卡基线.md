@@ -1,6 +1,6 @@
 # P0-EXP00 板卡基线盘点
 
-- 板端系统为 RT-Smart，machine 为 k230_canmv_hiwonder。固件 v1.4-19-ga7de1c8，构建日期 2025-11-06，MicroPython 1.21.0。固件对应源码版本见 revision.txt。刷机镜像的原文件名和 SHA-256 待取得。
+- 板端系统为 RT-Smart，machine 为 k230_canmv_hiwonder。固件 v1.4-19-ga7de1c8，构建日期 2025-11-06，MicroPython 1.21.0。固件对应源码版本见 revision.txt。以 revision.txt 中的源码 commit 组合作为固件标识。Manager 已明确原镜像文件 SHA-256 免提供，后续不混合不同固件的数据。
 - 镜头实测识别为 GC2093，默认 CSI2，传感器类型 32。一次 30 帧短测的实际传感器模式为 1280×720@90；CHN0 取回 640×360 GRAYSCALE。调用 Sensor.get_id() 会报 NotImplementedError，用对应固件的 Sensor 实例中提供的 CSI 枚举来记录。
 - gc.mem_free 在导入前为 3,916,096 字节，导入并回收后为 3,861,024 字节。
 - 有 cv_lite、ulab、machine.WDT、media.vencoder 和 RTSP 模块。没有 cv2。只检查了 WDT API，未启动看门狗。
@@ -9,7 +9,7 @@
 - 同一块 K230 上完整跑通 ICD v1.1 的 43 个共享用例，以及配置读取、覆盖、日志脱敏和标定指纹。指纹同步计算两个固定值 e5aa30a19ada5159 与 c0470b14ff91def9。
 - 当前电脑连 5 GHz 信道 157。板端 STA 接口存在，定向扫描未发现目标网络，连接返回 False。夜间相机测量继续用 USB。
 - W1 仍待定。原 TF 卡根目录没有 main.py 或 boot.py 可用于比较。超时的软复位尝试未取得 raw REPL 提示，保护期限过后另行连接成功。
-- Manager 已确认项目用幻尔 K230，并更新 ICD v1.1。UART1 IO3/IO4 只是暂定配置，40-pin 物理脚位和电平尚未实测，回环保持暂停。
+- Manager 已确认项目用幻尔 K230，并更新 ICD v1.1。官方图已确认 UART1 的 40-pin 物理脚位（8=TX1、10=RX1、6/9=GND）。电平和回环将由 T03 在队员在场时实测。
 
 ## 证据与复现
 
@@ -36,4 +36,4 @@
 6. ulab 版本 6.4.1-(4)D-c。mean(axis=0)、argmax、diff、convolve、median、sort 可检验；板上 numpy API 没有 cumsum。后续算法需要回避这一依赖或实测替代实现。
 7. 灰度图像实例的四个要求接口均实际调用通过。
 
-综合状态提交 REVIEW，供 Claude 复核未取得的原镜像及内存信息。
+Claude 已验收，状态 DONE。系统 RAM 版本待查订单，不影响后续相机测量。
