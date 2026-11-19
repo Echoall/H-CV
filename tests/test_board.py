@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from tools.board.board import backup_sdcard, project_path, run_script
+from tools.board.board import BoardRecoveryError, backup_sdcard, project_path, run_script
 
 
 class FakeBoard:
@@ -28,8 +28,12 @@ class FakeBoard:
         self.calls.append("exit")
 
     def enter_raw_repl(self, *, soft_reset, timeout_overall):
-        assert not soft_reset
-        self.calls.append("reenter")
+        self.calls.append(("reenter", soft_reset, timeout_overall))
+
+    def exec(self, source):
+        assert "MediaManager" in source
+        self.calls.append("cleanup")
+        return b"media cleanup ok"
 
 
 def test_stream_omits_delimiters():
@@ -46,7 +50,7 @@ def test_no_eof_times_out_and_recovers_without_reset():
     with pytest.raises(TimeoutError):
         run_script(board, b"program", 3, output.extend)
     assert output == b"working"
-    assert board.calls == [b"program", b"\x03\x03", "exit", "reenter"]
+    assert board.calls == [b"program", b"\x03\x03", "exit", ("reenter", False, 3), "cleanup"]
 
 
 def test_script_error_is_captured():
@@ -75,17 +79,26 @@ def test_backup_lists_nested_files_and_saves_original_startup(tmp_path):
     dirs = {
         "/sdcard": [
             SimpleNamespace(name="main.py", st_mode=0, st_size=5),
+            SimpleNamespace(name="boot.py", st_mode=0, st_size=5),
             SimpleNamespace(name="old", st_mode=0x4000, st_size=0),
         ],
         "/sdcard/old": [SimpleNamespace(name="demo.py", st_mode=0, st_size=12)],
     }
-    board = SimpleNamespace(fs_listdir=dirs.__getitem__, fs_readfile=lambda path: b"hello")
+    from hashlib import sha256
+
+    board = SimpleNamespace(fs_listdir=dirs.__getitem__, fs_readfile=lambda path: b"hello",
+                            fs_hashfile=lambda path, algorithm: sha256(b"other").digest())
     backup_sdcard(board, tmp_path)
-    entries = json.loads((tmp_path / "sdcard.json").read_text(encoding="utf-8"))
-    assert [entry["path"] for entry in entries] == [
-        "/sdcard/main.py", "/sdcard/old", "/sdcard/old/demo.py",
+    manifest = json.loads((tmp_path / "sdcard.json").read_text(encoding="utf-8"))
+    assert [entry["path"] for entry in manifest["entries"]] == [
+        "/sdcard/boot.py", "/sdcard/main.py", "/sdcard/old", "/sdcard/old/demo.py",
     ]
+    assert manifest["file_count"] == 3
+    assert manifest["total_bytes"] == 22
+    assert manifest["entries"][0]["sha256"] == sha256(b"hello").hexdigest()
+    assert manifest["entries"][-1]["sha256"] == sha256(b"other").hexdigest()
     assert (tmp_path / "main.py").read_bytes() == b"hello"
+    assert (tmp_path / "boot.py").read_bytes() == b"hello"
     dirs.clear()
     backup_sdcard(board, tmp_path)
 
@@ -118,10 +131,28 @@ def test_timeout_when_output_never_stops(monkeypatch):
     with pytest.raises(TimeoutError):
         run_script(board, b"program", 1, output.extend)
     assert output == b"a"
-    assert board.calls[-3:] == [b"\x03\x03", "exit", "reenter"]
+    assert board.calls[-4:] == [b"\x03\x03", "exit", ("reenter", False, 3), "cleanup"]
 
 
-def test_failed_recovery_is_reported_without_hiding_timeout(capsys):
+def test_soft_reset_is_used_when_first_interrupt_fails():
+    from mpremote.transport import TransportError
+
+    board = FakeBoard(b"no EOF")
+    original = board.enter_raw_repl
+
+    def enter(*, soft_reset, timeout_overall):
+        original(soft_reset=soft_reset, timeout_overall=timeout_overall)
+        if not soft_reset:
+            raise TransportError("board still busy")
+
+    board.enter_raw_repl = enter
+    with pytest.raises(TimeoutError):
+        run_script(board, b"program", 1, lambda data: None)
+    assert ("reenter", False, 3) in board.calls
+    assert board.calls[-2:] == [("reenter", True, 10), "cleanup"]
+
+
+def test_failed_recovery_requests_manual_power_cycle():
     from mpremote.transport import TransportError
 
     board = FakeBoard(b"no EOF")
@@ -130,9 +161,8 @@ def test_failed_recovery_is_reported_without_hiding_timeout(capsys):
         raise TransportError("board still busy")
 
     board.enter_raw_repl = fail_to_enter
-    with pytest.raises(TimeoutError):
+    with pytest.raises(BoardRecoveryError, match="unplug power and reconnect"):
         run_script(board, b"program", 1, lambda data: None)
-    assert "Could not recover raw REPL" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("failure", [None, "hash", "rename"])

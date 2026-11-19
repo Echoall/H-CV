@@ -65,13 +65,19 @@ def verify(port, output):
                 raise RuntimeError(prefix + ": transferred result or print sequence differs")
             print(f"{trial}/{TRIALS}: result matched, {LINES} lines", flush=True)
 
-        busy = work / "timeout.py"
-        busy.write_text("while True:\n    pass\n", encoding="utf-8")
-        stopped = board("run", busy, "--timeout", "5", name="timeout", expect_success=False)
-        if stopped.returncode != 1 or b"board script timed out" not in stopped.stderr:
-            raise RuntimeError("timeout did not produce the expected error")
-        board("info", name="after-timeout")
-        print("Timeout interrupted the script and a following info command succeeded.")
+        for name, source in (
+            ("busy", "while True:\n    pass\n"),
+            ("sleep", "import time\ntime.sleep(100)\n"),
+        ):
+            blocked = work / (name + ".py")
+            blocked.write_text(source, encoding="utf-8")
+            stopped = board("run", blocked, "--timeout", "5",
+                            name="timeout-" + name, expect_success=False)
+            if stopped.returncode != 1 or b"board script timed out" not in stopped.stderr:
+                raise RuntimeError(name + ": timeout did not produce the expected error")
+            board("info", name="after-timeout-" + name)
+            print(f"{name}: timeout recovered and the following info succeeded.")
+
 
 
 def main():

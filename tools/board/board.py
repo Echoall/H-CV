@@ -21,6 +21,10 @@ SDCARD = "/sdcard"
 CANMV_USB_ID = (0x1209, 0xABD1)
 
 
+class BoardRecoveryError(TransportError):
+    """Manual power cycle required before board access can continue."""
+
+
 def detect_ports():
     for port in list_ports.comports():
         print(port.device, port.description, port.hwid, sep="\t")
@@ -58,7 +62,8 @@ class ControlledSerialTransport(SerialTransport):
 
 def backup_sdcard(board, directory):
     directory.mkdir(parents=True, exist_ok=True)
-    if (directory / "sdcard.json").is_file():
+    manifest = directory / "sdcard.json"
+    if manifest.is_file():
         return
 
     entries = []
@@ -70,17 +75,29 @@ def backup_sdcard(board, directory):
                 continue
             path = parent + "/" + item.name
             is_directory = bool(item.st_mode & 0x4000)
-            entries.append({"path": path, "directory": is_directory, "bytes": item.st_size})
+            entry = {"path": path, "directory": is_directory, "bytes": item.st_size}
+            entries.append(entry)
             if is_directory:
                 pending.append(path)
+            elif parent == SDCARD and item.name.lower().endswith(".py"):
+                if "/" in item.name or "\\" in item.name:
+                    raise ValueError("invalid filename on the SD card")
+                content = board.fs_readfile(path)
+                (directory / item.name).write_bytes(content)
+                entry["sha256"] = sha256(content).hexdigest()
+            else:
+                entry["sha256"] = board.fs_hashfile(path, "sha256").hex()
 
-    startup = SDCARD + "/main.py"
-    if any(entry["path"] == startup and not entry["directory"] for entry in entries):
-        (directory / "main.py").write_bytes(board.fs_readfile(startup))
-    listing = directory / "sdcard.json"
-    temporary = listing.with_suffix(".tmp")
-    temporary.write_text(json.dumps(entries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    temporary.replace(listing)
+    files = [entry for entry in entries if not entry["directory"]]
+    summary = {
+        "file_count": len(files),
+        "total_bytes": sum(entry["bytes"] for entry in files),
+        "entries": entries,
+    }
+    temporary = manifest.with_suffix(".tmp")
+    temporary.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
+                         encoding="utf-8")
+    temporary.replace(manifest)
 
 
 def project_path(path):
@@ -126,10 +143,41 @@ def rename(board, source, destination):
     board.exec("import os\nos.rename({!r}, {!r})".format(str(source), str(destination)))
 
 
+def cleanup_media(board):
+    result = board.exec(
+        "try:\n"
+        "    from media.media import MediaManager\n"
+        "except ImportError:\n"
+        "    print('MediaManager unavailable')\n"
+        "else:\n"
+        "    if hasattr(MediaManager, 'deinit'):\n"
+        "        MediaManager.deinit()\n"
+        "        print('MediaManager.deinit completed')\n"
+        "    else:\n"
+        "        print('MediaManager.deinit unavailable')\n"
+    )
+    return result.decode("utf-8", errors="replace").strip()
+
+
+def recover(board):
+    for soft_reset, timeout in ((False, 3), (True, 10)):
+        try:
+            board.serial.write(b"\x03\x03")
+            board.exit_raw_repl()
+            board.enter_raw_repl(soft_reset=soft_reset, timeout_overall=timeout)
+        except (OSError, TransportError):
+            continue
+        try:
+            cleanup_media(board)
+        except (OSError, TransportError) as error:
+            print(f"board: media cleanup failed: {error}", file=sys.stderr)
+        return
+    raise BoardRecoveryError("raw REPL recovery failed; unplug power and reconnect K230")
+
+
 def run_script(board, source, timeout, emit):
     """Execute source and read the two raw REPL output streams."""
     deadline = time.monotonic() + timeout
-    at_prompt = False
 
     def read_stream(consumer=None):
         pending = bytearray()
@@ -156,16 +204,9 @@ def run_script(board, source, timeout, emit):
         board.exec_raw_no_follow(source)
         read_stream(emit)
         errors = read_stream()
-        at_prompt = True
-    finally:
-        if not at_prompt:
-            try:
-                board.serial.write(b"\x03\x03")
-                board.exit_raw_repl()
-                board.enter_raw_repl(soft_reset=False, timeout_overall=5)
-            except (OSError, TransportError):
-                print("Could not recover raw REPL. Reconnect the board before retrying.",
-                      file=sys.stderr)
+    except (Exception, KeyboardInterrupt):
+        recover(board)
+        raise
     if errors:
         emit(errors)
         raise TransportError("script raised a board-side exception")
@@ -210,7 +251,7 @@ def arguments():
     parser.add_argument("--dtr", choices=("default", "0", "1"), default="default")
     parser.add_argument("--rts", choices=("default", "0", "1"), default="default")
     commands = parser.add_subparsers(dest="command", required=True)
-    for command in ("ports", "info", "backup", "reset"):
+    for command in ("ports", "info", "backup", "cleanup", "reset"):
         commands.add_parser(command)
     listing = commands.add_parser("ls")
     listing.add_argument("remote", nargs="?", default=SDCARD)
@@ -262,7 +303,12 @@ def main():
                 backup_sdcard(board, BACKUP)
                 upload(board, args.local, args.remote)
             elif args.command == "run":
+                if not args.script.is_file():
+                    raise FileNotFoundError(str(args.script))
+                backup_sdcard(board, BACKUP)
                 run_command(board, args)
+            elif args.command == "cleanup":
+                print(cleanup_media(board))
             elif args.command == "reset":
                 board.exit_raw_repl()
                 board.serial.write(b"\x04")
@@ -270,8 +316,16 @@ def main():
             try:
                 if board.in_raw_repl:
                     board.exit_raw_repl()
+            except OSError:
+                pass
             finally:
-                board.close()
+                try:
+                    board.close()
+                except OSError:
+                    board.serial.close()
+    except BoardRecoveryError as error:
+        print(f"board: {error}", file=sys.stderr)
+        return 3
     except (OSError, ValueError, TransportError) as error:
         print(f"board: {error}", file=sys.stderr)
         return 1
