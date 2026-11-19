@@ -134,7 +134,8 @@ def write_report(records, markdown, table, supplemental=None):
         "第二通道按 1280×720 YUV420SP 配置，采样期间仅从第一通道取帧。",
         "",
         "固定输出尺寸时，裁剪改变输入视野，返回图的像素数仍由输出尺寸决定。"
-        "snapshot 经常等待新帧，耗时不能直接视为曝光到取帧的物理延迟。",
+        "snapshot 经常等待新帧，耗时不能直接视为曝光到取帧的物理延迟。"
+        "P0-EXP03 按测得的视野和安装高度评估是否裁剪。",
         "",
         "## 异常帧间隔",
         "",
@@ -146,13 +147,16 @@ def write_report(records, markdown, table, supplemental=None):
         label, item = max(outlier_cases, key=lambda row: row[1]["worst_outlier"]["interval"])
         worst = item["worst_outlier"]
         total = sum(case["over_1_5_nominal"] for _, case in outlier_cases)
+        intervals = sum(item["frames"] - 1 for item in successful)
         lines.append(
-            f"有效组共出现 {total} 个长间隔。最大值 {worst['interval']/1000:.3f} ms"
+            f"有效组 {intervals:,} 个间隔中共有 {total} 个长间隔（{100*total/intervals:.3f}%）。最大值 {worst['interval']/1000:.3f} ms"
             f" 出现在 {label} 的第 {worst['index']} 个样本。"
             f"其中 snapshot 内 {worst['snapshot']/1000:.3f} ms，"
             f"两次调用之间 {worst['between_calls']/1000:.3f} ms。"
         )
-        lines.append("主矩阵没有逐帧记录 GC 事件，板端自动 GC 是否发生在 snapshot 内无法确定。")
+        lines.append("长间隔按偶发跳帧记录。主矩阵没有逐帧记录 GC 事件，"
+                     "无法确定板端自动 GC 是否发生在 snapshot 内。")
+        lines.append("P3-T01 跟踪器按真实帧时间计算 dt，补测单次 dt 为 33 ms 的情况。")
     if supplemental:
         lines += ["", "## 补测", ""]
         for label, item in supplemental.items():
