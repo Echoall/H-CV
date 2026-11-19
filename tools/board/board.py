@@ -94,6 +94,7 @@ def backup_sdcard(board, directory, timeout=600):
 
     print("Reading TF-card directory and selected files...", file=sys.stderr, flush=True)
     device_hash = board_has_sha256(board)
+    print(f"Board SHA-256 available: {device_hash}", file=sys.stderr, flush=True)
     entries, pending = [], [SDCARD]
     file_count = total_bytes = hashed = skipped = 0
     while pending:
@@ -105,34 +106,49 @@ def backup_sdcard(board, directory, timeout=600):
                 continue
             path = parent + "/" + item.name
             is_directory = bool(item.st_mode & 0x4000)
-            entry = {"path": path, "directory": is_directory, "bytes": item.st_size}
-            entries.append(entry)
             if is_directory:
+                entries.append({"path": path, "directory": True, "bytes": 0})
                 pending.append(path)
                 continue
 
-            file_count += 1
-            total_bytes += item.st_size
-            root_script = parent == SDCARD and item.name.lower().endswith(".py")
-            hash_file = root_script or item.st_size <= HASH_LIMIT
-            entry["hashed"] = hash_file
-            if not hash_file:
-                skipped += 1
+            stat = None
+            file_size = item.st_size
+            # Some CanMV filesystems omit the size in ilistdir; mpremote fills it with 0.
+            if not file_size:
                 try:
-                    entry["mtime"] = board.fs_stat(path).st_mtime
-                except (AttributeError, OSError, TransportError):
-                    pass
-            elif root_script or not device_hash:
-                content = board.fs_readfile(path, progress_callback=check_time)
-                entry["sha256"] = sha256(content).hexdigest()
-                hashed += 1
-                if root_script:
-                    if "/" in item.name or "\\" in item.name:
-                        raise ValueError("invalid filename on the SD card")
-                    (directory / item.name).write_bytes(content)
-            else:
-                entry["sha256"] = board.fs_hashfile(path, "sha256").hex()
-                hashed += 1
+                    stat = board.fs_stat(path)
+                except (OSError, TransportError) as error:
+                    raise TransportError(f"{path}: could not read file size: {error}") from error
+                file_size = stat.st_size
+            entry = {"path": path, "directory": False, "bytes": file_size}
+            entries.append(entry)
+            file_count += 1
+            total_bytes += file_size
+            root_script = parent == SDCARD and item.name.lower().endswith(".py")
+            hash_file = root_script or file_size <= HASH_LIMIT
+            entry["hashed"] = hash_file
+            try:
+                if not hash_file:
+                    skipped += 1
+                    try:
+                        entry["mtime"] = (stat or board.fs_stat(path)).st_mtime
+                    except (AttributeError, OSError, TransportError):
+                        pass
+                elif root_script or not device_hash:
+                    content = board.fs_readfile(path, chunk_size=4096, progress_callback=check_time)
+                    entry["sha256"] = sha256(content).hexdigest()
+                    hashed += 1
+                    if root_script:
+                        if "/" in item.name or "\\" in item.name:
+                            raise ValueError("invalid filename on the SD card")
+                        (directory / item.name).write_bytes(content)
+                else:
+                    entry["sha256"] = board.fs_hashfile(path, "sha256", chunk_size=4096).hex()
+                    hashed += 1
+            except (OSError, TransportError) as error:
+                if isinstance(error, TimeoutError):
+                    raise
+                raise TransportError(f"{path}: {error}") from error
 
             if file_count == 1 or file_count % 10 == 0:
                 print(f"Backup: {file_count} files listed, {hashed} hashed, {skipped} skipped",
@@ -226,6 +242,18 @@ def recover(board):
             print(f"board: media cleanup failed: {error}", file=sys.stderr)
         return
     raise BoardRecoveryError("raw REPL recovery failed; unplug power and reconnect K230")
+
+
+def run_backup(board):
+    try:
+        backup_sdcard(board, BACKUP)
+    except TimeoutError:
+        recover(board)
+        raise
+    except TransportError as error:
+        if "timeout" in str(error).lower():
+            recover(board)
+        raise
 
 
 def run_script(board, source, timeout, emit):
@@ -344,7 +372,7 @@ def main():
                 print(board.exec("import os, sys\nprint(os.uname())\nprint(sys.implementation)")
                       .decode("utf-8", errors="replace").strip())
             elif args.command == "backup":
-                backup_sdcard(board, BACKUP)
+                run_backup(board)
                 print(BACKUP)
             elif args.command == "ls":
                 for item in board.fs_listdir(args.remote):

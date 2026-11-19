@@ -90,8 +90,8 @@ def test_backup_lists_nested_files_and_saves_original_startup(tmp_path):
     board = SimpleNamespace(
         exec=lambda code: b"HCV_SHA256=1",
         fs_listdir=dirs.__getitem__,
-        fs_readfile=lambda path, progress_callback: b"hello",
-        fs_hashfile=lambda path, algorithm: sha256(b"other").digest(),
+        fs_readfile=lambda path, chunk_size, progress_callback: b"hello",
+        fs_hashfile=lambda path, algorithm, chunk_size: sha256(b"other").digest(),
     )
     backup_sdcard(board, tmp_path)
     manifest = json.loads((tmp_path / "sdcard.json").read_text(encoding="utf-8"))
@@ -220,11 +220,11 @@ def test_backup_without_board_hash_skips_large_files(tmp_path):
     large_size = 50 * 1024 * 1024
     reads = []
     entries = [
-        SimpleNamespace(name="demo.kmodel", st_mode=0, st_size=large_size),
+        SimpleNamespace(name="demo.kmodel", st_mode=0, st_size=0),
         SimpleNamespace(name="license.txt", st_mode=0, st_size=3),
     ]
 
-    def read(path, *, progress_callback):
+    def read(path, *, chunk_size, progress_callback):
         reads.append(path)
         assert path == "/sdcard/license.txt"
         progress_callback(3, 3)
@@ -236,7 +236,7 @@ def test_backup_without_board_hash_skips_large_files(tmp_path):
     board = SimpleNamespace(
         exec=lambda code: b"HCV_SHA256=0\r\n",
         fs_listdir=lambda parent: entries,
-        fs_stat=lambda path: SimpleNamespace(st_mtime=123),
+        fs_stat=lambda path: SimpleNamespace(st_size=large_size, st_mtime=123),
         fs_readfile=read,
         fs_hashfile=hash_file,
     )
