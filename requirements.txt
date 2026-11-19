@@ -3,3 +3,4 @@ pytest
 pyserial
 matplotlib
 opencv-python
+mpremote==1.29.0
