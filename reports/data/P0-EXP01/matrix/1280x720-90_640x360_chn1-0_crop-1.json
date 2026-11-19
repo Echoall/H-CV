@@ -1,0 +1,14 @@
+{
+  "status": "board-command-failed",
+  "frames": 0,
+  "exit_code": 1,
+  "case": [
+    1280,
+    720,
+    90,
+    640,
+    360,
+    false,
+    true
+  ]
+}
