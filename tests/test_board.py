@@ -65,6 +65,7 @@ def test_script_error_is_captured():
 
 @pytest.mark.parametrize("path", [
     "relative.py", "/sdcard/main.py", "/sdcard/hcv", "/sdcard/hcv/../main.py",
+    r"/sdcard/hcv/backslash\name.py",
 ])
 def test_upload_path_restricted_to_project(path):
     with pytest.raises(ValueError):

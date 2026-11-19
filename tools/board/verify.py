@@ -18,19 +18,27 @@ LINES = 1000
 def verify(port, output):
     output.mkdir(parents=True, exist_ok=False)
 
-    def board(*args, name, expect_success=True):
+    def board(*args, name, expect_success=True, timeout=90):
         command = [sys.executable, str(CLI), "--port", port, *map(str, args)]
+        recorded = ["python", "tools/board/board.py", "--port", port,
+                    *(arg.name if isinstance(arg, Path) else str(arg) for arg in args)]
         started = time.monotonic()
-        result = subprocess.run(command, capture_output=True, timeout=90)
-        (output / (name + ".stdout")).write_bytes(result.stdout)
-        (output / (name + ".stderr")).write_bytes(result.stderr)
+        try:
+            result = subprocess.run(command, capture_output=True, timeout=timeout)
+            stdout, stderr, exit_code = result.stdout, result.stderr, result.returncode
+        except subprocess.TimeoutExpired as error:
+            stdout = error.stdout or b""
+            stderr = (error.stderr or b"") + b"\nHost subprocess timed out.\n"
+            exit_code = None
+        (output / (name + ".stdout")).write_bytes(stdout)
+        (output / (name + ".stderr")).write_bytes(stderr)
         with (output / "commands.jsonl").open("a", encoding="utf-8") as log:
             log.write(json.dumps({
-                "command": command,
-                "exit_code": result.returncode,
+                "command": recorded,
+                "exit_code": exit_code,
                 "seconds": round(time.monotonic() - started, 3),
             }, ensure_ascii=False) + "\n")
-        if expect_success and result.returncode:
+        if exit_code is None or (expect_success and exit_code):
             raise RuntimeError(name + " failed; see " + str(output))
         return result
 
@@ -44,7 +52,7 @@ def verify(port, output):
         payload = work / "payload.py"
         received = work / "received.bin"
         board("info", name="info")
-        board("backup", name="backup")
+        board("backup", name="backup", timeout=600)
         for trial in range(1, TRIALS + 1):
             expected = f"P0-T02 trial {trial}\n".encode()
             payload.write_text(

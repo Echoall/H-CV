@@ -103,7 +103,7 @@ def backup_sdcard(board, directory):
 def project_path(path):
     parsed = PurePosixPath(path)
     if (not parsed.is_relative_to("/sdcard/hcv") or parsed == PurePosixPath("/sdcard/hcv")
-            or ".." in parsed.parts):
+            or ".." in parsed.parts or "\\" in path or "\x00" in path):
         raise ValueError("board writes must target a file inside /sdcard/hcv")
     return parsed
 
