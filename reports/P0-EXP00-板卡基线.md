@@ -24,3 +24,16 @@
 /proc/meminfo 在板上无法读取（错误码 19）。实际 os 与 MediaManager 的公开方法列表未发现系统内存或 MMZ 容量查询。MicroPython 堆结果不用于推断系统 RAM。
 
 新 guard 模块以 1 秒期限在板上自行退出，日志为 1001 ms，随后 info 成功。测试未启动 WDT。
+
+
+## 验收核对
+
+1. 固件版本、构建日期与源码 revision 已从真板取得。原始烧录镜像文件名及 SHA-256 本轮无法取得。
+2. MicroPython 堆有前后两次实测。系统 RAM 和 MMZ 总量未能确认。
+3. 所有要求的模块均尝试导入，成功和原始错误已记录。
+4. Sensor 实例、编码器、RTSP、UART 和 WLAN 的 API 来自板上读取。
+5. Sensor 默认探测到 GC2093 CSI2。公开实例 API 未发现可直接枚举全部 native mode 的接口，逐组试验交 EXP-01。
+6. ulab 版本 6.4.1-(4)D-c。mean(axis=0)、argmax、diff、convolve、median、sort 可检验；板上 numpy API 没有 cumsum。后续算法需要回避这一依赖或实测替代实现。
+7. 灰度图像实例的四个要求接口均实际调用通过。
+
+综合状态提交 REVIEW，供 Claude 复核未取得的原镜像及内存信息。
