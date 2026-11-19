@@ -1,26 +1,26 @@
 """Run the shared ICD cases with MicroPython Unix (from the repository root)."""
 
 import json
-import os
 import sys
-
-sys.path.insert(0, "k230/hcv")
-from config import format_config_for_log, load_config
-
 
 def write_json(path, value):
     with open(path, "w") as stream:
         json.dump(value, stream)
 
 
-def verify(directory):
-    with open("k230/config.example.json") as stream:
+def verify(directory, module_file, example_file, cases_file):
+    scope = {"__name__": "hcv_config"}
+    with open(module_file) as source:
+        exec(source.read(), scope)
+    load_config = scope["load_config"]
+    format_config_for_log = scope["format_config_for_log"]
+    with open(example_file) as stream:
         sample = json.load(stream)
     sample["wifi"]["mode"] = "off"
     local = directory + "/config.local.json"
     write_json(directory + "/config.json", sample)
     assert load_config(directory) == sample
-    with open("tests/config_cases.json") as stream:
+    with open(cases_file) as stream:
         cases = json.load(stream)
 
     for name, overlay, field in cases:
@@ -40,4 +40,5 @@ def verify(directory):
 
 
 if __name__ == "__main__":
-    verify(sys.argv[1])
+    verify(sys.argv[1], "k230/hcv/config.py", "k230/config.example.json",
+           "tests/config_cases.json")

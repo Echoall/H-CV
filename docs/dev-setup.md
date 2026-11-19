@@ -37,3 +37,13 @@ backup 读取 TF 卡目录，记录文件数、总大小和 SHA-256，并保存 
     .\.venv\Scripts\python.exe tools/board/verify.py --port COM3 --output reports/data/P0-T02/board-01
 
 原始日志公开前先检查路径、固件输出和备份是否含私人信息。
+
+
+## P0-EXP00 盘点准备
+
+串口工具完成 P0-T02 的实机验收后，可以开始板卡盘点。命令只采集固件、内存和 API 数据，摄像头取帧留给确认固件之后的单独验证。
+
+    .\.venv\Scripts\python.exe tools/board/board.py --port COM3 run k230/exp/exp00_inventory.py --timeout 60 --stream --log reports/data/P0-EXP00/inventory.raw.log
+    .\.venv\Scripts\python.exe tools/board/config_smoke.py --port COM3 --log reports/data/P0-EXP00/config-smoke.log
+
+固件镜像的文件名和 SHA-256 通过用户原来的镜像文件另记。脚本不读取 Wi-Fi 本地配置。配置测试使用公开示例和测试用密码。
