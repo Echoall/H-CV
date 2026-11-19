@@ -190,3 +190,25 @@ CanMV 镜像的 TF 卡里自带大量例程，还有 kmodel 等大文件，总�
 4. 在 Linux 上复跑 `pytest -q`：**75 passed** ✅。
 
 **结论：P0-T02 DONE。** 这次的根因定位很漂亮：先从固件源码找到原因，再在实机上验证，最后改正规范。已知限制：(c) 纯 `pass` 循环还没有在单字节 Ctrl-C 下复测，留到队员在场时做，只作记录。
+
+---
+
+## 更新（2026-11-20 第 5 轮）：P0-EXP00 → **DONE**（附 3 条说明）
+
+复核对象：`codex/P0` @ `858da3e`
+
+**已核对的内容**
+- `config-smoke-icd11.log`：真实板子上的结果，43 个用例全部通过。
+- Actions run 44581769503（MicroPython Unix 环境）：success。
+- `board-guard-smoke.log`：guard 在 1001 ms 时自行退出。
+- `inventory.json`：
+  - 模块：`hashlib`（含 sha256）、`cv_lite`、`ulab`、`media.*`、`multimedia`、`network`（含 `AP_IF` 和 `STA_IF`）、`machine.WDT`（含 `feed`）都存在；`cv2` 不存在。
+  - 图像实例接口都已实测可用。
+- 盘点结果与任务书第 1–7 项逐一对应。
+
+**说明**
+1. **原始烧录镜像的文件名和 SHA-256 拿不到**：豁免这一项。`revision.txt` 里有完整的源码 commit 组合（canmv_k230 `a7de1c8`、rtsmart `5e36aae`、mpp `26b0f4b` 等），以它作为固件身份标识就够了。附加规定：**以后在任何报告中，固件版本不一致的数据都不能放在一起比较。**
+2. **系统 RAM（1GB 还是 2GB）没有确认**：板上没有可用的接口查询，改为请队员查看订单。这件事不阻塞后续工作。
+3. **板上的 `ulab` 没有 `cumsum`**：04 算法规格 §4 已改成用 `np.convolve` 做盒式滤波，性能由 EXP-05 测量。
+
+**勘误**：报告里写着"40-pin 物理脚位尚未确认"，这句话已经过时。官方引脚图已核对：8 脚为 TX，10 脚为 RX（见硬件资料 §3）。物理电平仍然要在 T03 中实测。下次更新报告时请一并改掉。
