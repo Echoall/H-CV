@@ -45,7 +45,8 @@ def summarize(raw):
         return dict(result, status="unsupported", detail=events["unsupported"]["reason"])
     if "cleanup_error" in events or "error" in events:
         error = events.get("cleanup_error", events.get("error"))
-        return dict(result, status="error", detail=error["detail"], frames=len(frames))
+        status = "cleanup-error" if "cleanup_error" in events else "error"
+        return dict(result, status=status, detail=error["detail"], frames=len(frames))
     expected = events.get("done", {}).get("expected")
     if len(frames) < 2 or len(frames) != expected or "image" not in events:
         return dict(result, status="incomplete", frames=len(frames))
@@ -121,7 +122,8 @@ def capture(port, output, frames, smoke=False):
             (output / (case_id + ".json")).write_text(
                 json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(case_id, result["status"], result.get("fps", ""), flush=True)
-            if failures >= 3 or (smoke and result["status"] != "ok"):
+            if (failures >= 3 or result["status"] == "cleanup-error"
+                    or (smoke and result["status"] != "ok")):
                 return 1
     return 0
 
