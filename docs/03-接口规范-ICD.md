@@ -1,6 +1,6 @@
 # 03 接口规范（ICD）
 
-版本 **ICD v1.0.1**（2026-11-20，Manager；v1.0.1 补充 §5.1.1 配置加载与校验规则）。本文是 K230 与控制组 MCU、K230 与场外笔记本之间的**唯一权威定义**。
+版本 **ICD v1.1**（2026-11-20，Manager）。v1.0.1：补充 §5.1.1 的配置校验规则。**v1.1：板卡更正为幻尔 CanMV K230**，串口、引脚和电源相关条款全部改为暂定（⏳），等排针定义确认后再定稿。本文是 K230 与控制组 MCU、K230 与场外笔记本之间的**唯一权威定义**。
 实现必须逐字节遵守。要改动就走变更请求（CR），并把版本号升级（字段只增不改：新增字段用新的报文 ID，或者在末尾追加，同时升级版本号）。
 
 ---
@@ -24,11 +24,11 @@
 
 | 项目 | 规定 |
 |---|---|
-| K230 端口 | UART2，GH1.25-4P 座（丝印 2）：**GPIO11 = TX → MCU 的 RX**；**GPIO12 = RX ← MCU 的 TX** |
+| K230 端口 | ⏳ **暂定 UART1：IO3 = TX → MCU 的 RX；IO4 = RX ← MCU 的 TX**（幻尔官方例程的配置）。对应 40-pin 排针的哪两个物理脚位，等排针定义确认后补上。幻尔固件中 UART0 和 UART3 被系统占用 |
 | 电平 | **3.3V TTL**。MCU 端必须是 3.3V；5V 电平会损坏 K230 |
 | 参数 | 115200 bps，8N1，无流控。波特率可在 `config.json` 中修改，可选 230400、460800、921600，修改需双方同步 |
 | 地线 | **必须共地** |
-| 电源脚 | GH1.25 的 V 脚（5V）在双方各自供电时**必须悬空** |
+| 电源脚 | 双方各自供电时，**不要把两边的 5V 或 3.3V 连在一起**，只连 TX、RX、GND |
 
 ## 3. 帧格式（K230 ↔ MCU 通用）
 
@@ -206,7 +206,7 @@ E,<k230_ms>,<event_name>,<detail>
   "markers": {"enabled": true, "x_mm": [-110.0, 0.0, 110.0], "search_px": 12, "polarity": "dark"},
   "detector": {"name": "profile", "params": {}},
   "tracker": {"q_accel": 2000.0, "r_meas": 0.3, "gate_mm": 15.0, "coast_max": 3, "reacquire_frames": 3},
-  "uart": {"id": 2, "tx_pin": 11, "rx_pin": 12, "baud": 115200},
+  "uart": {"id": 1, "tx_pin": 3, "rx_pin": 4, "baud": 115200},
   "status_hz": 2,
   "latency_const_ms": 0,
   "wifi": {"mode": "ap", "ssid": "HCV-0000", "channel": 6, "password": "SEE_LOCAL"},
@@ -238,7 +238,7 @@ E,<k230_ms>,<event_name>,<detail>
 | `markers.x_mm` | 3 个值严格递增，并且都在 ±125 之内；`polarity` 只能是 `dark` 或 `bright` |
 | `detector.name` | 只能是 `blob` 或 `profile` |
 | `tracker.*` | 都必须为正数；`coast_max` 和 `reacquire_frames` 是 1–10 之间的整数 |
-| `uart.id` | 只能是 1–4，**不能是 0**（0 是系统控制台）。`(id, tx_pin, rx_pin)` 必须是硬件资料 §3 中列出的组合之一：UART1 用 (3,4) 或 (40,41)；UART2 用 (11,12) 或 (5,6)；UART3 用 (50,51)；UART4 用 (36,37)（UART4 的 (48,49) 与 CSI0 的 I2C 冲突，**禁止**使用） |
+| `uart.id` | 只能是 1、2、4（幻尔固件中 **0 和 3 被系统占用**）。`(id, tx_pin, rx_pin)` 必须在白名单内。**v1.1 暂定白名单只有 UART1 的 (3, 4)**，其余组合要等排针定义和 EXP-00 确认后，通过 CR 再加入 |
 | `uart.baud` | 只能是 115200、230400、460800、921600 之一 |
 | `status_hz` | 范围 0.5–10 |
 | `latency_const_ms` | 范围 0–255 |
