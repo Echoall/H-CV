@@ -274,3 +274,30 @@ def test_explicit_backup_is_required_before_writes_and_verifier(tmp_path):
         require_backup(tmp_path)
     (tmp_path / "sdcard.json").write_text("{}", encoding="utf-8")
     require_backup(tmp_path)
+
+
+def test_raw_entry_never_bundles_ctrl_c_with_other_bytes(monkeypatch):
+    from tools.board import board as board_module
+
+    writes = []
+    seen_delays = []
+    monkeypatch.setattr(board_module.time, "sleep", seen_delays.append)
+    transport = object.__new__(board_module.CanMVSerialTransport)
+    transport.serial = SimpleNamespace(
+        write=writes.append,
+        flush=lambda: None,
+        reset_input_buffer=lambda: None,
+    )
+    suffixes = []
+
+    def read(_minimum, suffix, **kwargs):
+        suffixes.append(suffix)
+        return suffix
+
+    transport.read_until = read
+    transport.enter_raw_repl(soft_reset=True)
+    assert writes == [b"\x03", b"\r\x01", b"\x04"]
+    assert seen_delays == [0.25]
+    assert suffixes == [b"raw REPL; CTRL-B to exit\r\n>",
+                        b"soft reboot\r\n", b"raw REPL; CTRL-B to exit\r\n"]
+    assert transport.in_raw_repl

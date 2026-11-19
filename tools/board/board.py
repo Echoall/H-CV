@@ -43,7 +43,36 @@ def select_port(requested):
     return candidates[0]
 
 
-class ControlledSerialTransport(SerialTransport):
+def send_interrupt(serial):
+    # This board's USB firmware inspects the size of each read.
+    serial.write(b"\x03")
+    serial.flush()
+    time.sleep(0.25)
+
+
+class CanMVSerialTransport(SerialTransport):
+    def enter_raw_repl(self, soft_reset=False, timeout_overall=10):
+        send_interrupt(self.serial)
+        self.serial.reset_input_buffer()
+        self.serial.write(b"\r\x01")
+
+        def expect(suffix):
+            response = self.read_until(1, suffix, timeout=timeout_overall,
+                                       timeout_overall=timeout_overall)
+            if not response.endswith(suffix):
+                raise TransportError("could not enter raw repl")
+
+        banner = b"raw REPL; CTRL-B to exit\r\n"
+        if soft_reset:
+            expect(banner + b">")
+            self.serial.write(b"\x04")
+            expect(b"soft reboot\r\n")
+        # Leave the prompt for mpremote.exec_raw_no_follow.
+        expect(banner)
+        self.in_raw_repl = True
+
+
+class ControlledSerialTransport(CanMVSerialTransport):
     """The pinned raw REPL transport with explicit initial line levels."""
 
     def __init__(self, device, dtr, rts):
@@ -231,10 +260,7 @@ def cleanup_media(board):
 def recover(board):
     for soft_reset, timeout in ((False, 3), (True, 10)):
         try:
-            # CanMV v1.4 recognizes a standalone Ctrl-C, not two bytes in one read.
-            board.serial.write(b"\x03")
-            board.serial.flush()
-            time.sleep(0.25)
+            send_interrupt(board.serial)
             board.exit_raw_repl()
             board.enter_raw_repl(soft_reset=soft_reset, timeout_overall=timeout)
         except (OSError, TransportError):
@@ -363,7 +389,7 @@ def main():
         device = select_port(args.port)
         try:
             if args.dtr == args.rts == "default":
-                board = SerialTransport(device, timeout=1)
+                board = CanMVSerialTransport(device, timeout=1)
             else:
                 board = ControlledSerialTransport(device, args.dtr, args.rts)
         except (OSError, TransportError) as error:
