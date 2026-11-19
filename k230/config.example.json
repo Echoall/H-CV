@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "sensor": {"id": 2, "width": 1280, "height": 720, "fps": 90, "hmirror": false, "vflip": false},
+  "chn_detect": {"width": 640, "height": 360, "format": "GRAYSCALE", "crop": null},
+  "chn_stream": {"width": 1280, "height": 720, "format": "YUV420SP"},
+  "isp": {"ae_lock": true, "exposure_us": 3000, "gain": null, "awb_lock": true},
+  "roi": {"x": 0, "y": 150, "w": 640, "h": 48},
+  "markers": {"enabled": true, "x_mm": [-110.0, 0.0, 110.0], "search_px": 12, "polarity": "dark"},
+  "detector": {"name": "profile", "params": {}},
+  "tracker": {"q_accel": 2000.0, "r_meas": 0.3, "gate_mm": 15.0, "coast_max": 3, "reacquire_frames": 3},
+  "uart": {"id": 2, "tx_pin": 11, "rx_pin": 12, "baud": 115200},
+  "status_hz": 2,
+  "latency_const_ms": 0,
+  "wifi": {"mode": "ap", "ssid": "HCV-0000", "channel": 6, "password": "SEE_LOCAL"},
+  "stream": {"enabled": true, "port": 8554, "path": "hcv", "fps": 30, "bitrate_kbps": 2000, "gop": 15},
+  "telemetry": {"enabled": true, "hello_port": 9101, "data_port": 9100, "batch_ms": 100},
+  "log": {"level": "info", "run_csv": false},
+  "safe_boot": {"button_gpio": null, "skip_file": "/sdcard/hcv/SKIP_AUTOSTART"}
+}

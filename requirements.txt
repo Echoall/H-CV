@@ -1,0 +1,5 @@
+numpy
+pytest
+pyserial
+matplotlib
+opencv-python
