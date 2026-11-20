@@ -2,7 +2,10 @@ import argparse
 import json
 from pathlib import Path
 
-from generate import write_scene
+if __package__:
+    from .generate import write_scene
+else:
+    from generate import write_scene
 
 
 def build_manifest(output, count):
@@ -21,6 +24,10 @@ def build_manifest(output, count):
                         "highlight": highlight,
                         "theta_deg": theta,
                         "blur_px": blur,
+                        "positions_mm": [
+                            -100.0 + (200.0 * frame / max(1, count - 1))
+                            for frame in range(count)
+                        ],
                         "seed": index,
                     })
                     if count:
@@ -30,7 +37,6 @@ def build_manifest(output, count):
                             polarity=polarity,
                             highlight=highlight,
                             theta_deg=theta,
-                            ball_s_mm=0.0,
                             vel_px_per_s=blur * 1000.0,
                             exposure_us=1000.0,
                             seed=index,
