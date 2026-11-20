@@ -5,18 +5,22 @@ from pathlib import Path
 import numpy as np
 
 
-def project_s_to_u(s_mm, theta_deg=0.0, height_mm=300.0, scale_px_per_mm=2.0,
+def project_s_to_u(s_mm, theta_deg=0.0, height_mm=300.0, scale_px_per_mm=1.6,
                    center_u=320.0, pivot_mm=-125.0):
-    k = np.tan(np.deg2rad(theta_deg)) / height_mm
+    theta = np.deg2rad(theta_deg)
     distance = np.asarray(s_mm, dtype=float) - pivot_mm
-    return center_u + scale_px_per_mm * distance / (1.0 + k * distance)
+    x = pivot_mm + distance * np.cos(theta)
+    z = distance * np.sin(theta)
+    focal = scale_px_per_mm * height_mm
+    return center_u + focal * x / (height_mm - z)
 
 
-def inverse_u_to_s(u_px, theta_deg=0.0, height_mm=300.0, scale_px_per_mm=2.0,
+def inverse_u_to_s(u_px, theta_deg=0.0, height_mm=300.0, scale_px_per_mm=1.6,
                    center_u=320.0, pivot_mm=-125.0):
-    k = np.tan(np.deg2rad(theta_deg)) / height_mm
-    ratio = (np.asarray(u_px, dtype=float) - center_u) / scale_px_per_mm
-    return pivot_mm + ratio / (1.0 - k * ratio)
+    theta = np.deg2rad(theta_deg)
+    ratio = (np.asarray(u_px, dtype=float) - center_u) / (scale_px_per_mm * height_mm)
+    distance = (ratio * height_mm - pivot_mm) / (np.cos(theta) + ratio * np.sin(theta))
+    return pivot_mm + distance
 
 
 def fit_projective(s_mm, u_px):
@@ -52,9 +56,9 @@ def generate_scene(
     ball_s_mm=None,
     theta_deg=0.0,
     height_mm=300.0,
-    scale_px_per_mm=2.0,
+    scale_px_per_mm=1.6,
     pivot_mm=-125.0,
-    marker_positions_mm=(-100.0, 0.0, 100.0),
+    marker_positions_mm=(-110.0, 0.0, 110.0),
     ball_radius=10.0,
     polarity="dark",
     background=150.0,
@@ -138,7 +142,9 @@ def write_scene(output, count=3, **kwargs):
     seed_base = kwargs.pop("seed", 0)
     files = []
     for index in range(count):
-        image, truth = generate_scene(seed=seed_base + index, **kwargs)
+        frame_kwargs = dict(kwargs)
+        frame_kwargs.setdefault("ball_s_mm", -100.0 + (200.0 * index / max(1, count - 1)))
+        image, truth = generate_scene(seed=seed_base + index, **frame_kwargs)
         image_path = output / ("frame_%06d.npy" % index)
         truth_path = output / ("frame_%06d.json" % index)
         np.save(image_path, image)

@@ -70,6 +70,25 @@ def test_markers_and_projective_inverse():
     _, truth = generate_scene(theta_deg=20.0, ball_s_mm=25.0)
     assert len(truth["markers"]) == 3
     assert all("s_mm" in marker and "u_px" in marker for marker in truth["markers"])
+    for theta in (0.0, 10.0, 20.0):
+        pixels = project_s_to_u(np.array([-135.0, 135.0]), theta_deg=theta)
+        assert np.all((pixels >= 0.0) & (pixels < 640.0))
+
+
+def test_independent_geometry_table():
+    cases = [
+        (200, 3, [-0.7, -1.1, -0.2, 2.2, 5.9]),
+        (200, 6, [-1.5, -2.5, -0.7, 4.0, 11.9]),
+        (300, 6, [-1.0, -1.8, -0.7, 2.2, 7.2]),
+        (300, 10, [-1.9, -3.5, -2.1, 2.7, 11.0]),
+        (300, 20, [-4.5, -9.6, -8.8, -0.7, 16.3]),
+    ]
+    positions = np.array([-100.0, -50.0, 0.0, 50.0, 100.0])
+    for height, theta, expected in cases:
+        projected = project_s_to_u(
+            positions, theta_deg=theta, height_mm=height, scale_px_per_mm=1.0, center_u=0.0
+        )
+        assert np.max(np.abs((projected - positions) - np.array(expected))) < 0.1
 
 
 def test_antialias_and_motion_blur_are_continuous():
