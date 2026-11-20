@@ -16,7 +16,6 @@ SENSOR_HEIGHT = 720
 SENSOR_FPS = 90
 DETECT_WIDTH = 640
 DETECT_HEIGHT = 360
-MAX_SEQUENCE_FRAMES = 120
 
 
 def _ticks_us():
@@ -57,7 +56,7 @@ def _snapshot_pair(sensor, capture_chn1):
     return captured, detect, full
 
 
-def _record(index, captured, proc_us, detect_path, full_path):
+def _record(index, captured, proc_us, detect_path, full_path, detect_y=0, detect_height=DETECT_HEIGHT):
     return {
         "seq": index,
         "t_cap_us": captured,
@@ -72,7 +71,8 @@ def _record(index, captured, proc_us, detect_path, full_path):
         "image_chn1": full_path,
         "detect_format": "GRAYSCALE",
         "detect_width": DETECT_WIDTH,
-        "detect_height": DETECT_HEIGHT,
+        "detect_y": detect_y,
+        "detect_height": detect_height,
         "chn1_format": "YUV420SP" if full_path is not None else None,
         "chn1_width": SENSOR_WIDTH if full_path is not None else None,
         "chn1_height": SENSOR_HEIGHT if full_path is not None else None,
@@ -99,13 +99,13 @@ def _capture_single(sensor, output_dir, count, capture_chn1):
         ))
 
 
-def _capture_sequence(sensor, output_dir, count, capture_chn1):
-    if count > MAX_SEQUENCE_FRAMES:
-        raise ValueError("sequence count exceeds %d" % MAX_SEQUENCE_FRAMES)
+def _capture_sequence(sensor, output_dir, count, capture_chn1, roi_y, roi_height):
     if capture_chn1:
         raise ValueError("sequence mode currently requires --no-capture-chn1")
+    if roi_y < 0 or roi_height <= 0 or roi_y + roi_height > DETECT_HEIGHT:
+        raise ValueError("sequence ROI is outside the detection channel")
     free_memory = gc.mem_free() if hasattr(gc, "mem_free") else None
-    bytes_per_frame = DETECT_WIDTH * DETECT_HEIGHT
+    bytes_per_frame = DETECT_WIDTH * roi_height
     required_memory = count * bytes_per_frame
     print("HCV_SEQUENCE_MEMORY free=%r per_frame=%d required=%d" %
           (free_memory, bytes_per_frame, required_memory))
@@ -116,7 +116,8 @@ def _capture_sequence(sensor, output_dir, count, capture_chn1):
     for index in range(count):
         guard_tick()
         captured, detect, full = _snapshot_pair(sensor, capture_chn1)
-        frames.append((captured, detect.to_numpy_ref().tobytes()))
+        pixels = detect.to_numpy_ref()[roi_y:roi_y + roi_height, :]
+        frames.append((captured, bytearray(pixels.tobytes())))
     for index, item in enumerate(frames):
         guard_tick()
         captured, detect_bytes = item
@@ -126,14 +127,15 @@ def _capture_sequence(sensor, output_dir, count, capture_chn1):
         with open(detect_path, "wb") as stream:
             stream.write(detect_bytes)
         _write_record(output_dir, index, _record(
-            index, captured, time.ticks_diff(_ticks_us(), started), detect_path, full_path
+            index, captured, time.ticks_diff(_ticks_us(), started), detect_path, full_path,
+            roi_y, roi_height
         ))
     del frames
     gc.collect()
 
 
 def capture(mode="single", count=3, output_dir="/sdcard/hcv/capture", capture_chn1=False,
-            deadline_s=120):
+            deadline_s=120, roi_y=0, roi_height=None):
     if count <= 0:
         raise ValueError("count must be positive")
     try:
@@ -149,7 +151,9 @@ def capture(mode="single", count=3, output_dir="/sdcard/hcv/capture", capture_ch
         if mode == "single":
             _capture_single(sensor, output_dir, count, capture_chn1)
         elif mode == "sequence":
-            _capture_sequence(sensor, output_dir, count, capture_chn1)
+            if roi_height is None:
+                roi_height = DETECT_HEIGHT
+            _capture_sequence(sensor, output_dir, count, capture_chn1, roi_y, roi_height)
         else:
             raise ValueError("mode must be single or sequence")
     finally:

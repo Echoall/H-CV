@@ -21,18 +21,23 @@ def main():
     parser.add_argument("--truth-x-mm", type=float)
     parser.add_argument("--rod-angle-deg", type=float, default=0.0)
     parser.add_argument("--capture-chn1", action="store_true")
+    parser.add_argument("--roi-y", type=int, default=0)
+    parser.add_argument("--roi-height", type=int)
     parser.add_argument("--output", type=Path, default=Path("datasets"))
     args = parser.parse_args()
     if args.mode == "sequence" and args.capture_chn1:
         parser.error("sequence mode currently requires capture without CHN1")
+    roi_height = args.roi_height if args.roi_height is not None else (
+        64 if args.mode == "sequence" else None
+    )
 
     remote = "/sdcard/hcv/capture"
     run([
         "mpremote", "connect", args.port, "exec",
         "import sys; sys.path.append('/sdcard/hcv'); "
         "from exp.cap_frames import capture; "
-        "capture(mode=%r, count=%d, output_dir=%r, capture_chn1=%r)"
-        % (args.mode, args.frames, remote, args.capture_chn1),
+        "capture(mode=%r, count=%d, output_dir=%r, capture_chn1=%r, roi_y=%d, roi_height=%r)"
+        % (args.mode, args.frames, remote, args.capture_chn1, args.roi_y, roi_height),
     ])
 
     target = args.output / args.dataset / args.scene

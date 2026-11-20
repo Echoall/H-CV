@@ -1,22 +1,22 @@
 {
-  "directory": "reports\\data\\P1-T01\\board-sequence2\\p1_t01_sequence2",
+  "directory": "reports\\data\\P1-T01\\board-full3\\p1_t01_sequence_full3",
   "frames": 6,
   "interval_us": [
-    10912,
-    11165,
-    11259,
-    10926,
-    11285
+    8146,
+    11134,
+    11322,
+    11010,
+    10692
   ],
-  "interval_median_us": 11165,
-  "estimated_fps": 89.56560680698611,
-  "unique_pixel_hashes": 1,
+  "interval_median_us": 11010,
+  "estimated_fps": 90.82652134423252,
+  "unique_pixel_hashes": 6,
   "pixel_hashes": [
-    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
-    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
-    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
-    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
-    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
-    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02"
+    "26655686b92a8a7c8571a28adb16fb64b8079fae732c0b6f6a44830bf00f473b",
+    "e751555df5a960189f8c48938cd272ec8a1a41a7c2517829190e612571c3d06d",
+    "b5d082d3070b0e91f5cc05bbe97bd791bc4a3d1d196529f7de2e2f33b5afc0df",
+    "c6d384654d7c46dd539e607027223c79fa90cd66af255057c05b0f4aae4540d0",
+    "d31ad0fae55f3eaededf60f2e38a3d720d8dd170f06875cba21ba20532a41184",
+    "629efd9a79a8674bf79b55df888097ddcd255896b744aed3d92b485ea7cd0f46"
   ]
 }
