@@ -3,8 +3,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "k230"))
 
-from tools.eval.evaluate import evaluate
-from tools.synth.generate import generate_scene, write_scene
+import numpy as np
+import pytest
+
+from tools.eval.evaluate import evaluate, summarize_errors
+from tools.synth.generate import (
+    apply_projective,
+    fit_projective,
+    generate_scene,
+    inverse_u_to_s,
+    project_s_to_u,
+    write_scene,
+)
 
 
 def test_synth_truth_and_ideal_evaluation(tmp_path):
@@ -46,3 +56,39 @@ def test_profile_detector_runs_on_generated_scene(tmp_path):
     assert summary["valid_rate"] == 1.0
     assert summary["max_abs_error_px"] < 10.0
     assert all(row["quality"] >= 0 for row in rows)
+
+
+def test_markers_and_projective_inverse():
+    positions = np.array([-100.0, 0.0, 100.0])
+    for theta in (0.0, 20.0):
+        pixels = project_s_to_u(positions, theta_deg=theta)
+        coefficients = fit_projective(positions, pixels)
+        fitted = apply_projective(positions, coefficients)
+        assert np.max(np.abs(fitted - pixels)) < 0.05
+        recovered = inverse_u_to_s(pixels, theta_deg=theta)
+        assert np.max(np.abs(recovered - positions)) < 0.05
+    _, truth = generate_scene(theta_deg=20.0, ball_s_mm=25.0)
+    assert len(truth["markers"]) == 3
+    assert all("s_mm" in marker and "u_px" in marker for marker in truth["markers"])
+
+
+def test_antialias_and_motion_blur_are_continuous():
+    centers = []
+    for position in (210.0, 210.1, 210.2):
+        image, _ = generate_scene(ball_x=position, highlight=False, noise=0.0)
+        crop = image[170:215, 180:240].astype(float)
+        weights = 150.0 - crop
+        centers.append(float(np.sum(weights * np.arange(180, 240)[None, :]) /
+                            np.sum(weights)))
+    assert centers[0] <= centers[1] <= centers[2]
+    sharp, _ = generate_scene(vel_px_per_s=0.0, exposure_us=1000.0, highlight=False, noise=0.0)
+    blurred, _ = generate_scene(vel_px_per_s=100.0, exposure_us=1000.0, highlight=False, noise=0.0)
+    assert not np.array_equal(sharp, blurred)
+
+
+def test_hand_calculated_metrics():
+    summary = summarize_errors([1.0, -1.0, 2.0, 0.0], 4, 4)
+    assert summary["mean_error_px"] == 0.5
+    assert summary["rms_error_px"] == np.sqrt(1.5)
+    assert summary["max_abs_error_px"] == 2.0
+    assert summary["p95_abs_error_px"] == pytest.approx(1.85)

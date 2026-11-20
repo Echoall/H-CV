@@ -113,11 +113,16 @@ def _capture_sequence(sensor, output_dir, count, capture_chn1, roi_y, roi_height
         raise MemoryError("sequence needs %d bytes, only 60%% of %d bytes is allowed" %
                           (required_memory, free_memory))
     frames = []
+    previous_bytes = None
     for index in range(count):
         guard_tick()
         captured, detect, full = _snapshot_pair(sensor, capture_chn1)
         pixels = detect.to_numpy_ref()[roi_y:roi_y + roi_height, :]
-        frames.append((captured, bytearray(pixels.tobytes())))
+        copied = bytearray(pixels.tobytes())
+        if previous_bytes is not None and copied == previous_bytes:
+            raise RuntimeError("adjacent sequence frames have identical pixel bytes")
+        previous_bytes = copied
+        frames.append((captured, copied))
     for index, item in enumerate(frames):
         guard_tick()
         captured, detect_bytes = item

@@ -33,6 +33,21 @@ def ideal_detector(record):
     }
 
 
+def summarize_errors(errors, valid_frames, total_frames):
+    errors = np.asarray(errors, dtype=float)
+    absolute = np.abs(errors)
+    return {
+        "frames": int(total_frames),
+        "valid_frames": int(valid_frames),
+        "valid_rate": valid_frames / total_frames if total_frames else 0.0,
+        "mean_error_px": float(np.mean(errors)) if len(errors) else None,
+        "std_error_px": float(np.std(errors)) if len(errors) else None,
+        "rms_error_px": float(np.sqrt(np.mean(errors ** 2))) if len(errors) else None,
+        "max_abs_error_px": float(np.max(absolute)) if len(errors) else None,
+        "p95_abs_error_px": float(np.percentile(absolute, 95)) if len(errors) else None,
+    }
+
+
 def evaluate(dataset, detector_name="profile", mm_per_px=None, output=None):
     dataset = Path(dataset)
     rows = []
@@ -60,17 +75,8 @@ def evaluate(dataset, detector_name="profile", mm_per_px=None, output=None):
             })
     valid = [row for row in rows if row["error_px"] is not None]
     errors = np.array([row["error_px"] for row in valid], dtype=float)
-    summary = {
-        "frames": len(rows),
-        "valid_frames": len(valid),
-        "valid_rate": len(valid) / len(rows) if rows else 0.0,
-        "mean_error_px": float(np.mean(errors)) if len(errors) else None,
-        "std_error_px": float(np.std(errors)) if len(errors) else None,
-        "rms_error_px": float(np.sqrt(np.mean(errors ** 2))) if len(errors) else None,
-        "max_abs_error_px": float(np.max(np.abs(errors))) if len(errors) else None,
-        "p95_abs_error_px": float(np.percentile(np.abs(errors), 95)) if len(errors) else None,
-        "detector": detector_name,
-    }
+    summary = summarize_errors(errors, len(valid), len(rows))
+    summary["detector"] = detector_name
     if output:
         output = Path(output)
         output.mkdir(parents=True, exist_ok=True)
