@@ -48,8 +48,7 @@ def analyze_longrun(path):
         "p95_us": float(np.percentile(durations, 95)),
         "p99_us": float(np.percentile(durations, 99)),
         "max_us": max(durations),
-        "over_11111": sum(value > 11111 for value in durations),
-        "over_22000": sum(value > 22000 for value in durations),
+        "mean_us": float(np.mean(durations)),
     }
 
 
