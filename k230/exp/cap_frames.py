@@ -1,34 +1,22 @@
-"""CanMV capture helper for P1-T01.
-
-Run manually from the board. It intentionally has a finite frame count and
-uses the project's cooperative guard when that module is available.
-"""
+"""Finite CanMV capture helper for P1-T01."""
 
 import gc
 import json
 import os
 import time
 
-import sensor
+from hcv.guard import start as guard_start
+from hcv.guard import tick as guard_tick
+from media.media import MediaManager
+from media.sensor import Sensor
 
 
-def _guard_start(seconds):
-    try:
-        from hcv.guard import start
-        start(seconds)
-    except ImportError:
-        pass
-
-
-def _guard_tick():
-    try:
-        from hcv.guard import tick
-        tick()
-    except ImportError:
-        try:
-            os.exitpoint()
-        except AttributeError:
-            pass
+SENSOR_WIDTH = 1280
+SENSOR_HEIGHT = 720
+SENSOR_FPS = 90
+DETECT_WIDTH = 640
+DETECT_HEIGHT = 360
+MAX_SEQUENCE_FRAMES = 300
 
 
 def _ticks_us():
@@ -39,27 +27,38 @@ def _save_image(image, path):
     image.save(path, quality=100)
 
 
-def _snapshot(channel):
-    try:
-        return sensor.snapshot(chn=channel)
-    except TypeError:
-        if channel == 0:
-            return sensor.snapshot()
-        raise
+def _copy_image(image):
+    copy_method = getattr(image, "copy", None)
+    if copy_method is None:
+        raise RuntimeError("CanMV Image.copy is required for sequence capture")
+    return copy_method()
 
 
-def _capture_one(output_dir, index, capture_chn1):
-    _guard_tick()
-    start = _ticks_us()
-    image = _snapshot(0)
-    captured = _ticks_us()
-    path = "%s/frame_%06d.bmp" % (output_dir, index)
-    _save_image(image, path)
-    chn1_path = None
+def _make_sensor(capture_chn1):
+    sensor = Sensor(width=SENSOR_WIDTH, height=SENSOR_HEIGHT, fps=SENSOR_FPS)
+    sensor.reset()
+    sensor.set_framesize(width=DETECT_WIDTH, height=DETECT_HEIGHT, chn=0)
+    sensor.set_pixformat(Sensor.GRAYSCALE, chn=0)
     if capture_chn1:
-        chn1_path = "%s/frame_%06d_chn1.bmp" % (output_dir, index)
-        _save_image(_snapshot(1), chn1_path)
-    record = {
+        sensor.set_framesize(width=SENSOR_WIDTH, height=SENSOR_HEIGHT, chn=1)
+        sensor.set_pixformat(Sensor.YUV420SP, chn=1)
+    MediaManager.init()
+    sensor.run()
+    for _ in range(8):
+        guard_tick()
+        sensor.snapshot(chn=0, timeout=1000)
+    return sensor
+
+
+def _snapshot_pair(sensor, capture_chn1):
+    captured = _ticks_us()
+    detect = sensor.snapshot(chn=0, timeout=1000)
+    full = sensor.snapshot(chn=1, timeout=1000) if capture_chn1 else None
+    return captured, detect, full
+
+
+def _record(index, captured, proc_us, detect_path, full_path):
+    return {
         "seq": index,
         "t_cap_us": captured,
         "status": 1,
@@ -68,73 +67,81 @@ def _capture_one(output_dir, index, capture_chn1):
         "pos_filt": None,
         "vel": None,
         "quality": None,
-        "proc_us": time.ticks_diff(_ticks_us(), start),
-        "capture_chn1": bool(capture_chn1),
-        "image": path,
-        "image_chn1": chn1_path,
+        "proc_us": proc_us,
+        "image": detect_path,
+        "image_chn1": full_path,
     }
+
+
+def _write_record(output_dir, index, record):
     with open("%s/frame_%06d.json" % (output_dir, index), "w") as stream:
         json.dump(record, stream)
 
 
-def _capture_sequence(output_dir, count, capture_chn1):
-    frames = []
-    timestamps = []
+def _capture_single(sensor, output_dir, count, capture_chn1):
     for index in range(count):
-        _guard_tick()
-        timestamps.append(_ticks_us())
-        frames.append((_snapshot(0), _snapshot(1) if capture_chn1 else None))
-    for index, pair in enumerate(frames):
-        _guard_tick()
-        image, chn1 = pair
-        _save_image(image, "%s/frame_%06d.bmp" % (output_dir, index))
-        if chn1 is not None:
-            _save_image(chn1, "%s/frame_%06d_chn1.bmp" % (output_dir, index))
-        with open("%s/frame_%06d.json" % (output_dir, index), "w") as stream:
-            json.dump({
-                "seq": index,
-                "t_cap_us": timestamps[index],
-                "status": 1,
-                "u_px": None,
-                "pos_raw": None,
-                "pos_filt": None,
-                "vel": None,
-                "quality": None,
-                "capture_chn1": bool(capture_chn1),
-                "image": "%s/frame_%06d.bmp" % (output_dir, index),
-                "image_chn1": (
-                    "%s/frame_%06d_chn1.bmp" % (output_dir, index)
-                    if capture_chn1 else None
-                ),
-            }, stream)
+        guard_tick()
+        started = _ticks_us()
+        captured, detect, full = _snapshot_pair(sensor, capture_chn1)
+        detect_path = "%s/frame_%06d.bmp" % (output_dir, index)
+        full_path = "%s/frame_%06d_chn1.bmp" % (output_dir, index) if full is not None else None
+        _save_image(detect, detect_path)
+        if full is not None:
+            _save_image(full, full_path)
+        _write_record(output_dir, index, _record(
+            index, captured, time.ticks_diff(_ticks_us(), started), detect_path, full_path
+        ))
+
+
+def _capture_sequence(sensor, output_dir, count, capture_chn1):
+    if count > MAX_SEQUENCE_FRAMES:
+        raise ValueError("sequence count exceeds %d" % MAX_SEQUENCE_FRAMES)
+    frames = []
+    for index in range(count):
+        guard_tick()
+        captured, detect, full = _snapshot_pair(sensor, capture_chn1)
+        frames.append((captured, _copy_image(detect), _copy_image(full) if full is not None else None))
+    for index, item in enumerate(frames):
+        guard_tick()
+        captured, detect, full = item
+        detect_path = "%s/frame_%06d.bmp" % (output_dir, index)
+        full_path = "%s/frame_%06d_chn1.bmp" % (output_dir, index) if full is not None else None
+        started = _ticks_us()
+        _save_image(detect, detect_path)
+        if full is not None:
+            _save_image(full, full_path)
+        _write_record(output_dir, index, _record(
+            index, captured, time.ticks_diff(_ticks_us(), started), detect_path, full_path
+        ))
     del frames
     gc.collect()
 
 
-def capture(mode="single", count=3, output_dir="/sdcard/hcv/capture", capture_chn1=False,
+def capture(mode="single", count=3, output_dir="/sdcard/hcv/capture", capture_chn1=True,
             deadline_s=120):
-    _guard_start(deadline_s)
+    if count <= 0:
+        raise ValueError("count must be positive")
     try:
         os.makedirs(output_dir)
     except OSError:
         pass
-    sensor.reset()
-    sensor.set_pixformat(sensor.GRAYSCALE)
-    sensor.set_framesize(sensor.HD720)
-    sensor.skip_frames(time=2000)
+    guard_start(deadline_s)
+    sensor = None
+    media_started = False
     try:
+        sensor = _make_sensor(capture_chn1)
+        media_started = True
         if mode == "single":
-            for index in range(count):
-                _capture_one(output_dir, index, capture_chn1)
+            _capture_single(sensor, output_dir, count, capture_chn1)
         elif mode == "sequence":
-            _capture_sequence(output_dir, count, capture_chn1)
+            _capture_sequence(sensor, output_dir, count, capture_chn1)
         else:
             raise ValueError("mode must be single or sequence")
     finally:
-        try:
+        if sensor is not None:
             sensor.stop()
-        except AttributeError:
-            pass
+        if media_started:
+            MediaManager.deinit()
 
 
 if __name__ == "__main__":
