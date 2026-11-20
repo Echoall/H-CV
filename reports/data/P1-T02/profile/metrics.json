@@ -1,0 +1,11 @@
+{
+  "frames": 6,
+  "valid_frames": 6,
+  "valid_rate": 1.0,
+  "mean_error_px": 0.10224761957934447,
+  "std_error_px": 1.7779737057982612,
+  "rms_error_px": 1.7809113044224423,
+  "max_abs_error_px": 2.4251697209143117,
+  "p95_abs_error_px": 2.293188762672983,
+  "detector": "profile"
+}

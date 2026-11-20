@@ -1,0 +1,14 @@
+{
+  "seq": 0,
+  "t_cap_us": 0,
+  "truth_x_px": 320.0,
+  "truth_y_px": 190.0,
+  "truth": {
+    "u_px": 320.0,
+    "v_px": 190.0,
+    "ball_radius_px": 10.0,
+    "polarity": "dark",
+    "seed": 0
+  },
+  "image": "frame_000000.npy"
+}

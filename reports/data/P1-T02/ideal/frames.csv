@@ -1,0 +1,7 @@
+scene,seq,truth_x_px,measured_x_px,error_px,truth_x_mm,error_mm,valid,quality,proc_us
+scene_bright,0,320.0,320.0,0.0,,,1,255,3
+scene_bright,1,320.0,320.0,0.0,,,1,255,2
+scene_bright,2,320.0,320.0,0.0,,,1,255,1
+scene_dark,0,320.0,320.0,0.0,,,1,255,1
+scene_dark,1,320.0,320.0,0.0,,,1,255,1
+scene_dark,2,320.0,320.0,0.0,,,1,255,1
