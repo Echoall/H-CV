@@ -1,0 +1,3 @@
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "info"], "exit_code": 0, "seconds": 0.328}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "cooperative-busy.py", "--timeout", "5"], "exit_code": 1, "seconds": 5.652}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "info"], "exit_code": 0, "seconds": 0.329}

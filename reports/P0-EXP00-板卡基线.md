@@ -1,0 +1,39 @@
+# P0-EXP00 板卡基线盘点
+
+- 板端系统为 RT-Smart，machine 为 k230_canmv_hiwonder。固件 v1.4-19-ga7de1c8，构建日期 2025-11-06，MicroPython 1.21.0。固件对应源码版本见 revision.txt。以 revision.txt 中的源码 commit 组合作为固件标识。Manager 已明确原镜像文件 SHA-256 免提供，后续不混合不同固件的数据。
+- 镜头实测识别为 GC2093，默认 CSI2，传感器类型 32。一次 30 帧短测的实际传感器模式为 1280×720@90；CHN0 取回 640×360 GRAYSCALE。调用 Sensor.get_id() 会报 NotImplementedError，用对应固件的 Sensor 实例中提供的 CSI 枚举来记录。
+- gc.mem_free 在导入前为 3,916,096 字节，导入并回收后为 3,861,024 字节。
+- 有 cv_lite、ulab、machine.WDT、media.vencoder 和 RTSP 模块。没有 cv2。只检查了 WDT API，未启动看门狗。
+- 实际图像实例的 to_numpy_ref、find_blobs、get_statistics、get_histogram 均成功调用。其中 to_numpy_ref 返回 ndarray。ulab.numpy.mean(array, axis=0) 在板上返回预期结果。
+- RTSP 类有 start、stop、get_rtsp_url，底层 multimedia.rtsp_server 还有会话创建、音视频发送和释放接口。Encoder 有 Create、Start、GetStream、ReleaseStream、Stop、Destroy、SendFrame。盘点仅验证 API 可见，推流与编码行为留待图传阶段。
+- 同一块 K230 上完整跑通 ICD v1.1 的 43 个共享用例，以及配置读取、覆盖、日志脱敏和标定指纹。指纹同步计算两个固定值 e5aa30a19ada5159 与 c0470b14ff91def9。
+- 当前电脑连 5 GHz 信道 157。板端 STA 接口存在，定向扫描未发现目标网络，连接返回 False。夜间相机测量继续用 USB。
+- W1 仍待定。原 TF 卡根目录没有 main.py 或 boot.py 可用于比较。超时的软复位尝试未取得 raw REPL 提示，保护期限过后另行连接成功。
+- Manager 已确认项目用幻尔 K230，并更新 ICD v1.1。官方图已确认 UART1 的 40-pin 物理脚位（8=TX1、10=RX1、6/9=GND）。电平和回环将由 T03 在队员在场时实测。
+
+## 证据与复现
+
+原始固件细节、模块及方法、内存采样、配置自测和相机 API 结果见 [P0-EXP00 数据](data/P0-EXP00/)。摄像头短测的帧日志及解析结果见 [P0-EXP01 冒烟数据](data/P0-EXP01/)。
+
+    python tools/board/board.py --port COM3 run k230/exp/exp00_inventory.py --timeout 60 --stream --log inventory.raw.log
+    python tools/board/config_smoke.py --port COM3 --log config-smoke.log
+    python tools/analysis/exp01_camera.py capture --port COM3 --smoke --output image-api-check
+
+## 补充验证
+
+/proc/meminfo 在板上无法读取（错误码 19）。实际 os 与 MediaManager 的公开方法列表未发现系统内存或 MMZ 容量查询。MicroPython 堆结果不用于推断系统 RAM。
+
+新 guard 模块以 1 秒期限在板上自行退出，日志为 1001 ms，随后 info 成功。测试未启动 WDT。
+
+
+## 验收核对
+
+1. 固件版本、构建日期与源码 revision 已从真板取得。原始烧录镜像文件名及 SHA-256 本轮无法取得。
+2. MicroPython 堆有前后两次实测。系统 RAM 和 MMZ 总量未能确认。
+3. 所有要求的模块均尝试导入，成功和原始错误已记录。
+4. Sensor 实例、编码器、RTSP、UART 和 WLAN 的 API 来自板上读取。
+5. Sensor 默认探测到 GC2093 CSI2。公开实例 API 未发现可直接枚举全部 native mode 的接口，逐组试验交 EXP-01。
+6. ulab 版本 6.4.1-(4)D-c。mean(axis=0)、argmax、diff、convolve、median、sort 可检验；板上 numpy API 没有 cumsum。后续算法需要回避这一依赖或实测替代实现。
+7. 灰度图像实例的四个要求接口均实际调用通过。
+
+Claude 已验收，状态 DONE。系统 RAM 版本待查订单，不影响后续相机测量。

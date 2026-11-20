@@ -9,13 +9,13 @@
 
 | ID | 类型 | 名称 | 依赖 | 🖐 | 状态 | 报告 |
 |---|---|---|---|---|---|---|
-| P0-T01 | T | 仓库骨架与开发环境 | — | | TODO | |
-| P0-T02 | T | 板卡访问工具 | P0-T01 | | TODO | |
-| P0-EXP00 | EXP | 板卡基线盘点（固件、模块、API、内存） | P0-T02 | | TODO | |
-| P0-T03 | T | 串口回环与电平确认 | P0-T02 | 🖐 | TODO | |
-| P0-EXP01 | EXP | 摄像头模式、帧率、多通道、硬件裁剪 | P0-EXP00 | | TODO | |
-| P0-EXP02 | EXP | ISP 控制能力（曝光、增益、白平衡） | P0-EXP00 | 🖐 | TODO | |
-| P0-EXP03 | EXP | 视场角与畸变 → 安装高度 | P0-EXP01 | 🖐 | TODO | |
+| P0-T01 | T | 仓库骨架与开发环境 | — | | DONE | [报告](../reports/P0-T01-开发环境.md) |
+| P0-T02 | T | 板卡访问工具 | P0-T01 | | DONE | [报告](../reports/P0-T02-板卡工具.md) |
+| P0-EXP00 | EXP | 板卡基线盘点（固件、模块、API、内存） | P0-T02 | | DONE | [报告](../reports/P0-EXP00-板卡基线.md) |
+| P0-T03 | T | 串口回环与电平确认 | P0-T02 | 🖐 | TODO | [现场操作](../reports/P0-T03-现场操作清单.md) |
+| P0-EXP01 | EXP | 摄像头模式、帧率、多通道、硬件裁剪 | P0-EXP00 | | DONE | [实测报告](../reports/P0-EXP01-摄像头性能.md) |
+| P0-EXP02 | EXP | ISP 控制能力（曝光、增益、白平衡） | P0-EXP00 | 🖐 | DOING | [默认模式实测](../reports/P0-EXP02-亮度响应实测.md) |
+| P0-EXP03 | EXP | 水平视场角 → 安装高度 | P0-EXP01 | 🖐 | DOING | [尺子实测](../reports/P0-EXP03-水平视场实测.md) |
 
 **Gate G0**：Codex 能用脚本稳定地上传、运行、取回结果；串口回环通过；EXP-01、02、03 有结论；给结构组的安装高度建议已经写出。
 
@@ -92,7 +92,10 @@
 | 日期 | 阶段 | 分支 / PR | 提交 | 说明 |
 |---|---|---|---|---|
 
+| 2026-11-20 | P0-T01（电脑端） | [codex/P0](https://github.com/Echoall/H-CV/tree/codex/P0) | cf17b61 | Claude 已验收，见 reports/review/P0-review.md |
+
 ## 问题记录（Codex 追加，BLOCKED 时必填）
 
 | 日期 | 任务 | 问题 | 需要谁 | 状态 |
 |---|---|---|---|---|
+| 2026-11-20 | P0-T02 | 20 轮传输通过，死循环测试后 COM3 无 raw REPL 提示；队员曾断电恢复一次。工具改为独立发送 Ctrl-C 后受保护复验通过。 | Codex / Claude | 已修复，Claude 已验收 |

@@ -1,0 +1,62 @@
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "info"], "exit_code": 0, "seconds": 0.343}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.561}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-01.log"], "exit_code": 0, "seconds": 0.437}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.368}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.513}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-02.log"], "exit_code": 0, "seconds": 0.436}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.36}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.519}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-03.log"], "exit_code": 0, "seconds": 0.443}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.361}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.52}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-04.log"], "exit_code": 0, "seconds": 0.436}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.365}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.522}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-05.log"], "exit_code": 0, "seconds": 0.442}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.364}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.513}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-06.log"], "exit_code": 0, "seconds": 0.443}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.359}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.522}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-07.log"], "exit_code": 0, "seconds": 0.441}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.372}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.518}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-08.log"], "exit_code": 0, "seconds": 0.445}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.369}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.515}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-09.log"], "exit_code": 0, "seconds": 0.433}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.364}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.519}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-10.log"], "exit_code": 0, "seconds": 0.434}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.362}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.512}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-11.log"], "exit_code": 0, "seconds": 0.446}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.359}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.517}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-12.log"], "exit_code": 0, "seconds": 0.445}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.368}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.519}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-13.log"], "exit_code": 0, "seconds": 0.436}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.363}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.519}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-14.log"], "exit_code": 0, "seconds": 0.444}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.363}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.517}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-15.log"], "exit_code": 0, "seconds": 0.438}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.36}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.522}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-16.log"], "exit_code": 0, "seconds": 0.44}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.368}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.522}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-17.log"], "exit_code": 0, "seconds": 0.446}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.366}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.527}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-18.log"], "exit_code": 0, "seconds": 0.44}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.365}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.516}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-19.log"], "exit_code": 0, "seconds": 0.442}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.371}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "put", "payload.py", "/sdcard/hcv/p0_t02/payload.py"], "exit_code": 0, "seconds": 0.526}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "start.py", "--timeout", "30", "--stream", "--log", "trial-20.log"], "exit_code": 0, "seconds": 0.436}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "get", "/sdcard/hcv/p0_t02/result.bin", "received.bin"], "exit_code": 0, "seconds": 0.361}
+{"command": ["python", "tools/board/board.py", "--port", "COM3", "run", "busy.py", "--timeout", "5"], "exit_code": 3, "seconds": 18.34}

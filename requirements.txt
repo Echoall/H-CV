@@ -1,2 +1,6 @@
 pytest>=8,<10
 pyserial>=3.5
+numpy
+matplotlib
+opencv-python
+mpremote==1.29.0

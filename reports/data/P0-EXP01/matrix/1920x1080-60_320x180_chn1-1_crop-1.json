@@ -1,0 +1,52 @@
+{
+  "sensor_type": 30,
+  "sensor_id": 2,
+  "actual": [
+    1920,
+    1080,
+    60
+  ],
+  "requested": [
+    1920,
+    1080,
+    60
+  ],
+  "sensor": "gc2093_csi2",
+  "status": "ok",
+  "frames": 1000,
+  "fps": 57.09565545498122,
+  "interval_p50": 17475,
+  "interval_p95": 17578,
+  "interval_p99": 17581,
+  "interval_max": 18062,
+  "snapshot_p50": 17460,
+  "snapshot_p95": 17565,
+  "snapshot_p99": 17568,
+  "snapshot_max": 18050,
+  "image": {
+    "sensor_gray_constant": 303,
+    "gray_constant": 134348801,
+    "height": 180,
+    "crop": [
+      800,
+      450,
+      320,
+      180
+    ],
+    "width": 320,
+    "format": 134348801,
+    "channel1": [
+      1280,
+      720
+    ]
+  },
+  "case": [
+    1920,
+    1080,
+    60,
+    320,
+    180,
+    true,
+    true
+  ]
+}
