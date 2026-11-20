@@ -8,7 +8,7 @@ RX_IO = 4
 
 
 class UART1Link:
-    def __init__(self, baud):
+    def __init__(self, baud, txbuf=None):
         self.mux = FPIOA()
         self.previous_tx = self.mux.get_pin_func(TX_IO)
         self.previous_rx = self.mux.get_pin_func(RX_IO)
@@ -16,7 +16,10 @@ class UART1Link:
         try:
             self.mux.set_function(TX_IO, FPIOA.UART1_TXD)
             self.mux.set_function(RX_IO, FPIOA.UART1_RXD)
-            self.uart = UART(UART.UART1, baud, bits=8, stop=1, timeout=2)
+            kwargs = {"bits": 8, "stop": 1, "timeout": 2}
+            if txbuf is not None:
+                kwargs["txbuf"] = txbuf
+            self.uart = UART(UART.UART1, baud, **kwargs)
         except BaseException:
             self.close()
             raise

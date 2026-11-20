@@ -110,7 +110,7 @@
       "p95_us": 2.0,
       "p99_us": 3.0,
       "max_us": 1531.0
-    },
-    "main_loop_processing_p95_us": 3907.3999999999996
-  }
+    }
+  },
+  "profile_reference_p95_sum_us": 5998.749999999999
 }
