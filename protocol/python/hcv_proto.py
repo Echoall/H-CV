@@ -9,6 +9,7 @@ MSG_STATUS = 0x02
 MSG_RUN_INFO = 0x81
 MSG_CMD = 0x82
 INV = -32768
+MAX_LEN = 32
 
 PAYLOAD_LENGTHS = {
     MSG_BALL: 13,
@@ -199,18 +200,20 @@ class StreamParser:
             if len(self.buffer) < 3:
                 break
             length = self.buffer[2]
-            if length < 2:
+            if length < 2 or length > MAX_LEN:
                 self.length_errors += 1
                 del self.buffer[0]
                 continue
+            if len(self.buffer) >= 4:
+                msgid = self.buffer[3]
+                if msgid in PAYLOAD_LENGTHS and length != PAYLOAD_LENGTHS[msgid] + 2:
+                    self.length_errors += 1
+                    del self.buffer[0]
+                    continue
             total = length + 4
             if len(self.buffer) < total:
                 break
             msgid = self.buffer[3]
-            if msgid in PAYLOAD_LENGTHS and length != PAYLOAD_LENGTHS[msgid] + 2:
-                self.length_errors += 1
-                del self.buffer[0]
-                continue
             candidate = bytes(self.buffer[:total])
             if crc8(candidate[2:-1]) != candidate[-1]:
                 self.crc_errors += 1

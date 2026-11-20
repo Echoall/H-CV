@@ -48,7 +48,7 @@ void uart_rx_interrupt(uint8_t byte)
 }
 ```
 
-`protocol/c/` 是 C99、无 `malloc` 的实现。`example_mcu.c` 展示了 UART 中断中的最小调用方式。
+`protocol/c/` 是 C99、无 `malloc` 的实现。解析器使用固定的 36 字节接收缓冲（`HCV_MAX_LEN=32` 加帧头、长度和 CRC），`hcv_parser_t` 还包含序号统计数组，合计约 560 字节。它在读到 MSGID 后立即拒绝已知报文的错误 LEN，未知 MSGID 的 LEN 超过 32 也立即拒绝，并从缓冲区继续扫描下一个 `A5 5A`。`example_mcu.c` 展示了 UART 中断中的最小调用方式。
 
 ## PC 自测
 

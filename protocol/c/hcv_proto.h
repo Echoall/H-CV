@@ -11,6 +11,7 @@
 #define HCV_MSG_RUN_INFO 0x81u
 #define HCV_MSG_CMD 0x82u
 #define HCV_INV ((int16_t)-32768)
+#define HCV_MAX_LEN 32u
 #define HCV_MAX_PAYLOAD 253u
 
 typedef struct {
@@ -21,14 +22,8 @@ typedef struct {
 } hcv_frame_t;
 
 typedef struct {
-    uint8_t state;
-    uint8_t length;
-    uint8_t msgid;
-    uint8_t seq;
-    uint8_t payload[HCV_MAX_PAYLOAD];
-    uint8_t payload_len;
-    uint8_t index;
-    uint8_t crc;
+    uint8_t buffer[HCV_MAX_LEN + 4u];
+    uint8_t buffer_len;
     uint32_t frames;
     uint32_t crc_errors;
     uint32_t length_errors;

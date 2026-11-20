@@ -2,12 +2,6 @@
 
 #include <string.h>
 
-#define WAIT_SOF0 0u
-#define WAIT_SOF1 1u
-#define READ_LENGTH 2u
-#define READ_BODY 3u
-#define READ_CRC 4u
-
 static uint8_t known_payload_length(uint8_t msgid)
 {
     switch (msgid) {
@@ -59,102 +53,82 @@ size_t hcv_encode(uint8_t msgid, uint8_t seq, const uint8_t *payload,
 void hcv_parser_init(hcv_parser_t *parser)
 {
     memset(parser, 0, sizeof(*parser));
-    parser->state = WAIT_SOF0;
 }
 
-static void parser_reset(hcv_parser_t *parser)
+static void discard_first(hcv_parser_t *parser)
 {
-    parser->state = WAIT_SOF0;
-    parser->length = 0u;
-    parser->payload_len = 0u;
-    parser->index = 0u;
-    parser->crc = 0u;
+    if (parser->buffer_len != 0u) {
+        memmove(parser->buffer, parser->buffer + 1u, parser->buffer_len - 1u);
+        parser->buffer_len--;
+    }
+}
+
+static void find_header(hcv_parser_t *parser)
+{
+    uint8_t index = 0u;
+    while (index + 1u < parser->buffer_len &&
+           !(parser->buffer[index] == HCV_SOF0 && parser->buffer[index + 1u] == HCV_SOF1))
+        index++;
+    if (index != 0u) {
+        parser->sync_drops += index;
+        memmove(parser->buffer, parser->buffer + index, parser->buffer_len - index);
+        parser->buffer_len = (uint8_t)(parser->buffer_len - index);
+    }
 }
 
 int hcv_parser_feed(hcv_parser_t *parser, uint8_t byte, hcv_frame_t *out)
 {
+    uint8_t length;
     uint8_t expected;
+    uint8_t total;
     uint8_t gap;
-    switch (parser->state) {
-    case WAIT_SOF0:
-        if (byte == HCV_SOF0)
-            parser->state = WAIT_SOF1;
-        else
-            parser->sync_drops++;
-        return 0;
-    case WAIT_SOF1:
-        if (byte == HCV_SOF1)
-            parser->state = READ_LENGTH;
-        else {
-            parser->sync_drops++;
-            parser->state = (byte == HCV_SOF0) ? WAIT_SOF1 : WAIT_SOF0;
-        }
-        return 0;
-    case READ_LENGTH:
-        parser->length = byte;
-        if (byte < 2u) {
-            parser->length_errors++;
-            parser_reset(parser);
+    if (parser->buffer_len == sizeof(parser->buffer))
+        discard_first(parser);
+    parser->buffer[parser->buffer_len++] = byte;
+    for (;;) {
+        find_header(parser);
+        if (parser->buffer_len < 3u)
             return 0;
+        length = parser->buffer[2];
+        if (length < 2u || length > HCV_MAX_LEN) {
+            parser->length_errors++;
+            discard_first(parser);
+            continue;
         }
-        parser->payload_len = (uint8_t)(byte - 2u);
-        parser->index = 0u;
-        parser->state = READ_BODY;
-        return 0;
-    case READ_BODY:
-        if (parser->index == 0u)
-            parser->msgid = byte;
-        else if (parser->index == 1u)
-            parser->seq = byte;
-        else
-            parser->payload[parser->index - 2u] = byte;
-        parser->index++;
-        if (parser->index >= parser->length) {
-            expected = known_payload_length(parser->msgid);
-            if (expected != 0u && expected != parser->payload_len) {
-                parser->length_errors++;
-                parser_reset(parser);
-            } else {
-                parser->state = READ_CRC;
-            }
+        if (parser->buffer_len < 4u)
+            return 0;
+        expected = known_payload_length(parser->buffer[3]);
+        if (expected != 0u && length != (uint8_t)(expected + 2u)) {
+            parser->length_errors++;
+            discard_first(parser);
+            continue;
         }
-        return 0;
-    case READ_CRC:
-        parser->crc = byte;
-        {
-            uint8_t body[256];
-            size_t body_len = (size_t)parser->length + 1u;
-            body[0] = parser->length;
-            body[1] = parser->msgid;
-            body[2] = parser->seq;
-            if (parser->payload_len != 0u)
-                memcpy(&body[3], parser->payload, parser->payload_len);
-            if (hcv_crc8(body, body_len) != parser->crc) {
-                parser->crc_errors++;
-                parser_reset(parser);
-                return 0;
-            }
+        total = (uint8_t)(length + 4u);
+        if (parser->buffer_len < total)
+            return 0;
+        if (hcv_crc8(parser->buffer + 2u, (size_t)length + 1u) != parser->buffer[total - 1u]) {
+            parser->crc_errors++;
+            discard_first(parser);
+            continue;
         }
         if (out != NULL) {
-            out->msgid = parser->msgid;
-            out->seq = parser->seq;
-            out->payload_len = parser->payload_len;
-            if (parser->payload_len != 0u)
-                memcpy(out->payload, parser->payload, parser->payload_len);
+            out->msgid = parser->buffer[3];
+            out->seq = parser->buffer[4];
+            out->payload_len = (uint8_t)(length - 2u);
+            if (out->payload_len != 0u)
+                memcpy(out->payload, parser->buffer + 5u, out->payload_len);
         }
         parser->frames++;
-        if (parser->have_seq[parser->msgid]) {
-            gap = (uint8_t)(parser->seq - parser->last_seq[parser->msgid]);
+        if (parser->have_seq[parser->buffer[3]]) {
+            gap = (uint8_t)(parser->buffer[4] - parser->last_seq[parser->buffer[3]]);
             if (gap > 1u && gap < 128u)
                 parser->lost_frames += (uint32_t)(gap - 1u);
         }
-        parser->have_seq[parser->msgid] = 1u;
-        parser->last_seq[parser->msgid] = parser->seq;
-        parser_reset(parser);
+        parser->have_seq[parser->buffer[3]] = 1u;
+        parser->last_seq[parser->buffer[3]] = parser->buffer[4];
+        memmove(parser->buffer, parser->buffer + total, parser->buffer_len - total);
+        parser->buffer_len = (uint8_t)(parser->buffer_len - total);
         return 1;
-    default:
-        parser_reset(parser);
-        return 0;
     }
 }
 

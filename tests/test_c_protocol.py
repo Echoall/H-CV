@@ -1,8 +1,15 @@
 import subprocess
+import shutil
+import sys
 from pathlib import Path
+import pytest
+
+sys.path.insert(0, str(Path(__file__).parents[1] / "protocol"))
 
 
 def test_c_protocol_vectors_and_python_cross_check(tmp_path):
+    if shutil.which("gcc") is None:
+        pytest.skip("gcc not found")
     root = Path(__file__).parents[1]
     harness = tmp_path / "harness.c"
     executable = tmp_path / "harness.exe"
@@ -95,3 +102,47 @@ int main(void)
         assert fields[1].lower() == f"{vector['msgid']:02x}"
         assert fields[2].lower() == f"{vector['seq']:02x}"
         assert fields[3].lower() == "".join(vector["frame"].split()[5:-1]).lower()
+
+    import random
+    from protocol.python.hcv_proto import StreamParser, encode_run_info
+    rng = random.Random(0x51A7C0DE)
+    stream = bytearray()
+    corrupted = set()
+    originals = {}
+    for index in range(5000):
+        frame = bytearray(encode_run_info(
+            index & 0xFF, 7, 2, index, -1000 + index % 2000, 0, 0
+        ))
+        originals[index] = bytes(frame)
+        action = rng.random()
+        if action < 0.01:
+            corrupted.add(index)
+            position = rng.randrange(len(frame))
+            frame[position] ^= 1 << rng.randrange(8)
+        elif action < 0.012:
+            corrupted.add(index)
+            del frame[-rng.randint(1, 4):]
+        stream.extend(frame)
+    py_parser = StreamParser()
+    py_frames = []
+    for offset in range(0, len(stream), 17):
+        py_frames.extend(py_parser.feed(stream[offset:offset + 17]))
+    py_records = [(frame.msgid, frame.seq, frame.payload.hex()) for frame in py_frames]
+    c_run = subprocess.run(
+        [str(executable)],
+        input=__import__("binascii").hexlify(stream),
+        capture_output=True,
+    )
+    assert c_run.returncode == 0, c_run.stderr
+    c_records = []
+    for line in c_run.stdout.decode("ascii").splitlines():
+        fields = line.split()
+        if fields and fields[0] == "FRAME":
+            c_records.append((int(fields[1], 16), int(fields[2], 16), fields[3]))
+    assert c_records == py_records
+    for index, raw in originals.items():
+        record = (raw[3], raw[4], raw[5:-1].hex())
+        if index not in corrupted:
+            assert record in py_records
+        else:
+            assert record not in py_records
