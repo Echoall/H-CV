@@ -23,15 +23,15 @@ def _ticks_us():
     return time.ticks_us()
 
 
-def _save_image(image, path):
-    image.save(path, quality=100)
-
-
-def _copy_image(image):
-    copy_method = getattr(image, "copy", None)
-    if copy_method is None:
-        raise RuntimeError("CanMV Image.copy is required for sequence capture")
-    return copy_method()
+def _save_image(image, path, pixel_format):
+    if pixel_format == "GRAYSCALE":
+        raw_path = path.rsplit(".", 1)[0] + ".gray.bin"
+        with open(raw_path, "wb") as stream:
+            stream.write(image.to_numpy_ref().tobytes())
+        return raw_path
+    raw_path = path.rsplit(".", 1)[0] + ".yuv420sp"
+    image.save(raw_path)
+    return raw_path
 
 
 def _make_sensor(capture_chn1):
@@ -70,6 +70,12 @@ def _record(index, captured, proc_us, detect_path, full_path):
         "proc_us": proc_us,
         "image": detect_path,
         "image_chn1": full_path,
+        "detect_format": "GRAYSCALE",
+        "detect_width": DETECT_WIDTH,
+        "detect_height": DETECT_HEIGHT,
+        "chn1_format": "YUV420SP" if full_path is not None else None,
+        "chn1_width": SENSOR_WIDTH if full_path is not None else None,
+        "chn1_height": SENSOR_HEIGHT if full_path is not None else None,
     }
 
 
@@ -83,11 +89,11 @@ def _capture_single(sensor, output_dir, count, capture_chn1):
         guard_tick()
         started = _ticks_us()
         captured, detect, full = _snapshot_pair(sensor, capture_chn1)
-        detect_path = "%s/frame_%06d.bmp" % (output_dir, index)
-        full_path = "%s/frame_%06d_chn1.bmp" % (output_dir, index) if full is not None else None
-        _save_image(detect, detect_path)
+        detect_path = "%s/frame_%06d.png" % (output_dir, index)
+        full_path = "%s/frame_%06d_chn1.png" % (output_dir, index) if full is not None else None
+        detect_path = _save_image(detect, detect_path, "GRAYSCALE")
         if full is not None:
-            _save_image(full, full_path)
+            full_path = _save_image(full, full_path, "YUV420SP")
         _write_record(output_dir, index, _record(
             index, captured, time.ticks_diff(_ticks_us(), started), detect_path, full_path
         ))
@@ -96,20 +102,21 @@ def _capture_single(sensor, output_dir, count, capture_chn1):
 def _capture_sequence(sensor, output_dir, count, capture_chn1):
     if count > MAX_SEQUENCE_FRAMES:
         raise ValueError("sequence count exceeds %d" % MAX_SEQUENCE_FRAMES)
+    if capture_chn1:
+        raise ValueError("sequence mode currently requires --no-capture-chn1")
     frames = []
     for index in range(count):
         guard_tick()
         captured, detect, full = _snapshot_pair(sensor, capture_chn1)
-        frames.append((captured, _copy_image(detect), _copy_image(full) if full is not None else None))
+        frames.append((captured, detect.to_numpy_ref().tobytes()))
     for index, item in enumerate(frames):
         guard_tick()
-        captured, detect, full = item
-        detect_path = "%s/frame_%06d.bmp" % (output_dir, index)
-        full_path = "%s/frame_%06d_chn1.bmp" % (output_dir, index) if full is not None else None
+        captured, detect_bytes = item
+        detect_path = "%s/frame_%06d.gray.bin" % (output_dir, index)
+        full_path = None
         started = _ticks_us()
-        _save_image(detect, detect_path)
-        if full is not None:
-            _save_image(full, full_path)
+        with open(detect_path, "wb") as stream:
+            stream.write(detect_bytes)
         _write_record(output_dir, index, _record(
             index, captured, time.ticks_diff(_ticks_us(), started), detect_path, full_path
         ))
@@ -122,7 +129,7 @@ def capture(mode="single", count=3, output_dir="/sdcard/hcv/capture", capture_ch
     if count <= 0:
         raise ValueError("count must be positive")
     try:
-        os.makedirs(output_dir)
+        os.mkdir(output_dir)
     except OSError:
         pass
     guard_start(deadline_s)

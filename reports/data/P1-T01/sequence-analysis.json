@@ -1,0 +1,22 @@
+{
+  "directory": "reports\\data\\P1-T01\\board-sequence2\\p1_t01_sequence2",
+  "frames": 6,
+  "interval_us": [
+    10912,
+    11165,
+    11259,
+    10926,
+    11285
+  ],
+  "interval_median_us": 11165,
+  "estimated_fps": 89.56560680698611,
+  "unique_pixel_hashes": 1,
+  "pixel_hashes": [
+    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
+    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
+    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
+    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
+    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02",
+    "3d42a506bf9fd45dc85e5e3df67faf2c6343273da95fe644ac38379c91e21a02"
+  ]
+}

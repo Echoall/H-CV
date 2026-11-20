@@ -24,6 +24,8 @@ def main():
     parser.set_defaults(capture_chn1=True)
     parser.add_argument("--output", type=Path, default=Path("datasets"))
     args = parser.parse_args()
+    if args.mode == "sequence" and args.capture_chn1:
+        parser.error("sequence mode requires --no-capture-chn1 on CanMV v1.4")
 
     remote = "/sdcard/hcv/capture"
     run([
