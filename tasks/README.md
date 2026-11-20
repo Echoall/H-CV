@@ -14,8 +14,8 @@
 | P0-EXP00 | EXP | 板卡基线盘点（固件、模块、API、内存） | P0-T02 | | DONE | [报告](../reports/P0-EXP00-板卡基线.md) |
 | P0-T03 | T | 串口回环与电平确认 | P0-T02 | 🖐 | TODO | [现场操作](../reports/P0-T03-现场操作清单.md) |
 | P0-EXP01 | EXP | 摄像头模式、帧率、多通道、硬件裁剪 | P0-EXP00 | | DONE | [实测报告](../reports/P0-EXP01-摄像头性能.md) |
-| P0-EXP02 | EXP | ISP 控制能力（曝光、增益、白平衡） | P0-EXP00 | 🖐 | TODO | |
-| P0-EXP03 | EXP | 视场角与畸变 → 安装高度 | P0-EXP01 | 🖐 | TODO | |
+| P0-EXP02 | EXP | ISP 控制能力（曝光、增益、白平衡） | P0-EXP00 | 🖐 | DOING | [默认模式实测](../reports/P0-EXP02-亮度响应实测.md) |
+| P0-EXP03 | EXP | 水平视场角 → 安装高度 | P0-EXP01 | 🖐 | DOING | [尺子实测](../reports/P0-EXP03-水平视场实测.md) |
 
 **Gate G0**：Codex 能用脚本稳定地上传、运行、取回结果；串口回环通过；EXP-01、02、03 有结论；给结构组的安装高度建议已经写出。
 
