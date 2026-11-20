@@ -16,7 +16,7 @@ SENSOR_HEIGHT = 720
 SENSOR_FPS = 90
 DETECT_WIDTH = 640
 DETECT_HEIGHT = 360
-MAX_SEQUENCE_FRAMES = 300
+MAX_SEQUENCE_FRAMES = 120
 
 
 def _ticks_us():
@@ -104,6 +104,14 @@ def _capture_sequence(sensor, output_dir, count, capture_chn1):
         raise ValueError("sequence count exceeds %d" % MAX_SEQUENCE_FRAMES)
     if capture_chn1:
         raise ValueError("sequence mode currently requires --no-capture-chn1")
+    free_memory = gc.mem_free() if hasattr(gc, "mem_free") else None
+    bytes_per_frame = DETECT_WIDTH * DETECT_HEIGHT
+    required_memory = count * bytes_per_frame
+    print("HCV_SEQUENCE_MEMORY free=%r per_frame=%d required=%d" %
+          (free_memory, bytes_per_frame, required_memory))
+    if free_memory is not None and required_memory > int(free_memory * 0.6):
+        raise MemoryError("sequence needs %d bytes, only 60%% of %d bytes is allowed" %
+                          (required_memory, free_memory))
     frames = []
     for index in range(count):
         guard_tick()
@@ -124,7 +132,7 @@ def _capture_sequence(sensor, output_dir, count, capture_chn1):
     gc.collect()
 
 
-def capture(mode="single", count=3, output_dir="/sdcard/hcv/capture", capture_chn1=True,
+def capture(mode="single", count=3, output_dir="/sdcard/hcv/capture", capture_chn1=False,
             deadline_s=120):
     if count <= 0:
         raise ValueError("count must be positive")
