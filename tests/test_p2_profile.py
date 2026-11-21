@@ -117,6 +117,22 @@ def test_profile_update_image_and_result_have_unified_shape():
     assert isinstance(result[3], dict)
 
 
+def test_profile_m1_fast_path_detects_synthetic_ball():
+    reference_image, _ = generate_scene(
+        ball_x=-1000, noise=0, highlight=False, magnet_shadow=False
+    )
+    image, truth = generate_scene(
+        ball_s_mm=20, polarity="dark", highlight=True, seed=19
+    )
+    params = dict(PARAMS, polarity="dark", m1_fast=True)
+    detector = ProfileDetector(
+        np.mean(reference_image[166:214], axis=0), params, width=640
+    )
+    detector.update(np.mean(image[166:214], axis=0))
+    assert detector.found
+    assert detector.u == pytest.approx(truth["u_px"], abs=2.0)
+
+
 @pytest.mark.parametrize("kind", ["glare", "local_shadow"])
 @pytest.mark.parametrize("width", [12, 40, 60])
 @pytest.mark.parametrize("strength", [25, 40, 65])

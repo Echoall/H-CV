@@ -160,3 +160,21 @@ def test_tracker_constant_acceleration_has_bounded_position_error():
         result = tracker.step(truth, index * 11111)
         errors.append(abs(result["position_mm"] - truth))
     assert max(errors[5:]) < 2.5
+
+
+def test_tracker_step_into_matches_regular_output():
+    regular = KalmanTracker(PARAMS)
+    fast = KalmanTracker(PARAMS)
+    output = [False, False, False, False, 0.0, 0.0, None]
+    for index in range(20):
+        measurement = None if index in (6, 7) else float(index * 2)
+        expected = regular.step(measurement, index * 11111, quality=180)
+        fast.step_into(output, measurement, index * 11111, quality=180)
+        assert output[:4] == [
+            expected["valid"],
+            expected["predicted"],
+            expected["lost"],
+            expected["reacquire"],
+        ]
+        assert output[4] == pytest.approx(expected["position_mm"])
+        assert output[5] == pytest.approx(expected["velocity_mm_s"])

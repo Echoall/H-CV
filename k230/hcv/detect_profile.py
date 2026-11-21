@@ -34,6 +34,7 @@ class ProfileDetector:
         self.recovery_alpha = float(
             params.get("background_recovery_alpha", self.alpha)
         )
+        self.fast = bool(params.get("m1_fast", False))
         if (
             self.diameter < 3
             or self.diameter > self.width
@@ -58,6 +59,8 @@ class ProfileDetector:
         self._misses = 0
         self._gain = 1.0
         self._offset = 0.0
+        self._fast_noise = self.noise_floor
+        self._fast_frame = 0
         self.found = False
         self.u = 0.0
         self.quality = 0
@@ -146,6 +149,8 @@ class ProfileDetector:
         return int(above[-1] - above[0] + 1) if above else 0
 
     def update(self, profile, predicted_u=None):
+        if self.fast:
+            return self._update_fast(profile, predicted_u=predicted_u)
         profile = array(profile, dtype=float)
         if len(profile.shape) != 1 or int(profile.size) != self.width:
             raise ValueError("column profile width differs from calibration")
@@ -278,6 +283,101 @@ class ProfileDetector:
         self.background[:] = self.background + self._shape_mask * (
             adapted - self.background
         )
+        return self
+
+    def _update_fast(self, profile, predicted_u=None):
+        """Low-allocation M1 path for the fixed 640-column board ROI.
+
+        The full detector remains the default for offline evaluation.  M1 only
+        needs a bounded real-time path, so this variant keeps the calibrated
+        baseline and uses a single-pass peak, width and centroid calculation.
+        """
+        if not hasattr(profile, "shape"):
+            profile = array(profile)
+        if len(profile.shape) != 1 or int(profile.size) != self.width:
+            raise ValueError("column profile width differs from calibration")
+        self._set_not_found()
+        self._fast_frame += 1
+        peak = -1
+        peak_value = 0.0
+        if predicted_u is None:
+            lower = 0
+            upper = self.width
+        else:
+            lower = max(0, int(float(predicted_u) - self.gate))
+            upper = min(self.width, int(float(predicted_u) + self.gate + 1))
+        for index in range(lower, upper):
+            residual = float(self.background[index]) - float(profile[index])
+            if self.polarity == "bright":
+                residual = -residual
+            if residual > peak_value:
+                peak_value = residual
+                peak = index
+        if peak < 0 or peak_value < self._fast_noise * self.snr_min:
+            if predicted_u is not None:
+                for index in range(self.width):
+                    residual = float(self.background[index]) - float(profile[index])
+                    if self.polarity == "bright":
+                        residual = -residual
+                    if residual > peak_value:
+                        peak_value = residual
+                        peak = index
+        if peak < 0:
+            self._misses += 1
+            return self
+        half = peak_value * 0.5
+        left = peak
+        while left > 0:
+            value = float(self.background[left - 1]) - float(profile[left - 1])
+            if self.polarity == "bright":
+                value = -value
+            if value < half:
+                break
+            left -= 1
+        right = peak
+        while right + 1 < self.width:
+            value = float(self.background[right + 1]) - float(profile[right + 1])
+            if self.polarity == "bright":
+                value = -value
+            if value < half:
+                break
+            right += 1
+        width = right - left + 1
+        if width < int(0.6 * self.diameter) or width > int(1.5 * self.diameter):
+            self._misses += 1
+            return self
+        total = 0.0
+        weighted = 0.0
+        floor = peak_value * 0.05
+        for index in range(left, right + 1):
+            value = float(self.background[index]) - float(profile[index])
+            if self.polarity == "bright":
+                value = -value
+            value -= floor
+            if value > 0.0:
+                total += value
+                weighted += index * value
+        if total <= 0.0:
+            self._misses += 1
+            return self
+        self.u = weighted / total
+        self.snr = peak_value / max(self._fast_noise, self.noise_floor)
+        self.quality = int(
+            min(
+                255.0,
+                max(
+                    0.0,
+                    255.0 * (self.snr - self.snr_min)
+                    / (self.snr_good - self.snr_min),
+                ),
+            )
+        )
+        self.found = True
+        self._misses = 0
+        self.diag["peak"] = peak
+        self.diag["score"] = peak_value
+        self.diag["noise"] = self._fast_noise
+        self.diag["fwhm_px"] = width
         return self
 
     def update_image(self, gray_roi, predicted_u=None):
