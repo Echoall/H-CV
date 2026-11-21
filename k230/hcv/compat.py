@@ -1,7 +1,8 @@
 try:
     import numpy as np
 except ImportError:
-    import ulab.numpy as np
+    import ulab
+    np = ulab.numpy
 
 
 def as_array(value, dtype=None):

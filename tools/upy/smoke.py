@@ -1,6 +1,8 @@
 """Small smoke test executed by the MicroPython + ulab CI job."""
 
-import ulab.numpy as np
+import ulab
+
+np = ulab.numpy
 
 from hcv.detect_profile import ProfileDetector
 from hcv.geometry import compensate
