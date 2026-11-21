@@ -42,9 +42,22 @@ def run_manual(root, link, watchdog=None, interrupted=None, sleep=None,
     return session.run(heartbeats=heartbeats)
 
 
+class _WallClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def sleep(self, seconds):
+        time.sleep(seconds)
+        self.now += float(seconds)
+
+
 def main():
     boot_mod = _boot_module()
-    result = run_manual("/sdcard/hcv", boot_mod.StatusLink(available=False))
+    result = run_manual(
+        "/sdcard/hcv", boot_mod.StatusLink(available=False), heartbeats=0,
+    )
+    if result.mode != "measure":
+        result.hold(_WallClock(), boot_mod.MANUAL_GUARD_S)
     print("boot_mode", result.mode)
     print("boot_wrote", int(result.wrote))
     print("allow_camera", int(result.allow_camera))

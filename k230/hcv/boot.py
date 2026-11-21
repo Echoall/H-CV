@@ -17,6 +17,9 @@ TEMP_FILE = "boot.state.tmp"
 SKIP_FILE = "SKIP_AUTOSTART"
 WDT_TIMEOUT_S = 1.0
 MAINTENANCE_STREAK = 2
+RUNTIME_FAIL_LIMIT = 3
+STATUS_PERIOD_S = 0.5
+MANUAL_GUARD_S = 5.0
 STATE_BOOT = 0
 STATE_FAULT = 4
 ERR_UNKNOWN = 255
@@ -32,6 +35,18 @@ class BootRecord:
         self.corrupt = corrupt
 
 
+class ManualClock:
+    """Test clock. Production code can pass a clock whose sleep calls time.sleep."""
+
+    def __init__(self):
+        self.now = 0.0
+
+    def sleep(self, seconds):
+        if seconds < 0:
+            raise ValueError("sleep seconds must be >= 0")
+        self.now += float(seconds)
+
+
 class SimulatedWatchdog:
     """Stand-in for the hardware watchdog. The manual prototype arms only this."""
 
@@ -39,17 +54,43 @@ class SimulatedWatchdog:
         self.enabled = False
         self.timeout_s = None
         self.feeds = 0
+        self.resets = 0
+        self.expired = False
+        self.armed_at = None
+        self.last_feed_at = None
 
-    def enable(self, timeout_s):
+    def enable(self, timeout_s, now=0.0):
         if timeout_s < WDT_TIMEOUT_S:
             raise ValueError("watchdog timeout must be at least 1s")
         self.enabled = True
         self.timeout_s = timeout_s
+        self.expired = False
+        self.armed_at = float(now)
+        self.last_feed_at = float(now)
+
+    def disable(self):
+        self.enabled = False
+
+    def observe(self, now):
+        if not self.enabled:
+            return False
+        if self.expired:
+            return True
+        if float(now) - self.last_feed_at >= self.timeout_s:
+            self.expired = True
+        return self.expired
 
     def feed(self):
         if not self.enabled:
             raise RuntimeError("watchdog feed before enable")
+        if self.expired:
+            raise RuntimeError("watchdog feed after expiry")
         self.feeds += 1
+
+    def note_feed_time(self, now):
+        if self.observe(now):
+            raise RuntimeError("watchdog feed after expiry")
+        self.last_feed_at = float(now)
 
 
 class StatusLink:
@@ -230,8 +271,8 @@ class BootSession:
     def run(self, heartbeats=1):
         if self._done:
             raise RuntimeError("boot session already ran")
-        if heartbeats < 1:
-            raise ValueError("heartbeats must be >= 1")
+        if heartbeats < 0:
+            raise ValueError("heartbeats must be >= 0")
         self._done = True
         if self.ctrl_c or self.store.exists(SKIP_FILE):
             return self._finish("escape", load_record(self.store), False, heartbeats)
@@ -257,6 +298,60 @@ class BootSession:
         if self.mode != "measure":
             raise RuntimeError("frame complete outside measurement")
         self.watchdog.feed()
+
+    def hold(self, clock, deadline_s, period_s=STATUS_PERIOD_S):
+        """Send FAULT until the guard deadline. Does not arm the watchdog."""
+        if self.mode == "measure":
+            raise RuntimeError("measurement does not use the fault hold")
+        if self.watchdog.enabled:
+            raise RuntimeError("watchdog enabled outside measurement")
+        if deadline_s < 0 or period_s <= 0:
+            raise ValueError("hold timing must be positive")
+        commits = self._commits
+        while clock.now < deadline_s:
+            self.link.send(STATE_FAULT, ERR_UNKNOWN, 0)
+            remaining = deadline_s - clock.now
+            clock.sleep(period_s if remaining > period_s else remaining)
+        if self._commits != commits or self.watchdog.enabled:
+            raise RuntimeError("fault hold changed boot state or watchdog")
+
+    def run_frames(self, clock, frame, count, deadline_s):
+        """Run a bounded measurement. Feed only after a frame returns in time."""
+        if self.mode != "measure" or self._commits != 1:
+            raise RuntimeError("measurement requires the single RUNNING commit")
+        if count < 0 or deadline_s < 0:
+            raise ValueError("frame budget must be >= 0")
+        commits = self._commits
+        completed = 0
+        consecutive_failures = 0
+        while completed < count and clock.now < deadline_s and self.mode == "measure":
+            try:
+                outcome = frame()
+            except Exception:
+                if self.watchdog.observe(clock.now):
+                    self._stop_measurement("watchdog_expired")
+                    break
+                consecutive_failures += 1
+                if consecutive_failures >= RUNTIME_FAIL_LIMIT:
+                    self._stop_measurement("faulted")
+                continue
+            if self.watchdog.observe(clock.now):
+                self._stop_measurement("watchdog_expired")
+                break
+            consecutive_failures = 0
+            completed += 1
+            if outcome == "stream_error":
+                self.note_stream_error()
+            self.on_frame_complete()
+            self.watchdog.note_feed_time(clock.now)
+        if self._commits != commits:
+            raise RuntimeError("frame loop wrote boot state")
+        return completed
+
+    def _stop_measurement(self, mode):
+        self.mode = mode
+        self.allow_camera = False
+        self.watchdog.disable()
 
     def note_stream_error(self):
         if self.mode != "measure":

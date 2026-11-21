@@ -15,6 +15,7 @@ from k230.hcv.boot import (
     WDT_TIMEOUT_S,
     BootSession,
     DirectoryStore,
+    ManualClock,
     MemoryStore,
     SimulatedWatchdog,
     StatusLink,
@@ -253,6 +254,90 @@ def test_manual_entry_sees_ctrl_c_before_camera(tmp_path):
     assert result.wrote is False
     assert calls == {"camera": 0, "sleep": 0}
     assert not (Path(tmp_path) / "boot.state").exists()
+
+
+def test_maintenance_holds_fault_at_two_hertz_until_the_guard():
+    store = MemoryStore()
+    store.files["boot.state"] = _line("STARTING", 2, 3)
+    session, watchdog, link = _session(store)
+    assert session.run(heartbeats=0).mode == "maintenance"
+    session.hold(ManualClock(), deadline_s=1.0)
+    assert _statuses(link) == [STATE_FAULT, STATE_FAULT]
+    assert watchdog.enabled is False
+    assert watchdog.resets == 0
+    assert store.commits == 0
+
+
+def test_three_frame_faults_stop_without_a_second_write_or_feed():
+    store = MemoryStore()
+    session, watchdog, link = _session(store)
+    assert session.run(heartbeats=0).mode == "measure"
+
+    def frame():
+        raise RuntimeError("injected before the frame finished")
+
+    completed = session.run_frames(ManualClock(), frame, count=8, deadline_s=5.0)
+    assert completed == 0
+    assert session.mode == "faulted"
+    assert watchdog.feeds == 0
+    assert watchdog.enabled is False
+    assert watchdog.resets == 0
+    assert store.commits == 1
+    session.hold(ManualClock(), deadline_s=0.5)
+    assert _statuses(link) == [STATE_FAULT]
+
+
+def test_one_frame_fault_then_a_good_frame_still_feeds():
+    store = MemoryStore()
+    session, watchdog, _link = _session(store)
+    assert session.run().mode == "measure"
+    seen = {"n": 0}
+
+    def frame():
+        seen["n"] += 1
+        if seen["n"] == 1:
+            raise RuntimeError("one injected fault")
+        return None
+
+    completed = session.run_frames(ManualClock(), frame, count=1, deadline_s=5.0)
+    assert completed == 1
+    assert session.mode == "measure"
+    assert watchdog.feeds == 1
+    assert store.commits == 1
+
+
+def test_a_late_frame_expires_the_sim_watchdog_without_reset_or_feed():
+    store = MemoryStore()
+    session, watchdog, _link = _session(store)
+    assert session.run().mode == "measure"
+    clock = ManualClock()
+
+    def frame():
+        clock.sleep(WDT_TIMEOUT_S)
+        return None
+
+    completed = session.run_frames(clock, frame, count=4, deadline_s=5.0)
+    assert completed == 0
+    assert session.mode == "watchdog_expired"
+    assert watchdog.expired is True
+    assert watchdog.feeds == 0
+    assert watchdog.resets == 0
+    assert store.commits == 1
+
+
+def test_stream_error_inside_the_frame_loop_still_feeds_once():
+    store = MemoryStore()
+    session, watchdog, link = _session(store)
+    assert session.run().mode == "measure"
+    completed = session.run_frames(
+        ManualClock(), lambda: "stream_error", count=1, deadline_s=5.0,
+    )
+    assert completed == 1
+    assert session.mode == "measure"
+    assert watchdog.feeds == 1
+    assert store.commits == 1
+    assert link.sent[-1][6] == ERR_STREAM
+    assert link.sent[-1][12] == 3
 
 
 def test_sources_do_not_import_camera_or_install_main_py():
