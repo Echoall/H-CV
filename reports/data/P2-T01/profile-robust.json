@@ -1,8 +1,10 @@
 {
-  "frames": 249,
+  "frames": 267,
   "ball_frames": 240,
   "empty_exposure_frames": 9,
   "empty_false_positives": 0,
+  "interference_frames": 18,
+  "interference_false_positives": 0,
   "ball_summary": [
     {
       "group": "bright",
@@ -21,5 +23,5 @@
       "max_abs_px": 0.9026084001898198
     }
   ],
-  "elapsed_ms": 28307.41539999144
+  "elapsed_ms": 28554.945399984717
 }

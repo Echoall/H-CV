@@ -108,7 +108,7 @@ def compensate(u_value, current_u, reference_u):
             [pairs[0][1], pairs[1][1]],
         )
         return apply_similarity(u_value, coefficients), "DEGRADED", coefficients
-    return float(u_value), "NONE", None
+    return None, "NONE", None
 
 
 def interpolate_lut(u_value, pixel_values, physical_values):
@@ -130,3 +130,12 @@ def interpolate_lut(u_value, pixel_values, physical_values):
             index += 1
     fraction = (value - pixels[index]) / (pixels[index + 1] - pixels[index])
     return physical[index] + fraction * (physical[index + 1] - physical[index])
+
+
+def compensation_quality(mode):
+    """Quality multiplier for a detector result after marker compensation."""
+    if mode == "FULL":
+        return 1.0
+    if mode == "DEGRADED":
+        return 0.25
+    return 0.0

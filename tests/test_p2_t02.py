@@ -3,6 +3,7 @@ import pytest
 
 from k230.hcv.geometry import (
     apply_projective,
+    compensation_quality,
     compensate,
     fit_projective,
     fit_similarity,
@@ -39,6 +40,74 @@ def test_marker_detector_finds_three_synthetic_markers():
     )
 
 
+def test_marker_capture_handles_twenty_degree_start_without_prediction():
+    reference_image, reference_truth = generate_scene(
+        ball_x=-1000,
+        theta_deg=0,
+        noise=0,
+        highlight=False,
+        magnet_shadow=False,
+    )
+    image, truth = generate_scene(
+        ball_x=-1000,
+        theta_deg=20,
+        noise=2,
+        highlight=False,
+        magnet_shadow=False,
+        seed=7,
+    )
+    reference = [marker["u_px"] for marker in reference_truth["markers"]]
+    detector = MarkerDetector(
+        reference,
+        {
+            "marker_v_px": truth["markers"][0]["v_px"],
+            "marker_width_px": 7,
+            "marker_min_depth": 8,
+            "polarity": "dark",
+        },
+    )
+    result = detector.update_image(image).result()
+    assert result["count"] == 3
+    assert max(
+        abs(measured - expected)
+        for measured, expected in zip(
+            result["positions"], [marker["u_px"] for marker in truth["markers"]]
+        )
+    ) < 0.3
+
+
+def test_marker_detector_tracks_continuous_tilt_without_losing_lock():
+    _, reference_truth = generate_scene(
+        ball_x=-1000,
+        theta_deg=0,
+        noise=0,
+        highlight=False,
+        magnet_shadow=False,
+    )
+    reference = [marker["u_px"] for marker in reference_truth["markers"]]
+    detector = MarkerDetector(
+        reference,
+        {
+            "marker_v_px": reference_truth["markers"][0]["v_px"],
+            "marker_width_px": 7,
+            "marker_min_depth": 8,
+            "polarity": "dark",
+        },
+    )
+    angles = list(np.arange(0, 20.1, 0.5))
+    angles.extend(np.arange(19.5, -20.1, -0.5))
+    for seed, theta in enumerate(angles):
+        image, _ = generate_scene(
+            ball_x=-1000,
+            theta_deg=float(theta),
+            noise=2,
+            highlight=False,
+            magnet_shadow=False,
+            seed=seed,
+        )
+        assert detector.update_image(image).result()["count"] == 3
+
+
 def test_projective_compensation_residual_is_submillimetre_at_twenty_degrees():
     marker_s = [-110.0, 0.0, 110.0]
     reference_u = project_s_to_u(marker_s, theta_deg=0)
@@ -60,13 +129,15 @@ def test_two_markers_use_similarity_fallback():
     assert mode == "DEGRADED"
     assert measured == pytest.approx(210.0)
     assert coefficients == pytest.approx((1.0, 10.0))
+    assert compensation_quality(mode) == pytest.approx(0.25)
 
 
 def test_missing_markers_use_identity_fallback():
     measured, mode, coefficients = compensate(200.0, [None], [100.0])
-    assert measured == 200.0
+    assert measured is None
     assert mode == "NONE"
     assert coefficients is None
+    assert compensation_quality(mode) == 0.0
 
 
 def test_ill_conditioned_projective_fit_falls_back_to_similarity():

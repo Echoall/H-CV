@@ -42,6 +42,31 @@ def build_manifest(output, count):
                             seed=index,
                         )
                     index += 1
+    for kind in ("glare", "local_shadow"):
+        for width in (12, 40, 60):
+            scene = "interference_%s_%02d" % (kind, width)
+            manifest.append({
+                "scene": scene,
+                "kind": kind,
+                "width_px": width,
+                "strengths": [25, 40, 65],
+                "ball": False,
+            })
+            if count:
+                write_scene(
+                    output / scene,
+                    count=count,
+                    ball_x=-1000,
+                    ball_s_mm=None,
+                    noise=2,
+                    highlight=False,
+                    magnet_shadow=False,
+                    **{kind: {
+                        "x_px": 320,
+                        "width_px": width,
+                        "strength": 40,
+                    }},
+                )
     (output / "manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )

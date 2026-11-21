@@ -1,6 +1,6 @@
 """Vectorised one-dimensional ball detector."""
 
-from .compat import np
+from .compat import array, box_filter, join_1d, np, shape_2d
 
 
 class ProfileDetector:
@@ -11,8 +11,8 @@ class ProfileDetector:
     """
 
     def __init__(self, background, params, width=None):
-        reference = np.asarray(background, dtype=float)
-        if reference.ndim != 1:
+        reference = array(background, dtype=float)
+        if len(reference.shape) != 1:
             raise ValueError("background must be one-dimensional")
         self.width = int(reference.size)
         if width is not None and int(width) != self.width:
@@ -46,11 +46,12 @@ class ProfileDetector:
         ):
             raise ValueError("invalid profile detector parameters")
 
-        self.background = np.array(reference, dtype=float)
+        self.background = array(reference, dtype=float)
         self._deviation = np.zeros(self.width, dtype=float)
         self._smoothed = np.zeros(self.width, dtype=float)
         self._residual = np.zeros(self.width, dtype=float)
         self._kernel = np.ones(self.diameter, dtype=float) / self.diameter
+        self._shape_mask = np.ones(self.width, dtype=float)
         self._noise = float(self.noise_floor)
         self._noise_age = self.noise_update_interval
         self._misses = 0
@@ -92,8 +93,8 @@ class ProfileDetector:
         self.snr = 0.0
 
     def update(self, profile, predicted_u=None):
-        profile = np.asarray(profile, dtype=float)
-        if profile.ndim != 1 or int(profile.size) != self.width:
+        profile = array(profile, dtype=float)
+        if len(profile.shape) != 1 or int(profile.size) != self.width:
             raise ValueError("column profile width differs from calibration")
         self._set_not_found()
         self._fit_illumination(profile)
@@ -106,9 +107,7 @@ class ProfileDetector:
             self._noise_age = 0
         self._noise_age += 1
 
-        self._smoothed[:] = np.convolve(
-            self._deviation, self._kernel, mode="same"
-        )
+        self._smoothed[:] = box_filter(self._deviation, self.diameter)
         if predicted_u is None:
             peak = int(np.argmax(self._smoothed))
         else:
@@ -141,6 +140,22 @@ class ProfileDetector:
                 self._misses = 0
             return self
 
+        peak_half = float(self._deviation[peak]) * 0.5
+        left_fwhm = peak
+        while left_fwhm > 0 and self._deviation[left_fwhm - 1] >= peak_half:
+            left_fwhm -= 1
+        right_fwhm = peak
+        while (
+            right_fwhm + 1 < self.width
+            and self._deviation[right_fwhm + 1] >= peak_half
+        ):
+            right_fwhm += 1
+        fwhm = right_fwhm - left_fwhm + 1
+        self.diag["fwhm_px"] = fwhm
+        if fwhm < 0.6 * self.diameter or fwhm > 1.5 * self.diameter:
+            self._misses += 1
+            return self
+
         left = max(0, peak - self.half)
         right = min(self.width, peak + self.half + 1)
         floor = min(float(self._deviation[left]), float(self._deviation[right - 1]))
@@ -164,28 +179,54 @@ class ProfileDetector:
         self.found = True
         self._misses = 0
 
-        mask = np.ones(self.width, dtype=bool)
-        mask[
+        self._shape_mask[:] = 1.0
+        self._shape_mask[
             max(0, int(self.u - 1.5 * self.diameter)):
             min(self.width, int(self.u + 1.5 * self.diameter) + 1)
-        ] = False
+        ] = 0.0
         adapted = self.background + self.alpha * (
             profile - self.background
         )
-        self.background[mask] = adapted[mask]
+        self.background[:] = self.background + self._shape_mask * (
+            adapted - self.background
+        )
         return self
 
     def update_image(self, gray_roi, predicted_u=None):
-        image = np.asarray(gray_roi, dtype=float)
-        if image.ndim != 2 or int(image.shape[1]) != self.width:
+        image = array(gray_roi, dtype=float)
+        rows, columns = shape_2d(image)
+        if rows == 0 or columns != self.width:
             raise ValueError("image width differs from calibration")
-        return self.update(np.mean(image, axis=0), predicted_u=predicted_u)
+        result = self.update(np.mean(image, axis=0), predicted_u=predicted_u)
+        if not result.found:
+            return result
+        column = image[:, int(round(result.u))]
+        edge = min(5, max(1, int(column.size // 5)))
+        baseline = float(np.median(join_1d(column[:edge], column[-edge:])))
+        if self.polarity == "dark":
+            vertical = np.maximum(0.0, baseline - column)
+        elif self.polarity == "bright":
+            vertical = np.maximum(0.0, column - baseline)
+        else:
+            vertical = np.abs(column - baseline)
+        vertical_peak = float(np.max(vertical))
+        vertical_above = np.where(vertical >= vertical_peak * 0.5)[0]
+        vertical_width = (
+            int(vertical_above[-1] - vertical_above[0] + 1)
+            if vertical_above.size else 0
+        )
+        result.diag["vertical_fwhm_px"] = vertical_width
+        if vertical_width > 1.5 * self.diameter:
+            result.found = False
+            result.quality = 0
+            result.snr = 0.0
+        return result
 
     def detect(self, roi_img_or_array, ctx=None):
         ctx = {} if ctx is None else ctx
         predicted = ctx.get("predicted_u")
-        values = np.asarray(roi_img_or_array)
-        if values.ndim == 2:
+        values = array(roi_img_or_array)
+        if len(values.shape) == 2:
             self.update_image(values, predicted_u=predicted)
         else:
             self.update(values, predicted_u=predicted)

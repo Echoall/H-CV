@@ -133,6 +133,48 @@ def run_profile(output):
                 "error_px": "",
                 "snr": detector.snr,
             })
+    for kind in ("glare", "local_shadow"):
+        for width in (12, 40, 60):
+            for strength in (25, 40, 65):
+                reference_image, _ = generate_scene(
+                    ball_x=-1000, noise=0, highlight=False,
+                    magnet_shadow=False,
+                )
+                image, _ = generate_scene(
+                    ball_x=-1000,
+                    noise=2,
+                    highlight=False,
+                    magnet_shadow=False,
+                    seed=17,
+                    **{kind: {
+                        "x_px": 416,
+                        "width_px": width,
+                        "strength": strength,
+                    }},
+                )
+                detector = ProfileDetector(
+                    np.mean(reference_image[166:214], axis=0),
+                    PARAMS,
+                )
+                detector.update_image(image[166:214])
+                rows.append({
+                    "kind": kind,
+                    "polarity": "both",
+                    "highlight": 0,
+                    "theta_deg": 0,
+                    "blur_px": 0,
+                    "position_mm": "",
+                    "seed": 17,
+                    "gain": "",
+                    "offset": "",
+                    "width_px": width,
+                    "strength": strength,
+                    "found": int(detector.found),
+                    "truth_px": "",
+                    "measured_px": detector.u if detector.found else "",
+                    "error_px": "",
+                    "snr": detector.snr,
+                })
     output.mkdir(parents=True, exist_ok=True)
     path = output / "profile-robust.csv"
     fields = sorted({key for row in rows for key in row})
@@ -156,11 +198,16 @@ def main():
     elapsed_ms = (time.perf_counter() - start) * 1000
     balls = [row for row in rows if row["kind"] == "ball"]
     empties = [row for row in rows if row["kind"] == "empty_exposure"]
+    interference = [
+        row for row in rows if row["kind"] in ("glare", "local_shadow")
+    ]
     report = {
         "frames": len(rows),
         "ball_frames": len(balls),
         "empty_exposure_frames": len(empties),
         "empty_false_positives": sum(row["found"] for row in empties),
+        "interference_frames": len(interference),
+        "interference_false_positives": sum(row["found"] for row in interference),
         "ball_summary": summarize(balls, "polarity"),
         "elapsed_ms": elapsed_ms,
     }

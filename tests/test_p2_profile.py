@@ -115,3 +115,47 @@ def test_profile_update_image_and_result_have_unified_shape():
     assert result[0] is True
     assert result[1] == pytest.approx(320.0, abs=1.5)
     assert isinstance(result[3], dict)
+
+
+@pytest.mark.parametrize("kind", ["glare", "local_shadow"])
+@pytest.mark.parametrize("width", [12, 40, 60])
+@pytest.mark.parametrize("strength", [25, 40, 65])
+def test_profile_rejects_local_empty_slot_interference(kind, width, strength):
+    reference_image, _ = generate_scene(
+        ball_x=-1000, noise=0, highlight=False, magnet_shadow=False
+    )
+    reference = np.mean(reference_image[166:214], axis=0)
+    kwargs = {
+        kind: {"x_px": 416, "width_px": width, "strength": strength}
+    }
+    image, _ = generate_scene(
+        ball_x=-1000,
+        noise=2,
+        highlight=False,
+        magnet_shadow=False,
+        seed=17,
+        **kwargs,
+    )
+    detector = ProfileDetector(reference, PARAMS)
+    detector.update_image(image[166:214])
+    assert not detector.found
+
+
+@pytest.mark.parametrize("kind", ["glare", "local_shadow"])
+def test_profile_keeps_ball_quality_with_remote_interference(kind):
+    reference_image, _ = generate_scene(
+        ball_x=-1000, noise=0, highlight=False, magnet_shadow=False
+    )
+    reference = np.mean(reference_image[166:214], axis=0)
+    image, truth = generate_scene(
+        ball_s_mm=60,
+        polarity="dark",
+        highlight=True,
+        noise=2,
+        seed=11,
+        **{kind: {"x_px": 250, "width_px": 12, "strength": 25}},
+    )
+    detector = ProfileDetector(reference, PARAMS)
+    detector.update_image(image[166:214])
+    assert detector.found
+    assert detector.u == pytest.approx(truth["u_px"], abs=1.0)

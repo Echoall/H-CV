@@ -4,7 +4,7 @@ The detector deliberately requires a predicted horizontal position.  This
 keeps the expensive threshold/blob path out of the full-frame main loop.
 """
 
-from .compat import np
+from .compat import array, shape_2d, np
 
 
 class BlobDetector:
@@ -34,14 +34,15 @@ class BlobDetector:
 
     def update_image(self, gray_roi, predicted_u=None):
         self._reset()
-        image = np.asarray(gray_roi, dtype=float)
-        if image.ndim != 2:
+        image = array(gray_roi, dtype=float)
+        rows, columns = shape_2d(image)
+        if rows == 0 or columns == 0:
             raise ValueError("gray_roi must be a two-dimensional image")
         if predicted_u is None:
             self.diag = {"reason": "prediction_required"}
             return self
 
-        height, width = int(image.shape[0]), int(image.shape[1])
+        height, width = rows, columns
         center = int(round(float(predicted_u)))
         crop_half = 32
         x0 = max(0, center - crop_half)
@@ -78,11 +79,12 @@ class BlobDetector:
             np.arange(x0, x1, dtype=float)[None, :] - float(predicted_u)
         ) <= 0.8 * self.diameter
 
-        points = np.argwhere(mask)
-        if points.size == 0:
+        point_rows, point_columns = np.where(mask)
+        point_count = len(point_rows)
+        if point_count == 0:
             self.diag = {"reason": "no_threshold_pixels", "noise": sigma}
             return self
-        if int(points.shape[0]) > self.max_blobs * max(1, int(self.diameter)):
+        if point_count > self.max_blobs * max(1, int(self.diameter)):
             self.diag = {
                 "reason": "threshold_overload",
                 "pixels": int(points.shape[0]),
@@ -91,9 +93,13 @@ class BlobDetector:
             return self
 
         # A compact weighted centroid is sufficient in the prediction crop.
-        yy = points[:, 0]
-        xx = points[:, 1] + x0
-        values = crop[yy, points[:, 1]]
+        yy = point_rows
+        xx_local = point_columns
+        xx = xx_local + x0
+        values = array(
+            [crop[int(row), int(column)] for row, column in zip(yy, xx_local)],
+            dtype=float,
+        )
         if self.polarity == "dark":
             weights = np.maximum(0.0, median - values)
         elif self.polarity == "bright":
@@ -107,13 +113,13 @@ class BlobDetector:
         candidate_u = float(np.sum(xx * weights) / total)
         span_x = float(np.max(xx) - np.min(xx) + 1)
         span_y = float(np.max(yy) - np.min(yy) + 1)
-        density = float(points.shape[0]) / max(1.0, span_x * span_y)
+        density = float(point_count) / max(1.0, span_x * span_y)
         size_match = min(span_x, span_y) / max(1.0, self.diameter)
         contrast = float(np.max(np.abs(values - median)))
         self.snr = contrast / sigma
         self.diag = {
             "noise": sigma,
-            "pixels": int(points.shape[0]),
+            "pixels": int(point_count),
             "span_x": span_x,
             "span_y": span_y,
             "density": density,

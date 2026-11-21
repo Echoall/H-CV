@@ -68,6 +68,8 @@ def generate_scene(
     highlight_radius=2.0,
     scratch=False,
     magnet_shadow=True,
+    glare=None,
+    local_shadow=None,
     vel_px_per_s=0.0,
     exposure_us=0.0,
     motion_blur=0.0,
@@ -110,6 +112,16 @@ def generate_scene(
                           (yy - ball_y - ball_radius * 1.4) ** 2 /
                           (2.0 * (ball_radius * 0.7) ** 2)))
         image = image - 18.0 * shadow
+    for interference, sign in ((glare, 1.0), (local_shadow, -1.0)):
+        if interference is not None:
+            center = float(interference.get("x_px", width / 2.0))
+            span = max(1.0, float(interference.get("width_px", 20.0)))
+            strength = float(interference.get("strength", 25.0))
+            patch = (
+                (np.abs(xx - center) <= span / 2.0)
+                & slot
+            )
+            image = np.where(patch, image + sign * strength, image)
     if scratch:
         image[int(slot_y), :] -= 22.0
     marker_truth = []
@@ -118,8 +130,11 @@ def generate_scene(
             position, theta_deg, height_mm, scale_px_per_mm, width / 2.0, pivot_mm
         ))
         marker_v = float(slot_y - slot_height / 2.0 - 8.0)
-        marker_mask = (np.abs(xx - marker_u) <= 3.0) & (np.abs(yy - marker_v) <= 3.0)
-        image = np.where(marker_mask, 30.0, image)
+        marker_coverage = (
+            np.clip(3.5 - np.abs(xx - marker_u), 0.0, 1.0)
+            * np.clip(3.5 - np.abs(yy - marker_v), 0.0, 1.0)
+        )
+        image = image * (1.0 - marker_coverage) + 30.0 * marker_coverage
         marker_truth.append({"s_mm": float(position), "u_px": marker_u, "v_px": marker_v})
     image = image + rng.normal(0.0, noise, size=image.shape)
     image = np.clip(image, 0, 255).astype(np.uint8)
