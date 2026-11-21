@@ -12,20 +12,21 @@ import sys
 import time
 from array import array
 
+from image import ALLOC_REF
 from media.media import MediaManager
 from media.sensor import Sensor
 
-sys.path.append("/sdcard/hcv")
-sys.path.append("/sdcard/hcv/hcv")
+if sys.path[0] != "/sdcard/hcv":
+    sys.path.insert(0, "/sdcard/hcv")
 
-from hcv.hcv.config import calibration_fingerprint, load_config, runtime_config_warning
-from hcv.hcv.detect_profile import ProfileDetector
-from hcv.hcv.guard import start as guard_start
-from hcv.hcv.guard import tick as guard_tick
-from hcv.hcv.health import STAGES, TimingWindow
-from hcv.hcv.link_uart import UART1Link
-from hcv.hcv.tracker import KalmanTracker
-from hcv.hcv.proto import (
+from hcv.config import calibration_fingerprint, load_config, runtime_config_warning
+from hcv.detect_profile import ProfileDetector
+from hcv.guard import start as guard_start
+from hcv.guard import tick as guard_tick
+from hcv.health import STAGES, TimingWindow
+from hcv.link_uart import UART1Link
+from hcv.tracker import KalmanTracker
+from hcv.proto import (
     INV,
     MSG_CMD,
     MSG_RUN_INFO,
@@ -189,28 +190,32 @@ def _uart_pending(link):
     return link.uart.read(min(int(count), 64)) or b""
 
 
-def _column_profile(image, x0, y0, width, height):
-    """Reduce the ROI to one row using the camera Image C implementation."""
-    roi_image = image.crop(roi=(x0, y0, width, height))
-    profile_image = roi_image.scale(1.0, 1.0 / float(height))
-    profile_array = profile_image.to_numpy_ref()
-    return roi_image, profile_image, profile_array[0, :]
+def _column_profile(image, bounds, pixels):
+    """Average all ROI rows in a reusable grayscale buffer."""
+    cropped = image.crop(roi=bounds, alloc=ALLOC_REF, data=pixels)
+    cropped.mean_pool(1, bounds[3])
+    return cropped.to_numpy_ref()[0, :]
 
 
-def _sum_profile(image, x0, y0, width, height, output):
-    """Fill a preallocated 8-bit profile from the ROI column sums."""
-    import ulab.numpy as np
-
-    image_array = image.to_numpy_ref()
-    roi_image = image_array[y0:y0 + height, x0:x0 + width]
-    profile_sum = np.sum(roi_image, axis=0)
-    for index in range(width):
-        output[index] = int(profile_sum[index]) // height
-    return output
+def _log_memory(round_index, phase):
+    free = []
+    for name in ("sys_heap", "sys_page", "sys_mmz"):
+        query = getattr(gc, name, None)
+        try:
+            free.append(query()[2] if query is not None else -1)
+        except OSError as error:
+            print("HCV_M1_MEM_ERROR,%s,%r" % (name, error))
+            free.append(-1)
+    print(
+        "HCV_M1_MEM,round=%d,phase=%s,mp_free=%d,"
+        "sys_heap_free=%d,sys_page_free=%d,sys_mmz_free=%d"
+        % (round_index, phase, gc.mem_free(), free[0], free[1], free[2])
+    )
 
 
 def _print_stats(health, dropped, gc_free, run_info, parser):
     stats = health.all_stats()
+    snapshot = stats[STAGES.index("snapshot")]
     detect = stats[STAGES.index("detect")]
     map_stats = stats[STAGES.index("map")]
     track = stats[STAGES.index("track")]
@@ -226,6 +231,7 @@ def _print_stats(health, dropped, gc_free, run_info, parser):
         fps = health.frame_count * 1_000_000.0 / elapsed_us
     print(
         "HCV_M1_SAMPLE,frames=%d,elapsed_us=%d,fps=%.3f,dropped=%d,"
+        "snapshot=%d/%d/%d/%d,"
         "detect=%d/%d/%d/%d,map=%d/%d/%d/%d,track=%d/%d/%d/%d,"
         "pack=%d/%d/%d/%d,uart=%d/%d/%d/%d,process=%d/%d/%d/%d,"
         "total=%d/%d/%d/%d,gc=%d/%d/%d/%d,gc_free=%d,"
@@ -234,6 +240,10 @@ def _print_stats(health, dropped, gc_free, run_info, parser):
             elapsed_us,
             fps,
             dropped,
+            snapshot[1],
+            snapshot[2],
+            snapshot[3],
+            snapshot[4],
             detect[1],
             detect[2],
             detect[3],
@@ -282,11 +292,8 @@ def _allocation_probe(
     tracker_output,
     lut,
     ball_buffer,
-    config,
-    x0,
-    y0,
-    width,
-    height,
+    roi_bounds,
+    roi_pixels,
     buffers,
     detail_buffers,
     fast_probe,
@@ -321,9 +328,7 @@ def _allocation_probe(
         stage_deltas[0][frame_count] = before - after
 
         before = gc.mem_free()
-        roi_image, profile_image, profile_array = _column_profile(
-            image, x0, y0, width, height
-        )
+        profile_array = _column_profile(image, roi_bounds, roi_pixels)
         after = gc.mem_free()
         stage_deltas[1][frame_count] = before - after
 
@@ -339,7 +344,7 @@ def _allocation_probe(
 
         before = gc.mem_free()
         detector.update(roi_profile, predicted_u=predicted_u)
-        del roi_profile, profile_array, profile_image, roi_image
+        del roi_profile, profile_array
         after = gc.mem_free()
         detail_buffers[2][frame_count] = before - after
         detail_buffers[3][frame_count] = (
@@ -527,11 +532,13 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
     found_count = 0
     valid_count = 0
     predicted_count = 0
+    lost_count = 0
     found_streak = 0
     round_index = 0
     round_start_us = None
     round_frame_start = 0
     round_dropped_start = 0
+    round_valid_start = 0
     run_info = [0, 0, 0, INV, INV, 0]
     last_cap = None
     started_us = None
@@ -567,12 +574,10 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
         image = sensor.snapshot(chn=0, timeout=1000)
         roi = config["roi"]
         x0, y0, width, height = roi["x"], roi["y"], roi["w"], roi["h"]
+        roi_bounds = (x0, y0, width, height)
+        roi_pixels = bytearray(width * height)
         import ulab.numpy as np
-        initial_roi, initial_profile_image, initial_profile = _column_profile(
-            image, x0, y0, width, height
-        )
-        background = np.array(initial_profile)
-        del initial_profile, initial_profile_image, initial_roi
+        background = np.array(_column_profile(image, roi_bounds, roi_pixels))
         detector = ProfileDetector(
             background,
             config["detector"]["params"],
@@ -604,7 +609,8 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
         next_status_us = started_us
         print(
             "HCV_M1_BEGIN,mode=%dx%dx%d,detect=%dx%d,roi=%d:%d:%d:%d,"
-            "calib_ok=%d,calib_id=%d,state=%d,err=%d,detector_fast=%d" % (
+            "calib_ok=%d,calib_id=%d,state=%d,err=%d,detector_fast=%d,"
+            "profile=mean_pool,roi_buffer=preallocated" % (
                 config["sensor"]["width"],
                 config["sensor"]["height"],
                 config["sensor"]["fps"],
@@ -630,17 +636,15 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
                 tracker_output,
                 lut,
                 ball_buffer,
-                config,
-                x0,
-                y0,
-                width,
-                height,
+                roi_bounds,
+                roi_pixels,
                 allocation_buffers,
                 allocation_detail_buffers,
                 allocation_fast_probe,
                 probe_frames,
             )
             return
+        _log_memory(round_index, "start")
         while True:
             guard_tick()
             loop_start = time.ticks_us()
@@ -663,12 +667,9 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
 
             detect_start = time.ticks_us()
             predicted_u = _u_prediction(tracker, lut)
-            roi_image, profile_image, profile_array = _column_profile(
-                image, x0, y0, width, height
-            )
-            roi_profile = profile_array
+            roi_profile = _column_profile(image, roi_bounds, roi_pixels)
             detector.update(roi_profile, predicted_u=predicted_u)
-            del roi_profile, profile_array, profile_image, roi_image
+            roi_profile = None
             found = detector.found
             quality = detector.quality if found else 0
             u_px = detector.u if found else None
@@ -692,6 +693,8 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
                 quality=quality,
             )
             health.add("track", time.ticks_diff(time.ticks_us(), track_start))
+            if tracker_output[2]:
+                lost_count += 1
 
             status = 0
             if calib_ok:
@@ -813,9 +816,11 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
                 round_start_us is not None
                 and time.ticks_diff(round_now_us, round_start_us) >= 30_000_000
             ):
+                _log_memory(round_index, "before_gc")
                 gc_start = time.ticks_us()
                 gc.collect()
                 gc_elapsed_us = time.ticks_diff(time.ticks_us(), gc_start)
+                _log_memory(round_index, "after_gc")
                 health.add("gc", gc_elapsed_us)
                 gc_dropped_est = int(
                     gc_elapsed_us
@@ -823,10 +828,12 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
                 )
                 print(
                     "HCV_M1_ROUND,round=%d,frames=%d,dropped=%d,"
-                    "gc_us=%d,gc_dropped_est=%d,free=%d" % (
+                    "active_us=%d,valid=%d,gc_us=%d,gc_dropped_est=%d,free=%d" % (
                         round_index,
                         frame_number - round_frame_start,
                         dropped - round_dropped_start,
+                        time.ticks_diff(round_now_us, round_start_us),
+                        valid_count - round_valid_start,
                         gc_elapsed_us,
                         gc_dropped_est,
                         gc.mem_free(),
@@ -836,8 +843,10 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
                 round_start_us = time.ticks_us()
                 round_frame_start = frame_number
                 round_dropped_start = dropped
+                round_valid_start = valid_count
                 last_cap = None
     finally:
+        stopped_us = time.ticks_us()
         image = None
         image_array = None
         roi_image = None
@@ -851,20 +860,23 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
         gc.enable()
         gc.collect()
         if started_us is not None:
+            _log_memory(round_index, "stopped")
             if round_start_us is not None and frame_number > round_frame_start:
                 print(
                     "HCV_M1_ROUND,round=%d,final=1,frames=%d,dropped=%d,"
-                    "gc_us=0,gc_dropped_est=0,free=%d" % (
+                    "active_us=%d,valid=%d,gc_us=0,gc_dropped_est=0,free=%d" % (
                         round_index,
                         frame_number - round_frame_start,
                         dropped - round_dropped_start,
+                        time.ticks_diff(stopped_us, round_start_us),
+                        valid_count - round_valid_start,
                         gc.mem_free(),
                     )
                 )
             elapsed = time.ticks_diff(time.ticks_us(), started_us)
             print(
                 "HCV_M1_SUMMARY,frames=%d,elapsed_us=%d,dropped=%d,"
-                "found=%d,valid=%d,predicted=%d,rx_crc=%d,rx_len=%d,"
+                "found=%d,valid=%d,predicted=%d,lost=%d,rx_crc=%d,rx_len=%d,"
                 "mem_free=%d" % (
                     frame_number,
                     elapsed,
@@ -872,6 +884,7 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
                     found_count,
                     valid_count,
                     predicted_count,
+                    lost_count,
                     parser.crc_errors,
                     parser.length_errors,
                     gc.mem_free(),

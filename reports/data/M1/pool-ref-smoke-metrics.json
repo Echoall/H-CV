@@ -1,0 +1,118 @@
+{
+  "sample_windows": 30,
+  "summary": {
+    "frames": 1351,
+    "elapsed_us": 15617460,
+    "dropped": 0,
+    "found": 0,
+    "valid": 0,
+    "predicted": 0,
+    "lost": 1351,
+    "rx_crc": 0,
+    "rx_len": 0,
+    "mem_free": 3879360
+  },
+  "max_sample_process_p95_us": 1686,
+  "max_sample_total_p95_us": 12624,
+  "max_sample_gc_us": 0,
+  "max_sample_detect_p95_us": 1525,
+  "rounds": [
+    {
+      "round": 0,
+      "final": 1,
+      "frames": 1351,
+      "dropped": 0,
+      "active_us": 15004373,
+      "valid": 0,
+      "gc_us": 0,
+      "gc_dropped_est": 0,
+      "free": 3879584,
+      "detect_p99_max_us": 1661,
+      "detect_max_us": 3599,
+      "process_p99_max_us": 1875,
+      "process_max_us": 3760,
+      "total_p99_max_us": 12920,
+      "total_max_us": 13241,
+      "duration_dropped": 0
+    }
+  ],
+  "active_us": 15004373,
+  "inter_round_gc_us": 0,
+  "inter_round_gc_dropped_est": 0,
+  "active_duration_dropped": 0,
+  "duration_dropped_including_gc": 0,
+  "memory": [
+    {
+      "round": 0,
+      "phase": "start",
+      "mp_free": 3879264,
+      "sys_heap_free": 59621376,
+      "sys_page_free": 435089408,
+      "sys_mmz_free": 526438400
+    },
+    {
+      "round": 0,
+      "phase": "stopped",
+      "mp_free": 3879584,
+      "sys_heap_free": 64528512,
+      "sys_page_free": 436400128,
+      "sys_mmz_free": 535818240
+    }
+  ],
+  "max_window_us": {
+    "snapshot": {
+      "p50": 7709,
+      "p95": 9327,
+      "p99": 9387,
+      "max": 9437
+    },
+    "detect": {
+      "p50": 1493,
+      "p95": 1525,
+      "p99": 1661,
+      "max": 3599
+    },
+    "map": {
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 51
+    },
+    "track": {
+      "p50": 9,
+      "p95": 10,
+      "p99": 12,
+      "max": 61
+    },
+    "pack": {
+      "p50": 114,
+      "p95": 116,
+      "p99": 166,
+      "max": 211
+    },
+    "uart": {
+      "p50": 1645,
+      "p95": 1649,
+      "p99": 1715,
+      "max": 2217
+    },
+    "process": {
+      "p50": 1653,
+      "p95": 1686,
+      "p99": 1875,
+      "max": 3760
+    },
+    "total": {
+      "p50": 11036,
+      "p95": 12624,
+      "p99": 12920,
+      "max": 13241
+    },
+    "gc": {
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+    }
+  }
+}
