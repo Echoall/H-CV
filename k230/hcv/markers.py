@@ -1,6 +1,6 @@
 """Reference-marker detector using narrow column-profile searches."""
 
-from .compat import array, join_1d, shape_2d, np
+from .compat import arange, array, join_1d, shape_2d, np
 
 
 class MarkerDetector:
@@ -63,8 +63,16 @@ class MarkerDetector:
             if peak_depth < self.min_depth:
                 continue
             half = peak_depth * 0.5
-            selected = np.where(depth >= half)[0]
-            if selected.size == 0:
+            selected = [
+                int(value)
+                for value in np.where(
+                    depth >= half,
+                    arange(profile.size),
+                    -1,
+                )
+                if int(value) >= 0
+            ]
+            if not selected:
                 continue
             width_px = float(selected[-1] - selected[0] + 1)
             if not 0.5 * self.marker_width <= width_px <= 1.5 * self.marker_width:
