@@ -15,7 +15,8 @@ from main_hcv import run
 
 
 PACKET_SIZE = 19
-SECONDS = 8
+SECONDS = globals().get("CAPTURE_SECONDS", 8)
+SIGNAL_FRAME = globals().get("SIGNAL_FRAME", 0)
 FRAMES_PER_BLOCK = 64
 EVIDENCE = "/sdcard/hcv/m1-ball-insertion.bin"
 
@@ -25,7 +26,10 @@ def record():
     config = load_config("/sdcard/hcv")
     roi = config["roi"]
     bounds = (roi["x"], roi["y"], roi["w"], roi["h"])
-    width, height = bounds[2] // 2, bounds[3] // 2
+    # A quarter-size preview keeps eight seconds of frames within the board heap.
+    width, height = bounds[2] // 4, bounds[3] // 4
+    if bounds[2] % 4 or bounds[3] % 4 or min(width, height) == 0:
+        raise ValueError("recording requires ROI dimensions divisible by four")
     image_bytes = width * height
     record_bytes = PACKET_SIZE + image_bytes
     limit = SECONDS * config["sensor"]["fps"]
@@ -42,10 +46,12 @@ def record():
         buffer = blocks[block]
         buffer[offset:offset + PACKET_SIZE] = packet
         frame.crop(
-            0.5, 0.5, roi=bounds, hint=AREA, alloc=ALLOC_REF,
+            0.25, 0.25, roi=bounds, hint=AREA, alloc=ALLOC_REF,
             data=buffer[offset + PACKET_SIZE:offset + record_bytes],
         )
         count += 1
+        if count == SIGNAL_FRAME:
+            print("HCV_FIELD_CUE,frame=%d" % (count - 1))
 
     run(max_runtime_s=SECONDS, max_frames=limit, observe_ball=observe)
     start(12)

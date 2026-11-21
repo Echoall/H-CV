@@ -19,7 +19,8 @@ from media.sensor import Sensor
 if sys.path[0] != "/sdcard/hcv":
     sys.path.insert(0, "/sdcard/hcv")
 
-from hcv.config import calibration_fingerprint, load_config, runtime_config_warning
+from hcv.calibration import runtime_calibration
+from hcv.config import load_config, runtime_config_warning
 from hcv.detect_profile import ProfileDetector
 from hcv.guard import start as guard_start
 from hcv.guard import tick as guard_tick
@@ -136,25 +137,34 @@ def _exists(path):
         return False
 
 
-def _load_lut(config, width):
-    path = "/sdcard/hcv/calib.json"
+def _load_lut(config, width, path="/sdcard/hcv/calib.json"):
     nominal = PixelLUT((0.0, float(width - 1)), (NOMINAL_MIN_MM, NOMINAL_MAX_MM))
     if not _exists(path):
-        return nominal, False, 0, ERR_CALIB_MISSING
+        return nominal, False, 0, ERR_CALIB_MISSING, None
     try:
         with open(path, "r") as stream:
             calibration = json.load(stream)
-        expected = calibration_fingerprint(config)
-        if calibration.get("fingerprint") != expected:
-            return nominal, False, 0, ERR_CALIB_MISMATCH
-        anchors = calibration["anchors"]
-        pixels = [float(item["u_px"]) for item in anchors]
-        physical = [float(item["x_mm"]) for item in anchors]
+        pixels, physical, background = runtime_calibration(calibration, config)
         lut = PixelLUT(pixels, physical)
         calibration_id = int(calibration.get("id", 0)) & 0xFFFF
-        return lut, True, calibration_id, 0
-    except (OSError, ValueError, KeyError, TypeError):
-        return nominal, False, 0, ERR_CALIB_MISMATCH
+        return lut, True, calibration_id, 0, background
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return nominal, False, 0, ERR_CALIB_MISMATCH, None
+
+
+def configure_detector_sensor(sensor, config):
+    sensor.reset()
+    mode = config["sensor"]
+    if mode["hmirror"]:
+        sensor.set_hmirror(True)
+    if mode["vflip"]:
+        sensor.set_vflip(True)
+    channel = config["chn_detect"]
+    size = {"width": channel["width"], "height": channel["height"], "chn": 0}
+    if channel["crop"] is not None:
+        size["crop"] = channel["crop"]
+    sensor.set_framesize(**size)
+    sensor.set_pixformat(Sensor.GRAYSCALE, chn=0)
 
 
 def _quantize(value):
@@ -565,16 +575,7 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
             height=config["sensor"]["height"],
             fps=config["sensor"]["fps"],
         )
-        sensor.reset()
-        frame_size = {
-            "width": config["chn_detect"]["width"],
-            "height": config["chn_detect"]["height"],
-            "chn": 0,
-        }
-        if config["chn_detect"]["crop"] is not None:
-            frame_size["crop"] = config["chn_detect"]["crop"]
-        sensor.set_framesize(**frame_size)
-        sensor.set_pixformat(Sensor.GRAYSCALE, chn=0)
+        configure_detector_sensor(sensor, config)
         MediaManager.init()
         media_started = True
         sensor.run()
@@ -582,7 +583,6 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
             guard_tick()
             image = sensor.snapshot(chn=0, timeout=1000)
             image = None
-        image = sensor.snapshot(chn=0, timeout=1000)
         roi = config["roi"]
         x0, y0, width, height = roi["x"], roi["y"], roi["w"], roi["h"]
         roi_bounds = (x0, y0, width, height)
@@ -590,14 +590,16 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
         profile_pixels = bytearray(width)
         import ulab.numpy as np
         profile_array = np.frombuffer(profile_pixels, dtype=np.uint8)
-        _write_column_profile(image, roi_bounds, roi_pixels, profile_pixels)
-        background = np.array(profile_array)
+        lut, calib_ok, calib_id, lut_err, background = _load_lut(config, width)
+        if background is None:
+            image = sensor.snapshot(chn=0, timeout=1000)
+            _write_column_profile(image, roi_bounds, roi_pixels, profile_pixels)
+            background = np.array(profile_array)
         detector = ProfileDetector(
             background,
             config["detector"]["params"],
             width=width,
         )
-        lut, calib_ok, calib_id, lut_err = _load_lut(config, width)
         if not calib_ok and err == 0:
             err = lut_err
         tracker = KalmanTracker(config["tracker"])
@@ -698,6 +700,12 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
 
             map_start = time.ticks_us()
             position_mm = lut.map(u_px) if measurement_found else None
+            extrapolated = False
+            if calib_ok and position_mm is not None:
+                if not NOMINAL_MIN_MM <= position_mm <= NOMINAL_MAX_MM:
+                    position_mm = None
+                else:
+                    extrapolated = u_px < lut.pixels[0] or u_px > lut.pixels[-1]
             health.add("map", time.ticks_diff(time.ticks_us(), map_start))
 
             track_start = time.ticks_us()
@@ -714,6 +722,8 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
             status = 0
             if calib_ok:
                 status |= STATUS_CALIB_OK
+            if extrapolated:
+                status |= STATUS_EXTRAPOLATED
             if tracker_output[1]:
                 status |= STATUS_PREDICTED
                 predicted_count += 1
