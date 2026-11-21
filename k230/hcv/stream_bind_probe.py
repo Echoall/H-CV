@@ -58,7 +58,7 @@ def run(stage):
     encoder = None
     link = None
     created = False
-    media_started = False
+    media_deinit_needed = stage not in ("chn1", "setbufs")
     sensor_started = False
     try:
         tick()
@@ -92,7 +92,6 @@ def run(stage):
 
         if stage in ("create_after_init", "link_after_init"):
             MediaManager.init()
-            media_started = True
             print("HCV_BIND_STEP,media_init")
             tick()
 
@@ -197,7 +196,7 @@ def run(stage):
                             encoder.Destroy(CHANNEL)
                     finally:
                         try:
-                            if media_started:
+                            if media_deinit_needed:
                                 MediaManager.deinit()
                         finally:
                             print("HCV_BIND_CLEANUP,stage=%s" % stage)
