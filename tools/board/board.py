@@ -51,6 +51,15 @@ def send_interrupt(serial):
 
 
 class CanMVSerialTransport(SerialTransport):
+    def __init__(self, device, *args, **kwargs):
+        try:
+            super().__init__(device, *args, **kwargs)
+        except (OSError, TransportError) as error:
+            raise TransportError(
+                f"could not open host serial port {device}; "
+                "the port may be busy or its USB driver may be stuck"
+            ) from error
+
     def enter_raw_repl(self, soft_reset=False, timeout_overall=10):
         send_interrupt(self.serial)
         self.serial.reset_input_buffer()
@@ -87,7 +96,17 @@ class ControlledSerialTransport(CanMVSerialTransport):
             self.serial.dtr = dtr == "1"
         if rts != "default":
             self.serial.rts = rts == "1"
-        self.serial.open()
+        try:
+            self.serial.open()
+        except (OSError, TransportError) as error:
+            try:
+                self.serial.close()
+            except Exception:
+                pass
+            raise TransportError(
+                f"could not open host serial port {device}; "
+                "the port may be busy or its USB driver may be stuck"
+            ) from error
 
 
 def require_backup(directory=BACKUP):
@@ -426,13 +445,16 @@ def main():
             try:
                 if board.in_raw_repl:
                     board.exit_raw_repl()
-            except OSError:
+            except Exception:
                 pass
             finally:
                 try:
                     board.close()
-                except OSError:
-                    board.serial.close()
+                except Exception:
+                    try:
+                        board.serial.close()
+                    except Exception:
+                        pass
     except BoardRecoveryError as error:
         print(f"board: {error}", file=sys.stderr)
         return 3
