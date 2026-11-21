@@ -29,10 +29,14 @@ def main():
     assert detector.found == golden["profile"]["found"]
     assert abs(detector.u - golden["profile"]["u"]) <= 0.05
 
-    marker_image = np.ones((32, 96)) * 100
-    marker_image[10:17, 15:22] = 30
-    marker_image[10:17, 45:52] = 30
-    marker_image[10:17, 75:82] = 30
+    marker_image = [[100 for _ in range(96)] for _ in range(32)]
+    for row in range(10, 17):
+        for column in range(15, 22):
+            marker_image[row][column] = 30
+        for column in range(45, 52):
+            marker_image[row][column] = 30
+        for column in range(75, 82):
+            marker_image[row][column] = 30
     markers = MarkerDetector(
         [18.0, 48.0, 78.0],
         {
