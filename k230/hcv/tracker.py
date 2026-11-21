@@ -156,6 +156,16 @@ class KalmanTracker:
         The regular ``step`` API remains unchanged for host-side callers.
         """
         self.reacquire = False
+        if position_mm is None and not self.initialized:
+            self.lost = True
+            output[0] = False
+            output[1] = False
+            output[2] = True
+            output[3] = False
+            output[4] = 0.0
+            output[5] = 0.0
+            output[6] = None
+            return output
         dt = self._dt(t_cap_us)
         if self.initialized:
             self._predict(dt)

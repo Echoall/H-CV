@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import time
+from array import array
 
 from media.media import MediaManager
 from media.sensor import Sensor
@@ -58,6 +59,28 @@ ERR_UNKNOWN = 255
 FW_VER = 0x0100
 NOMINAL_MIN_MM = -125.0
 NOMINAL_MAX_MM = 125.0
+ALLOC_PROBE_STAGES = (
+    "snapshot",
+    "frame_view",
+    "detect",
+    "map",
+    "track",
+    "pack",
+    "uart",
+    "cleanup",
+)
+ALLOC_DETAIL_STAGES = (
+    "prediction",
+    "profile_slice",
+    "detector_update",
+    "fast_copy_profile",
+    "fast_residual_setup",
+    "fast_peak_search",
+    "fast_width_scan",
+    "fast_centroid",
+    "fast_quality",
+    "fast_diag",
+)
 
 
 class PixelLUT:
@@ -231,7 +254,226 @@ def _print_stats(health, dropped, gc_free, run_info, parser):
     )
 
 
-def run(max_runtime_s=10, max_frames=None):
+def _allocation_probe(
+    sensor,
+    link,
+    detector,
+    tracker,
+    tracker_output,
+    lut,
+    ball_buffer,
+    config,
+    x0,
+    y0,
+    width,
+    height,
+    buffers,
+    detail_buffers,
+    fast_probe,
+    max_frames,
+):
+    """Measure per-stage free-memory changes with automatic GC disabled."""
+    stage_deltas = buffers[:-1]
+    frame_drift = buffers[-1]
+    frame_count = 0
+    last_cap = None
+    ball_seq = 0
+    image = None
+    image_array = None
+    roi_image = None
+    roi_profile = None
+    gc.collect()
+    gc.disable()
+    detector._fast_probe = fast_probe
+    free_start = gc.mem_free()
+    print(
+        "HCV_M1_ALLOC_BEGIN,frames=%d,free_start=%d,gc=disabled"
+        % (max_frames, free_start)
+    )
+    while frame_count < max_frames:
+        guard_tick()
+        frame_start_free = gc.mem_free()
+
+        before = gc.mem_free()
+        image = sensor.snapshot(chn=0, timeout=1000)
+        t_cap_us = time.ticks_us()
+        after = gc.mem_free()
+        stage_deltas[0][frame_count] = before - after
+
+        before = gc.mem_free()
+        image_array = image.to_numpy_ref()
+        roi_image = image_array[y0:y0 + height, x0:x0 + width]
+        after = gc.mem_free()
+        stage_deltas[1][frame_count] = before - after
+
+        before = gc.mem_free()
+        predicted_u = _u_prediction(tracker, lut)
+        after = gc.mem_free()
+        detail_buffers[0][frame_count] = before - after
+
+        before = gc.mem_free()
+        roi_profile = roi_image[height // 2, :]
+        after = gc.mem_free()
+        detail_buffers[1][frame_count] = before - after
+
+        before = gc.mem_free()
+        detector.update(roi_profile, predicted_u=predicted_u)
+        after = gc.mem_free()
+        detail_buffers[2][frame_count] = before - after
+        detail_buffers[3][frame_count] = (
+            fast_probe[0] - fast_probe[1]
+        )
+        detail_buffers[4][frame_count] = (
+            fast_probe[1] - fast_probe[2]
+        )
+        detail_buffers[5][frame_count] = (
+            fast_probe[2] - fast_probe[3]
+        )
+        detail_buffers[6][frame_count] = (
+            fast_probe[3] - fast_probe[4]
+        )
+        detail_buffers[7][frame_count] = (
+            fast_probe[4] - fast_probe[5]
+        )
+        detail_buffers[8][frame_count] = (
+            fast_probe[5] - fast_probe[6]
+        )
+        detail_buffers[9][frame_count] = (
+            fast_probe[6] - fast_probe[7]
+        )
+        stage_deltas[2][frame_count] = before - after
+
+        found = detector.found
+        before = gc.mem_free()
+        position_mm = lut.map(detector.u) if found else None
+        after = gc.mem_free()
+        stage_deltas[3][frame_count] = before - after
+
+        before = gc.mem_free()
+        tracker.step_into(
+            tracker_output,
+            position_mm,
+            t_cap_us,
+            quality=detector.quality if found else 0,
+        )
+        after = gc.mem_free()
+        stage_deltas[4][frame_count] = before - after
+
+        if tracker_output[0]:
+            pos_filt = _quantize(tracker_output[4])
+            vel = _quantize(tracker_output[5])
+        else:
+            pos_filt = INV
+            vel = INV
+        before = gc.mem_free()
+        pack_ball_into(
+            ball_buffer,
+            ball_seq,
+            t_cap_us // 1000,
+            STATUS_VALID if tracker_output[0] else 0,
+            detector.quality if found else 0,
+            _quantize(position_mm) if found else INV,
+            pos_filt,
+            vel,
+            _age_ms(t_cap_us, time.ticks_us()),
+            INV,
+        )
+        after = gc.mem_free()
+        stage_deltas[5][frame_count] = before - after
+
+        before = gc.mem_free()
+        link.uart.write(ball_buffer)
+        after = gc.mem_free()
+        stage_deltas[6][frame_count] = before - after
+
+        before = gc.mem_free()
+        image = None
+        image_array = None
+        roi_image = None
+        roi_profile = None
+        after = gc.mem_free()
+        stage_deltas[7][frame_count] = before - after
+        frame_drift[frame_count] = frame_start_free - after
+
+        ball_seq = (ball_seq + 1) & 0xFF
+        frame_count += 1
+        if last_cap is not None:
+            _ = time.ticks_diff(t_cap_us, last_cap)
+        last_cap = t_cap_us
+
+    free_end = gc.mem_free()
+    print(
+        "HCV_M1_ALLOC_END,frames=%d,free_end=%d,drift=%d"
+        % (frame_count, free_end, free_start - free_end)
+    )
+    for index, name in enumerate(ALLOC_PROBE_STAGES):
+        values = stage_deltas[index]
+        minimum = values[0]
+        maximum = values[0]
+        total = 0
+        positive = 0
+        for offset in range(frame_count):
+            value = int(values[offset])
+            minimum = min(minimum, value)
+            maximum = max(maximum, value)
+            total += value
+            if value > 0:
+                positive += 1
+        print(
+            "HCV_M1_ALLOC_STAGE,stage=%s,frames=%d,total=%d,mean=%d,"
+            "min=%d,max=%d,positive=%d"
+            % (
+                name,
+                frame_count,
+                total,
+                int(total / max(1, frame_count)),
+                minimum,
+                maximum,
+                positive,
+            )
+        )
+    for index, name in enumerate(ALLOC_DETAIL_STAGES):
+        values = detail_buffers[index]
+        minimum = values[0]
+        maximum = values[0]
+        total = 0
+        positive = 0
+        for offset in range(frame_count):
+            value = int(values[offset])
+            minimum = min(minimum, value)
+            maximum = max(maximum, value)
+            total += value
+            if value > 0:
+                positive += 1
+        print(
+            "HCV_M1_ALLOC_DETAIL,stage=%s,frames=%d,total=%d,mean=%d,"
+            "min=%d,max=%d,positive=%d"
+            % (
+                name,
+                frame_count,
+                total,
+                int(total / max(1, frame_count)),
+                minimum,
+                maximum,
+                positive,
+            )
+        )
+    for offset in range(frame_count):
+        print(
+            "HCV_M1_ALLOC_FRAME,frame=%d,%s"
+            % (
+                offset + 1,
+                ",".join(
+                    "%s=%d" % (name, int(stage_deltas[index][offset]))
+                    for index, name in enumerate(ALLOC_PROBE_STAGES)
+                ),
+            )
+        )
+    detector._fast_probe = None
+    return frame_count
+
+
+def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
     """Run the bounded M1 loop and print machine-readable evidence lines."""
     config = load_config("/sdcard/hcv")
     warning, warning_err = runtime_config_warning(config)
@@ -253,6 +495,9 @@ def run(max_runtime_s=10, max_frames=None):
     tracker_output = [False, False, False, False, 0.0, 0.0, None]
     ball_buffer = bytearray(19)
     status_buffer = bytearray(18)
+    allocation_buffers = None
+    allocation_detail_buffers = None
+    allocation_fast_probe = None
     ball_seq = 0
     status_seq = 0
     dropped = 0
@@ -261,11 +506,14 @@ def run(max_runtime_s=10, max_frames=None):
     valid_count = 0
     predicted_count = 0
     found_streak = 0
+    round_index = 0
+    round_start_us = None
+    round_frame_start = 0
+    round_dropped_start = 0
     run_info = [0, 0, 0, INV, INV, 0]
     last_cap = None
     started_us = None
     next_status_us = None
-    next_gc_frame = 45
     state = STATE_BOOT
     err = warning_err
     calib_ok = False
@@ -314,13 +562,25 @@ def run(max_runtime_s=10, max_frames=None):
         state = STATE_READY if calib_ok and err == 0 else STATE_NO_CALIB
         if err == ERR_CONFIG:
             state = STATE_FAULT
+        if allocation_probe:
+            probe_frames = int(max_frames if max_frames is not None else 200)
+            allocation_buffers = [
+                array("i", [0] * probe_frames)
+                for _ in range(len(ALLOC_PROBE_STAGES) + 1)
+            ]
+            allocation_detail_buffers = [
+                array("i", [0] * probe_frames)
+                for _ in range(len(ALLOC_DETAIL_STAGES))
+            ]
+            allocation_fast_probe = array("i", [0] * 8)
         gc.collect()
         gc.disable()
         started_us = time.ticks_us()
+        round_start_us = started_us
         next_status_us = started_us
         print(
             "HCV_M1_BEGIN,mode=%dx%dx%d,detect=%dx%d,roi=%d:%d:%d:%d,"
-            "calib_ok=%d,calib_id=%d,state=%d,err=%d" % (
+            "calib_ok=%d,calib_id=%d,state=%d,err=%d,detector_fast=%d" % (
                 config["sensor"]["width"],
                 config["sensor"]["height"],
                 config["sensor"]["fps"],
@@ -334,8 +594,29 @@ def run(max_runtime_s=10, max_frames=None):
                 calib_id,
                 state,
                 err,
+                int(detector.fast),
             )
         )
+        if allocation_probe:
+            frame_number = _allocation_probe(
+                sensor,
+                link,
+                detector,
+                tracker,
+                tracker_output,
+                lut,
+                ball_buffer,
+                config,
+                x0,
+                y0,
+                width,
+                height,
+                allocation_buffers,
+                allocation_detail_buffers,
+                allocation_fast_probe,
+                probe_frames,
+            )
+            return
         while True:
             guard_tick()
             loop_start = time.ticks_us()
@@ -501,11 +782,35 @@ def run(max_runtime_s=10, max_frames=None):
             roi_image = None
             roi_profile = None
 
-            if frame_number >= next_gc_frame:
+            round_now_us = time.ticks_us()
+            if (
+                round_start_us is not None
+                and time.ticks_diff(round_now_us, round_start_us) >= 30_000_000
+            ):
                 gc_start = time.ticks_us()
                 gc.collect()
-                health.add("gc", time.ticks_diff(time.ticks_us(), gc_start))
-                next_gc_frame += 45
+                gc_elapsed_us = time.ticks_diff(time.ticks_us(), gc_start)
+                health.add("gc", gc_elapsed_us)
+                gc_dropped_est = int(
+                    gc_elapsed_us
+                    / (1_000_000.0 / config["sensor"]["fps"])
+                )
+                print(
+                    "HCV_M1_ROUND,round=%d,frames=%d,dropped=%d,"
+                    "gc_us=%d,gc_dropped_est=%d,free=%d" % (
+                        round_index,
+                        frame_number - round_frame_start,
+                        dropped - round_dropped_start,
+                        gc_elapsed_us,
+                        gc_dropped_est,
+                        gc.mem_free(),
+                    )
+                )
+                round_index += 1
+                round_start_us = time.ticks_us()
+                round_frame_start = frame_number
+                round_dropped_start = dropped
+                last_cap = None
     finally:
         image = None
         image_array = None
@@ -520,6 +825,16 @@ def run(max_runtime_s=10, max_frames=None):
         gc.enable()
         gc.collect()
         if started_us is not None:
+            if round_start_us is not None and frame_number > round_frame_start:
+                print(
+                    "HCV_M1_ROUND,round=%d,final=1,frames=%d,dropped=%d,"
+                    "gc_us=0,gc_dropped_est=0,free=%d" % (
+                        round_index,
+                        frame_number - round_frame_start,
+                        dropped - round_dropped_start,
+                        gc.mem_free(),
+                    )
+                )
             elapsed = time.ticks_diff(time.ticks_us(), started_us)
             print(
                 "HCV_M1_SUMMARY,frames=%d,elapsed_us=%d,dropped=%d,"
