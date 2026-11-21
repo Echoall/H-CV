@@ -230,6 +230,11 @@ def _run_case(case, fast, strategy):
     started = time.perf_counter()
     if strategy == "rows48":
         detector.update_image(case["image"][166:214])
+    elif strategy == "board48":
+        roi = case["image"][166:214]
+        detector.update(
+            _profile(case["image"], strategy), predicted_u=None, roi_pixels=roi.tobytes()
+        )
     else:
         detector.update(_profile(case["image"], strategy))
     elapsed_us = (time.perf_counter() - started) * 1_000_000
@@ -294,8 +299,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--board", action="store_true",
-        help="compare only the current one-dimensional board path and P2",
+        help="compare the production board update with the P2 baseline",
     )
+    parser.add_argument("--output", type=Path, help="write the summary to this file")
     args = parser.parse_args()
     output = Path("reports/data/M1/equivalence")
     output.mkdir(parents=True, exist_ok=True)
@@ -328,8 +334,9 @@ def main():
             ),
             "elapsed_max_us": max(row["elapsed_us"] for row in rows),
         }
-    filename = "board-report.json" if args.board else "report.json"
-    (output / filename).write_text(
+    filename = "board-live-report.json" if args.board else "report.json"
+    destination = args.output or output / filename
+    destination.write_text(
         json.dumps(report, indent=2) + "\n",
         encoding="utf-8",
     )

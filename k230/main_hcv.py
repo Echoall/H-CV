@@ -190,11 +190,10 @@ def _uart_pending(link):
     return link.uart.read(min(int(count), 64)) or b""
 
 
-def _column_profile(image, bounds, pixels):
-    """Average all ROI rows in a reusable grayscale buffer."""
+def _write_column_profile(image, bounds, pixels, profile_pixels):
+    """Average the ROI into a second buffer while keeping the pixels for shape checks."""
     cropped = image.crop(roi=bounds, alloc=ALLOC_REF, data=pixels)
-    cropped.mean_pool(1, bounds[3])
-    return cropped.to_numpy_ref()[0, :]
+    cropped.mean_pooled(1, bounds[3], alloc=ALLOC_REF, data=profile_pixels)
 
 
 def _log_memory(round_index, phase):
@@ -294,6 +293,8 @@ def _allocation_probe(
     ball_buffer,
     roi_bounds,
     roi_pixels,
+    profile_pixels,
+    profile_array,
     buffers,
     detail_buffers,
     fast_probe,
@@ -303,6 +304,9 @@ def _allocation_probe(
     stage_deltas = buffers[:-1]
     frame_drift = buffers[-1]
     frame_count = 0
+    detected_frames = 0
+    quality_min = 255
+    quality_max = 0
     last_cap = None
     ball_seq = 0
     image = None
@@ -328,7 +332,7 @@ def _allocation_probe(
         stage_deltas[0][frame_count] = before - after
 
         before = gc.mem_free()
-        profile_array = _column_profile(image, roi_bounds, roi_pixels)
+        _write_column_profile(image, roi_bounds, roi_pixels, profile_pixels)
         after = gc.mem_free()
         stage_deltas[1][frame_count] = before - after
 
@@ -343,8 +347,8 @@ def _allocation_probe(
         detail_buffers[1][frame_count] = before - after
 
         before = gc.mem_free()
-        detector.update(roi_profile, predicted_u=predicted_u)
-        del roi_profile, profile_array
+        detector.update(roi_profile, predicted_u=predicted_u, roi_pixels=roi_pixels)
+        del roi_profile
         after = gc.mem_free()
         detail_buffers[2][frame_count] = before - after
         detail_buffers[3][frame_count] = (
@@ -371,6 +375,10 @@ def _allocation_probe(
         stage_deltas[2][frame_count] = before - after
 
         found = detector.found
+        if found:
+            detected_frames += 1
+            quality_min = min(quality_min, detector.quality)
+            quality_max = max(quality_max, detector.quality)
         before = gc.mem_free()
         position_mm = lut.map(detector.u) if found else None
         after = gc.mem_free()
@@ -430,8 +438,10 @@ def _allocation_probe(
 
     free_end = gc.mem_free()
     print(
-        "HCV_M1_ALLOC_END,frames=%d,free_end=%d,drift=%d"
-        % (frame_count, free_end, free_start - free_end)
+        "HCV_M1_ALLOC_END,frames=%d,free_end=%d,drift=%d,"
+        "detected_frames=%d,quality_min=%d,quality_max=%d"
+        % (frame_count, free_end, free_start - free_end, detected_frames,
+           quality_min if detected_frames else 0, quality_max)
     )
     for index, name in enumerate(ALLOC_PROBE_STAGES):
         values = stage_deltas[index]
@@ -487,9 +497,10 @@ def _allocation_probe(
         )
     for offset in range(frame_count):
         print(
-            "HCV_M1_ALLOC_FRAME,frame=%d,%s"
+            "HCV_M1_ALLOC_FRAME,frame=%d,drift=%d,%s"
             % (
                 offset + 1,
+                frame_drift[offset],
                 ",".join(
                     "%s=%d" % (name, int(stage_deltas[index][offset]))
                     for index, name in enumerate(ALLOC_PROBE_STAGES)
@@ -576,8 +587,11 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
         x0, y0, width, height = roi["x"], roi["y"], roi["w"], roi["h"]
         roi_bounds = (x0, y0, width, height)
         roi_pixels = bytearray(width * height)
+        profile_pixels = bytearray(width)
         import ulab.numpy as np
-        background = np.array(_column_profile(image, roi_bounds, roi_pixels))
+        profile_array = np.frombuffer(profile_pixels, dtype=np.uint8)
+        _write_column_profile(image, roi_bounds, roi_pixels, profile_pixels)
+        background = np.array(profile_array)
         detector = ProfileDetector(
             background,
             config["detector"]["params"],
@@ -610,7 +624,7 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
         print(
             "HCV_M1_BEGIN,mode=%dx%dx%d,detect=%dx%d,roi=%d:%d:%d:%d,"
             "calib_ok=%d,calib_id=%d,state=%d,err=%d,detector_fast=%d,"
-            "profile=mean_pool,roi_buffer=preallocated" % (
+            "profile=mean_pooled,roi_buffer=preallocated,shape_candidates=3" % (
                 config["sensor"]["width"],
                 config["sensor"]["height"],
                 config["sensor"]["fps"],
@@ -638,6 +652,8 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
                 ball_buffer,
                 roi_bounds,
                 roi_pixels,
+                profile_pixels,
+                profile_array,
                 allocation_buffers,
                 allocation_detail_buffers,
                 allocation_fast_probe,
@@ -667,9 +683,8 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
 
             detect_start = time.ticks_us()
             predicted_u = _u_prediction(tracker, lut)
-            roi_profile = _column_profile(image, roi_bounds, roi_pixels)
-            detector.update(roi_profile, predicted_u=predicted_u)
-            roi_profile = None
+            _write_column_profile(image, roi_bounds, roi_pixels, profile_pixels)
+            detector.update(profile_array, predicted_u=predicted_u, roi_pixels=roi_pixels)
             found = detector.found
             quality = detector.quality if found else 0
             u_px = detector.u if found else None

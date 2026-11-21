@@ -27,6 +27,7 @@ def analyze(path):
     stages = {}
     details = {}
     frames = 0
+    frame_drift = []
     with Path(path).open(encoding="utf-8", errors="replace") as stream:
         for line in stream:
             if line.startswith("HCV_M1_ALLOC_BEGIN,"):
@@ -50,15 +51,28 @@ def analyze(path):
                 details[name] = {
                     key: _number(value) for key, value in fields.items()
                 }
+            elif line.startswith("HCV_M1_ALLOC_FRAME,"):
+                fields = _fields(line)
+                if "drift" in fields:
+                    frame_drift.append(int(fields["drift"]))
     if begin is None or end is None or not stages:
         raise ValueError("allocation probe markers are incomplete")
-    return {
+    result = {
         "begin": begin,
         "end": end,
         "frames": frames,
         "stages": stages,
         "details": details,
     }
+    if frame_drift:
+        if len(frame_drift) != frames:
+            raise ValueError("allocation probe frame records are incomplete")
+        result["frame_drift"] = {
+            "min": min(frame_drift),
+            "max": max(frame_drift),
+            "mean": sum(frame_drift) / len(frame_drift),
+        }
+    return result
 
 
 def main():

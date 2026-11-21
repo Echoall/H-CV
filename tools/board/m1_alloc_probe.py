@@ -6,4 +6,4 @@ for name in list(sys.modules):
         del sys.modules[name]
 from main_hcv import run
 
-run(max_runtime_s=180, max_frames=200, allocation_probe=True)
+run(max_runtime_s=15, max_frames=200, allocation_probe=True)

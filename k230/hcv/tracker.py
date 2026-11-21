@@ -38,10 +38,15 @@ class KalmanTracker:
 
     def _predict(self, dt):
         self.x += self.v * dt
-        q = self.q_accel
-        self.p00 += dt * (dt * self.p11 + self.p01 + self.p01) + q * dt ** 3 / 3.0
-        self.p01 += dt * self.p11 + q * dt ** 2 / 2.0
-        self.p11 += q * dt
+        velocity_variance = dt * self.p11
+        acceleration_variance = self.q_accel * dt
+        acceleration_cross = acceleration_variance * dt
+        self.p00 += (
+            dt * (velocity_variance + self.p01 + self.p01)
+            + acceleration_cross * dt / 3.0
+        )
+        self.p01 += velocity_variance + acceleration_cross / 2.0
+        self.p11 += acceleration_variance
 
     def _output(self, valid, predicted, raw=None):
         return {
@@ -214,28 +219,31 @@ class KalmanTracker:
             self._set_output(output, True, False, measurement)
             return output
 
-        quality_norm = max(float(quality) / 255.0, 0.2)
-        measurement_noise = (self.r_meas / quality_norm) ** 2
+        if quality == 255:
+            measurement_noise = self.r_meas ** 2
+        else:
+            quality_norm = max(float(quality) / 255.0, 0.2)
+            measurement_noise = (self.r_meas / quality_norm) ** 2
         innovation = measurement - self.x
         innovation_variance = self.p00 + measurement_noise
-        gate = max(
-            self.gate_mm,
-            3.0 * innovation_variance ** 0.5,
-            abs(self.v) * dt + self.gate_mm,
-        )
-        if abs(innovation) <= gate:
+        error = abs(innovation)
+        if error <= self.gate_mm or error <= max(
+            3.0 * innovation_variance ** 0.5, abs(self.v) * dt + self.gate_mm
+        ):
             gain_x = self.p00 / innovation_variance
             gain_v = self.p01 / innovation_variance
             old_p01 = self.p01
             self.x += gain_x * innovation
             self.v += gain_v * innovation
-            self.p00 = max(1e-9, (1.0 - gain_x) * self.p00)
-            self.p01 = (1.0 - gain_x) * self.p01
+            complement = 1.0 - gain_x
+            self.p00 = max(1e-9, complement * self.p00)
+            self.p01 = complement * self.p01
             self.p11 = max(1e-9, self.p11 - gain_v * old_p01)
             self.coast = 0
             self.lost = False
-            self.rejects = []
-            self.reject_times = []
+            if self.rejects:
+                self.rejects.clear()
+                self.reject_times.clear()
             self._set_output(output, True, False, measurement)
             return output
 

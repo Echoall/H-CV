@@ -1,8 +1,13 @@
 """Vectorised one-dimensional ball detector."""
 
 import gc
+from array import array as storage
 
 from .compat import absolute, arange, array, box_filter, ones, np, shape_2d, zeros
+
+
+_PROFILE_SCALE = 256
+_FIT_RESIDUAL_LIMIT = 8 * _PROFILE_SCALE
 
 
 class ProfileDetector:
@@ -72,12 +77,23 @@ class ProfileDetector:
         self._fast_background_sq_sum = 0
         self._fast_probe = None
         self._fast_threshold = 0
+        self._live_deviation = None
+        self._live_scores = None
+        self._live_centered_background = None
+        self._live_background_origin = 0
         self.found = False
         self.u = 0.0
         self.quality = 0
         self.snr = 0.0
         self.diag = {}
         if self.fast:
+            self._live_noise_floor = max(1, int(round(self.noise_floor * _PROFILE_SCALE)))
+            self._live_snr_min = max(1, int(round(self.snr_min * _PROFILE_SCALE)))
+            self._live_snr_good = max(
+                self._live_snr_min + 1, int(round(self.snr_good * _PROFILE_SCALE))
+            )
+            self._live_deviation = storage("i", [0] * self.width)
+            self._live_scores = storage("i", [0] * self.width)
             fast_background = bytearray(self.width)
             for index in range(self.width):
                 value = int(reference[index])
@@ -87,6 +103,11 @@ class ProfileDetector:
                     fast_background[index] * fast_background[index]
                 )
             self._fast_background = fast_background
+            self._live_background_origin = self._fast_background_sum // self.width
+            self._live_centered_background = np.array(
+                [value - self._live_background_origin for value in fast_background],
+                dtype=getattr(np, "float", float),
+            )
             self._fast_threshold = max(
                 1,
                 int(self._fast_noise * self.snr_min),
@@ -179,8 +200,10 @@ class ProfileDetector:
         above = [int(value) for value in above_values if int(value) >= 0]
         return int(above[-1] - above[0] + 1) if above else 0
 
-    def update(self, profile, predicted_u=None):
+    def update(self, profile, predicted_u=None, roi_pixels=None):
         if self.fast:
+            if roi_pixels is not None:
+                return self._update_live(profile, roi_pixels, predicted_u)
             return self._update_fast(profile, predicted_u=predicted_u)
         profile = array(profile, dtype=float)
         if len(profile.shape) != 1 or int(profile.size) != self.width:
@@ -314,6 +337,199 @@ class ProfileDetector:
         self.background[:] = self.background + self._shape_mask * (
             adapted - self.background
         )
+        return self
+
+    def _fit_live(self, profile, profile_bytes):
+        background = self._fast_background
+        count = self.width
+        # ulab returns a wide scalar for a 1-D sum. Centering the background
+        # keeps the dot product small. The background is float so NumPy and
+        # ulab both return a wide result for the mixed-dtype dot product.
+        cur_sum = int(np.sum(profile))
+        cross_sum = (
+            int(np.dot(profile, self._live_centered_background))
+            + cur_sum * self._live_background_origin
+        )
+        ref_sum = self._fast_background_sum
+        ref_sq_sum = self._fast_background_sq_sum
+        denominator = count * ref_sq_sum - ref_sum * ref_sum
+        gain = _PROFILE_SCALE
+        if denominator > 0:
+            gain = (count * cross_sum - cur_sum * ref_sum) * _PROFILE_SCALE // denominator
+            gain = min(4 * _PROFILE_SCALE, max(_PROFILE_SCALE // 4, gain))
+        offset = (cur_sum * _PROFILE_SCALE - gain * ref_sum) // count
+
+        for col in range(self.width):
+            base, value = background[col], profile_bytes[col]
+            if abs(value * _PROFILE_SCALE - gain * base - offset) > _FIT_RESIDUAL_LIMIT:
+                count -= 1
+                cur_sum -= value
+                ref_sum -= base
+                ref_sq_sum -= base * base
+                cross_sum -= base * value
+        if count == self.width:
+            return gain, offset
+        denominator = count * ref_sq_sum - ref_sum * ref_sum
+        if denominator > 0:
+            gain = (count * cross_sum - cur_sum * ref_sum) * _PROFILE_SCALE // denominator
+            gain = min(4 * _PROFILE_SCALE, max(_PROFILE_SCALE // 4, gain))
+            offset = (cur_sum * _PROFILE_SCALE - gain * ref_sum) // count
+        return gain, offset
+
+    def _live_vertical_width(self, pixels, center, rows):
+        width = self.width
+        left = max(0, center - self.diameter)
+        right = min(width - 1, center + self.diameter)
+        sign = -1 if self.polarity == "dark" else 1
+        either = self.polarity == "both"
+        peak = 0
+        for start in range(0, rows * width, width):
+            value = 2 * pixels[start + center] - pixels[start + left] - pixels[start + right]
+            peak = max(peak, abs(value) if either else sign * value)
+        if peak <= 0:
+            return 0
+        first = rows
+        last = -1
+        for row in range(rows):
+            start = row * width
+            value = 2 * pixels[start + center] - pixels[start + left] - pixels[start + right]
+            value = abs(value) if either else sign * value
+            if 2 * value >= peak:
+                if first == rows:
+                    first = row
+                last = row
+        return last - first + 1
+
+    def _update_live(self, profile, pixels, predicted_u):
+        """Use an 8-bit column profile and inspect at most three ROI candidates."""
+        self._set_not_found()
+        width = self.width
+        if profile.shape != (width,) or profile.dtype != np.uint8:
+            raise ValueError("live detection requires a uint8 column profile")
+        rows, remainder = divmod(len(pixels), width)
+        if rows <= 0 or remainder:
+            raise ValueError("live ROI dimensions do not match the profile")
+        probe = self._fast_probe
+        if probe is not None:
+            probe[0] = gc.mem_free()
+        current = profile.tobytes()
+        if probe is not None:
+            probe[1] = gc.mem_free()
+        gain, offset = self._fit_live(profile, current)
+        background = self._fast_background
+        deviation = self._live_deviation
+        scores = self._live_scores
+        sign = -1 if self.polarity == "dark" else 1
+        either = self.polarity == "both"
+        noise_sum = noise_count = 0
+        max_deviation = 0
+        for col in range(width):
+            value = current[col] * _PROFILE_SCALE - gain * background[col] - offset
+            magnitude = abs(value)
+            if magnitude <= _FIT_RESIDUAL_LIMIT:
+                noise_sum += magnitude
+                noise_count += 1
+            candidate = magnitude if either else max(0, sign * value)
+            deviation[col] = candidate
+            if candidate > max_deviation:
+                max_deviation = candidate
+        noise = max(self._live_noise_floor, 14826 * noise_sum // (10000 * max(1, noise_count)))
+        strength_limit = self._live_snr_min * noise
+        if probe is not None:
+            free = gc.mem_free()
+            for index in range(2, 8):
+                probe[index] = free
+        if max_deviation * _PROFILE_SCALE < strength_limit:
+            self._misses += 1
+            return self
+        diameter = self.diameter
+        half = self.half
+        window = sum(deviation[col] for col in range(half))
+        best = gated = -1
+        best_score = gated_score = 0
+        gate_left = gate_right = -1
+        if predicted_u is not None:
+            gate_left = int(predicted_u - self.gate)
+            gate_right = int(predicted_u + self.gate)
+        for col in range(width):
+            if col + half < width:
+                window += deviation[col + half]
+            if col > half:
+                window -= deviation[col - half - 1]
+            scores[col] = window
+            if window > best_score:
+                best, best_score = col, window
+            if gate_left <= col <= gate_right and window > gated_score:
+                gated, gated_score = col, window
+
+        threshold = (strength_limit * (2 * half + 1) + _PROFILE_SCALE - 1) // _PROFILE_SCALE
+        center = gated if gated_score >= threshold else best
+        if probe is not None:
+            free = gc.mem_free()
+            for index in range(3, 8):
+                probe[index] = free
+        for attempt in range(3):
+            if center < 0 or scores[center] < threshold:
+                break
+            win_left, win_right = max(0, center - half), min(width, center + half + 1)
+            peak = center
+            for col in range(win_left, win_right):
+                if deviation[col] > deviation[peak]:
+                    peak = col
+            peak_value = deviation[peak]
+            half_peak = (peak_value + 1) // 2
+            left = right = peak
+            while left > 0 and deviation[left - 1] >= half_peak:
+                left -= 1
+            while right + 1 < width and deviation[right + 1] >= half_peak:
+                right += 1
+            horizontal = right - left + 1
+            if 6 * diameter <= 10 * horizontal <= 15 * diameter:
+                vertical = self._live_vertical_width(pixels, center, rows)
+                if 0 < 2 * vertical <= 3 * diameter:
+                    if probe is not None:
+                        probe[4] = gc.mem_free()
+                    floor = peak_value // 20
+                    mass = moment = 0
+                    for col in range(win_left, win_right):
+                        weight = max(0, deviation[col] - floor)
+                        mass += weight
+                        moment += weight * col
+                    self.u = moment / mass
+                    if probe is not None:
+                        probe[5] = gc.mem_free()
+                    self.snr = peak_value / noise
+                    margin = peak_value * _PROFILE_SCALE - strength_limit
+                    full_scale = (self._live_snr_good - self._live_snr_min) * noise
+                    self.quality = min(255, max(0, 255 * margin // full_scale))
+                    if probe is not None:
+                        probe[6] = gc.mem_free()
+                    self.diag["peak"] = center
+                    self.diag["score"] = peak_value / _PROFILE_SCALE
+                    self.diag["noise"] = noise / _PROFILE_SCALE
+                    self.diag["fwhm_px"] = horizontal
+                    self.diag["vertical_fwhm_px"] = vertical
+                    self.found = True
+                    self._misses = 0
+                    if probe is not None:
+                        probe[7] = gc.mem_free()
+                    return self
+            if attempt == 2:
+                break
+            exclude_left = max(0, min(left, center) - diameter)
+            exclude_right = min(width, max(right, center) + diameter + 1)
+            for col in range(exclude_left, exclude_right):
+                scores[col] = 0
+            center = -1
+            best_score = 0
+            for col in range(width):
+                if scores[col] > best_score:
+                    center, best_score = col, scores[col]
+        if probe is not None:
+            free = gc.mem_free()
+            for index in range(4, 8):
+                probe[index] = free
+        self._misses += 1
         return self
 
     def _update_fast(self, profile, predicted_u=None, _profile_bytes=None):

@@ -26,6 +26,11 @@ def analyze(path):
         for line in stream:
             if line.startswith("HCV_M1_BEGIN,"):
                 fps = int(_fields(line)["mode"].rsplit("x", 1)[-1])
+                samples.clear()
+                summaries.clear()
+                rounds.clear()
+                memory.clear()
+                round_samples.clear()
             elif line.startswith("HCV_M1_SAMPLE,"):
                 sample = _fields(line)
                 samples.append(sample)

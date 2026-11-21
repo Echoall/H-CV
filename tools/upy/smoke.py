@@ -29,6 +29,19 @@ def main():
     assert detector.found == golden["profile"]["found"]
     assert abs(detector.u - golden["profile"]["u"]) <= 0.05
 
+    fast_params = dict(params, m1_fast=True)
+    live_detector = ProfileDetector(background, fast_params)
+    roi = np.array(image, dtype=np.uint8)
+    profile = np.array(np.mean(roi, axis=0), dtype=np.uint8)
+    live_detector.update(profile, roi_pixels=roi.tobytes())
+    assert live_detector.found
+    assert abs(live_detector.u - golden["profile"]["u"]) <= 0.05
+
+    roi[:, 28:36] = 40
+    profile = np.array(np.mean(roi, axis=0), dtype=np.uint8)
+    live_detector.update(profile, roi_pixels=roi.tobytes())
+    assert not live_detector.found
+
     marker_image = [[100 for _ in range(96)] for _ in range(32)]
     for row in range(10, 17):
         for column in range(15, 22):

@@ -152,6 +152,19 @@ def test_profile_m1_fast_uint8_profile_matches_float_profile():
     assert byte_path.quality == regular.quality
 
 
+def test_live_profile_handles_wide_affine_fit_on_uint8_input():
+    background = (40 + np.arange(640) // 4).astype(np.uint8)
+    roi = np.tile(background + 12, (48, 1))
+    roi[15:33, 312:328] -= 60
+    profile = (np.sum(roi, axis=0, dtype=np.uint16) // 48).astype(np.uint8)
+    detector = ProfileDetector(
+        background, dict(PARAMS, polarity="dark", m1_fast=True)
+    )
+    detector.update(profile, roi_pixels=roi.tobytes())
+    assert detector.found
+    assert detector.u == pytest.approx(319.5, abs=0.25)
+
+
 @pytest.mark.parametrize("kind", ["glare", "local_shadow"])
 @pytest.mark.parametrize("width", [12, 40, 60])
 @pytest.mark.parametrize("strength", [25, 40, 65])
