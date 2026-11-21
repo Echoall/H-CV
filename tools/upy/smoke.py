@@ -2,8 +2,9 @@
 
 import ulab.numpy as np
 
-from k230.hcv.detect_profile import ProfileDetector
-from k230.hcv.markers import MarkerDetector
+from hcv.detect_profile import ProfileDetector
+from hcv.geometry import compensate
+from hcv.markers import MarkerDetector
 
 
 def main():
@@ -38,6 +39,10 @@ def main():
         },
     )
     assert markers.update_image(marker_image).result()["count"] == 3
+    mapped, mode, _ = compensate(45, (18, 48, 78), (20, 50, 80))
+    assert mode == "FULL"
+    assert abs(mapped - 47) < 0.01
+    assert compensate(45, (18, None, None), (20, 50, 80))[0] is None
 
 
 main()

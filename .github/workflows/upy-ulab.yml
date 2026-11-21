@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   unix-ulab:
     runs-on: ubuntu-latest
@@ -15,4 +18,6 @@ jobs:
           sudo apt-get install -y build-essential libffi-dev pkg-config
           MAKE=make PYTHON=python3 JOBS=2 bash tools/upy/build.sh
       - name: Run detector smoke test
-        run: .build/upy/micropython-ulab tools/upy/smoke.py
+        run: |
+          export MICROPYPATH="$PWD/k230"
+          .build/upy/micropython-ulab tools/upy/smoke.py
