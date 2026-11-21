@@ -1,5 +1,7 @@
 import math
 
+import pytest
+
 from k230.hcv.tracker import KalmanTracker
 
 
@@ -96,6 +98,57 @@ def test_tracker_two_rejected_measurements_remain_predicted_and_valid():
     second = tracker.step(100.0, 33333)
     assert first["valid"] and first["predicted"]
     assert second["valid"] and second["predicted"]
+
+
+@pytest.mark.parametrize("missing_count", [1, 3, 5])
+def test_tracker_missing_frame_status_transitions(missing_count):
+    tracker = KalmanTracker(PARAMS)
+    for index in range(8):
+        tracker.step(float(index), index * 11111)
+
+    results = [
+        tracker.step(None, (8 + index) * 11111)
+        for index in range(missing_count)
+    ]
+    for index, result in enumerate(results, start=1):
+        assert result["predicted"]
+        assert result["valid"] is (index <= PARAMS["coast_max"])
+        assert result["lost"] is (index > PARAMS["coast_max"])
+
+
+def test_tracker_single_glint_does_not_pull_stationary_track():
+    tracker = KalmanTracker(PARAMS)
+    for index in range(8):
+        tracker.step(0.0, index * 11111)
+
+    glint = tracker.step(30.0, 8 * 11111)
+    recovered = tracker.step(0.0, 9 * 11111)
+
+    assert glint["valid"] and glint["predicted"]
+    assert not glint["reacquire"]
+    assert recovered["valid"] and not recovered["predicted"]
+    assert abs(recovered["position_mm"]) < 1.0
+    assert abs(recovered["velocity_mm_s"]) < 50.0
+
+
+def test_tracker_reacquire_jump_stays_stable_for_ten_frames():
+    tracker = KalmanTracker(PARAMS)
+    tracker.step(0.0, 0)
+    tracker.step(None, 11111)
+    tracker.step(None, 22222)
+    for index in range(3, 5):
+        result = tracker.step(80.0, index * 11111)
+        assert result["valid"] or result["predicted"]
+
+    reacquired = tracker.step(80.0, 5 * 11111)
+    assert reacquired["reacquire"]
+    assert abs(reacquired["velocity_mm_s"]) < 50.0
+
+    for index in range(6, 16):
+        result = tracker.step(80.0, index * 11111)
+        assert result["valid"]
+        assert abs(result["position_mm"] - 80.0) < 1.0
+        assert abs(result["velocity_mm_s"]) < 50.0
 
 
 def test_tracker_constant_acceleration_has_bounded_position_error():
