@@ -40,6 +40,25 @@ def test_marker_detector_finds_three_synthetic_markers():
     )
 
 
+def test_marker_capture_chooses_target_when_windows_overlap():
+    image = np.full((32, 96), 100.0)
+    image[10:17, 15:22] = 30.0
+    image[10:17, 45:52] = 30.0
+    image[10:17, 75:82] = 30.0
+    detector = MarkerDetector(
+        [18.0, 48.0, 78.0],
+        {
+            "marker_v_px": 13,
+            "marker_width_px": 10,
+            "marker_min_depth": 2,
+            "polarity": "dark",
+        },
+    )
+    result = detector.update_image(image).result()
+    assert result["count"] == 3
+    assert result["positions"] == pytest.approx([18.0, 48.0, 78.0])
+
+
 def test_marker_capture_handles_twenty_degree_start_without_prediction():
     reference_image, reference_truth = generate_scene(
         ball_x=-1000,

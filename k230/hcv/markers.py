@@ -58,9 +58,14 @@ class MarkerDetector:
                 ) / float(y1 - y0)
                 for column in range(x0, x1)
             ]
-            edge = min(3, max(1, int(len(profile) // 4)))
-            baseline_values = profile[:edge] + profile[-edge:]
-            baseline = float(sum(baseline_values) / len(baseline_values))
+            ordered = sorted(profile)
+            middle = len(ordered) // 2
+            if len(ordered) % 2:
+                baseline = float(ordered[middle])
+            else:
+                baseline = float(
+                    (ordered[middle - 1] + ordered[middle]) * 0.5
+                )
             if self.polarity == "bright":
                 depth = [max(0.0, value - baseline) for value in profile]
             else:
@@ -70,15 +75,41 @@ class MarkerDetector:
             if peak_depth < self.min_depth:
                 continue
             half = peak_depth * 0.5
-            selected = [
-                index for index in range(len(profile))
-                if depth[index] >= half
-            ]
-            if not selected:
+            runs = []
+            run_start = None
+            for profile_index, value in enumerate(depth):
+                if value >= half:
+                    if run_start is None:
+                        run_start = profile_index
+                elif run_start is not None:
+                    runs.append((run_start, profile_index - 1))
+                    run_start = None
+            if run_start is not None:
+                runs.append((run_start, len(depth) - 1))
+
+            candidates = []
+            for start, end in runs:
+                width_px = float(end - start + 1)
+                if not 0.5 * self.marker_width <= width_px <= 1.5 * self.marker_width:
+                    continue
+                run_peak = max(
+                    range(start, end + 1),
+                    key=lambda value: depth[value],
+                )
+                candidates.append(
+                    (
+                        -float(depth[run_peak]),
+                        abs(float(x0 + run_peak) - float(center)),
+                        start,
+                        end,
+                        run_peak,
+                    )
+                )
+            if not candidates:
                 continue
-            width_px = float(selected[-1] - selected[0] + 1)
-            if not 0.5 * self.marker_width <= width_px <= 1.5 * self.marker_width:
-                continue
+            _, _, start, end, peak = min(candidates)
+            selected = list(range(start, end + 1))
+            peak_depth = float(depth[peak])
             weights = [depth[index] for index in selected]
             total = float(sum(weights))
             position = x0 + float(
