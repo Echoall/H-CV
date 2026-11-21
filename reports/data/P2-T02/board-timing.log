@@ -1,0 +1,13 @@
+HCV_P2_BEGIN,profile_detector
+HCV_P2_TIMING,profile_detector,2186,2372,78443,78768,3710336,2433472,1276864
+HCV_P2_END,profile_detector
+HCV_P2_BEGIN,marker_detector
+HCV_P2_TIMING,marker_detector,364,528,562,70758,3709920,2878144,831776
+HCV_P2_END,marker_detector
+HCV_P2_BEGIN,geometry_full
+HCV_P2_TIMING,geometry_full,226,396,424,2871,3709920,2922528,787392
+HCV_P2_END,geometry_full
+HCV_P2_BEGIN,geometry_two_point
+HCV_P2_TIMING,geometry_two_point,283,463,487,2918,3709920,2016416,1693504
+HCV_P2_END,geometry_two_point
+HCV_P2_DONE

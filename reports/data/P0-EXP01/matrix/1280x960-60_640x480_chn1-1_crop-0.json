@@ -1,0 +1,26 @@
+{
+  "sensor_type": 31,
+  "sensor_id": 2,
+  "actual": [
+    1280,
+    960,
+    90
+  ],
+  "requested": [
+    1280,
+    960,
+    60
+  ],
+  "sensor": "gc2093_csi2",
+  "status": "unsupported",
+  "detail": "sensor selected a different physical mode",
+  "case": [
+    1280,
+    960,
+    60,
+    640,
+    480,
+    true,
+    false
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "seq": 2,
+  "t_cap_us": 22222,
+  "truth_x_px": 320.0,
+  "truth_y_px": 190.0,
+  "truth_x_mm": null,
+  "markers": [
+    {
+      "s_mm": -110.0,
+      "u_px": 144.0,
+      "v_px": 150.4
+    },
+    {
+      "s_mm": 0.0,
+      "u_px": 320.0,
+      "v_px": 150.4
+    },
+    {
+      "s_mm": 110.0,
+      "u_px": 496.0,
+      "v_px": 150.4
+    }
+  ],
+  "truth": {
+    "u_px": 320.0,
+    "v_px": 190.0,
+    "s_mm": null,
+    "ball_radius_px": 10.0,
+    "polarity": "dark",
+    "theta_deg": 0.0,
+    "markers": [
+      {
+        "s_mm": -110.0,
+        "u_px": 144.0,
+        "v_px": 150.4
+      },
+      {
+        "s_mm": 0.0,
+        "u_px": 320.0,
+        "v_px": 150.4
+      },
+      {
+        "s_mm": 110.0,
+        "u_px": 496.0,
+        "v_px": 150.4
+      }
+    ],
+    "seed": 2
+  },
+  "image": "frame_000002.npy"
+}

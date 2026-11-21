@@ -1,0 +1,23 @@
+name: MicroPython ulab smoke
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unix-ulab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build MicroPython unix with ulab
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libffi-dev pkg-config
+          MAKE=make PYTHON=python3 JOBS=2 bash tools/upy/build.sh
+      - name: Run detector smoke test
+        run: |
+          export MICROPYPATH="$PWD/k230"
+          .build/upy/micropython-ulab tools/upy/smoke.py

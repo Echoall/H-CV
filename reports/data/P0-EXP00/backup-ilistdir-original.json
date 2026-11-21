@@ -1,0 +1,3001 @@
+{
+  "file_count": 403,
+  "total_bytes": 0,
+  "hashed_file_count": 403,
+  "unhashed_file_count": 0,
+  "entries": [
+    {
+      "path": "/sdcard/examples",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/libs",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/micropython",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bbb34c21be6ee5f1037bc8043182c17860c0d17f9c34bd1a8f2f036f84230c01"
+    },
+    {
+      "path": "/sdcard/res",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/revision.txt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "38ac8dd89e19d21a9743fcbe75705be58019e1586f161436c78edebb4894759d"
+    },
+    {
+      "path": "/sdcard/res/font",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/res/font/LICENSE.txt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9ff5bb567e1b92c801fc1069e5fbf992ff8efccacb9db94e5959a5b3ba9bb903"
+    },
+    {
+      "path": "/sdcard/res/font/SourceHanSansSC-Normal-Min.ttf",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "aa98448c09eac059b595ab8e8f3af61392d5bb07121b509fbcb46b831c7aa9a0"
+    },
+    {
+      "path": "/sdcard/res/font/readme.txt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b7e94289a54caafba31eb208377d72e60752b9b2c0bbbbaf90fff6dc4235b417"
+    },
+    {
+      "path": "/sdcard/libs/AI2D.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ba1e6c4d076d428cb7f7d39b6fd53c6aa6811b6a6a5d095a2159a4e5d2f99484"
+    },
+    {
+      "path": "/sdcard/libs/AIBase.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "42700cba781c529e9698ebf569ea8b9505ff7256d1e656ec3ea95137ad619280"
+    },
+    {
+      "path": "/sdcard/libs/PipeLine.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "3e9c8ce164949340ce1ed2db358b8129837e277d7ace064a5caa2eedcbd34ca6"
+    },
+    {
+      "path": "/sdcard/libs/PlatTasks.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5998949b36d1f6ee9d17bc14bdb6e8670c0e266d8585b849c66c2bc31daa3614"
+    },
+    {
+      "path": "/sdcard/libs/Utils.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a5d8714251e3280cb54e577feecaf1ab91296ad8e2dbdd1c6e3832fd4d622a50"
+    },
+    {
+      "path": "/sdcard/libs/WBCRtsp.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5a55e5157d44afe983e1bd1397067a0c2237ae2c78e97ddedd0bb4d98b222d8e"
+    },
+    {
+      "path": "/sdcard/libs/YOLO.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6dd5d9ac3ed7af262395efd8a3f2605741a0987b763a7665aa6518be78409534"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/02-Media",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/03-Machine",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/06-Display",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/07-April-Tags",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/08-Codes",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/09-Color-Tracking",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/11-Feature-Detection",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/14-Socket",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/16-AI-Cube",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/18-NNCase",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/21-AI-With-Others",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/22-Others",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/99-HelloWorld",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/ai_test_kmodel",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/kmodel",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/utils",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/utils/db",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/utils/db_img",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/utils/dict.txt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8288453b9cc4b490c13c05a87d8bb1345998a48901321aa4f7b2ccaafa74c8fb"
+    },
+    {
+      "path": "/sdcard/examples/utils/fist.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "10929d6a3a3a6d5dc7b06423d192f88908b18f792facffb7121b9765275b1ccd"
+    },
+    {
+      "path": "/sdcard/examples/utils/five.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0e9923c5d5bd9b3bf844f8d521ecd76e32a742b0d4c1adfc880f00ee47209c2c"
+    },
+    {
+      "path": "/sdcard/examples/utils/go_new.wav",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "678aee42ffdaee528a7aec43549693b1d43eff6d9ec9a0cbde7df4cc4ad806f2"
+    },
+    {
+      "path": "/sdcard/examples/utils/phone_map.txt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8a451a88744c747cf72f9509d094ec1d5d31242f0bb3318cc03c829f4e906e34"
+    },
+    {
+      "path": "/sdcard/examples/utils/pinyin.txt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1096bd87ed676e932803bef38e436fea978f0a220a84b60e28aeacfcd29f7a1e"
+    },
+    {
+      "path": "/sdcard/examples/utils/prior_data_320.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b617d85d9b71110f775008e3bf2ecda74b7b850bbf36334e6ae0c22a802f5c42"
+    },
+    {
+      "path": "/sdcard/examples/utils/prior_data_640.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0c1bb6961916d6a8352d323ea50b207fa01c7c008367de3a476b4fee4e5809f7"
+    },
+    {
+      "path": "/sdcard/examples/utils/shang.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "dece42c5a81f69ac9766c488c6f71741eaa60aa6a027b8da83761b196f1d34d1"
+    },
+    {
+      "path": "/sdcard/examples/utils/shear.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "dd6cd2a12aeae93dd3f68bf12e6a55086b7de61ee27cbd6cd98bfb97e496f3ff"
+    },
+    {
+      "path": "/sdcard/examples/utils/small_pinyin.txt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a1a48a67c91568a3a163caa9f0ab0da007d3d9f118a2c7eba2ff25d56ac15745"
+    },
+    {
+      "path": "/sdcard/examples/utils/stop_new.wav",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "62ae9e25c50a0a8646a27c1e524e7a212767c43ba650d1872efba9fac82ad78d"
+    },
+    {
+      "path": "/sdcard/examples/utils/test.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0938276afa762c367dac4968bc9a3d4abf9d83db1f4bea67262bff976568e24c"
+    },
+    {
+      "path": "/sdcard/examples/utils/test_apple.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ddcc7cd41377b9f889e4a63ae89dc03109bf5c98941e53ae9a3899a8c94fa30d"
+    },
+    {
+      "path": "/sdcard/examples/utils/test_fruit.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "538e4bf5ac2b5bc7c246f3470b472e2cc910a971724b56179074dced6675fb67"
+    },
+    {
+      "path": "/sdcard/examples/utils/test_obb.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "79fb8cefe3ea1cb2d658dc1cd2b6f32706e3dd0265c58dc74fa5e4f51ace886c"
+    },
+    {
+      "path": "/sdcard/examples/utils/wow_new.wav",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "59fc1c14410376de19830d6367067f5effc9bd5ba6c45b319c8eb5891e6254e0"
+    },
+    {
+      "path": "/sdcard/examples/utils/wozai.wav",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1fe8b2420352a21d6d05b5e406bb688c42df5c0c4993f273b1d52c08724cde9d"
+    },
+    {
+      "path": "/sdcard/examples/utils/xia.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "963a21311681d0ef4abfacc7adf481a93790ad11246ffd2cce77a30c870655ad"
+    },
+    {
+      "path": "/sdcard/examples/utils/you.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "119a8a0282352f830b94a3979287d8d4f30b73e899623997f31a1f801c01935b"
+    },
+    {
+      "path": "/sdcard/examples/utils/zuo.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1e2883645a1880ea577d03ac98e282e8cdf574d7b69e4546289ae7e450ae9fe3"
+    },
+    {
+      "path": "/sdcard/examples/utils/db_img/id_1.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9ed6247356cbb15851565d68fca7ea178d97581bcc97fb88de7920c105885178"
+    },
+    {
+      "path": "/sdcard/examples/utils/db_img/id_2.png",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "c039dbb93862fb7431dae6cabcf79f6c23e853ae3052d45e492b2a257b4e68f6"
+    },
+    {
+      "path": "/sdcard/examples/utils/db/readme.txt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0265c5d4883160c2b762ce806065f5ab8793dc873f03663bf6c7727a55b9bbdb"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/LPD_640.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "79d0d0c914f58f49749bddae7680e3709f4512ee480066e79dbf18bf14f10b86"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/body_seg.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2c312419c47bc97224b66516766952ed713e9de6d37fe84a74c2fc9cde604bd5"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/cropped_test127.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8c651124786383874ef8c742766b154e3ce24a04bfea5f41beed45d82ae6c63b"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/eye_gaze.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "beaeca95c8e6a9f21c8e37d61095694b8ffef8c546d3bd6558bfc87c7a1adbc7"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/face_alignment.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "cea84cc89075cfe7db14b8676b2b985fc549044d5a08830ccad3a921251f457b"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/face_alignment_post.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "34d02ebca44e78ea35acecef9417dae270eeeae4b4107ea4b9446ce0a881171a"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/face_detection_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "56d35ded2a717fafcc1a357fd6e634531fa1693e59c77707140d8c6e1693eae9"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/face_landmark.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0f501e8a11a1f7bbed4dfd0e7c94bd9c03c986ccae8a9cb7b3cd640407cb2196"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/face_liveness_rgb.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8353b61c4bf46504bedee926928a1d91e9541ab076d1628d07df7bcd9738cccd"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/face_parse.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ab1be2221c1e9392a4128a80981c1a65b3b21975025a444b469921aef292bd22"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/face_pose.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "725886bd7199e389c5b198387ab93d6e8b5f2f1e102cabaf2bfe7c9939b93447"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/face_recognition.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2409a30f0b2afec68a87cddcbe3599bc84b84fff6c2a0b190d4ef89d78218472"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/face_recognition_mobile.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4478528bbe2792806548bc649a208d6e585300bfca74a21659e33c4f47a20168"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/fruit_cls_yolo11n_224.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9512a366391986d8053ea34ea10d8a6bc9e7020759c3ae81ef12ce018cd077e7"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/fruit_cls_yolov5n_224.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f7c2024dbb8249b15f034c7799b581dd5199c75f63c2b9877172530253997e32"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/fruit_cls_yolov8n_224.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e6c61a710a2a5090874701408abea5545e39e7cc2fbccbb8ff9c1ce1bfa47261"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/fruit_det_yolo11n_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d9c469be0154b2818c64abe7f4f5e7933d428f0807308de97323cc1fd15b74fa"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/fruit_det_yolov5n_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f5154dbbcf2ac994b0783f70bc40972c33881c2e6d0200dedaaf1e1dbfc314e5"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/fruit_det_yolov8n_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5708472048e3b32b4156b2b83f80af2d003b132a5068b6828a9589346a6dbad2"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/fruit_seg_yolo11n_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9fba79b3dea0510a0645822a6d7b3126f2b863ea028f3ca517a7921117cc1980"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/fruit_seg_yolov5n_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "59d248a79fa638b07232179539b250278287a4444886e45477ed75449b3b2f3c"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/fruit_seg_yolov8n_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "50aa6a06dfa5877c749aac1dad4d807fd05e37561ffd20e0081c9fbaa5259e55"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/gesture.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4460e70177d77c0ac466cb05204a80118bc265fc5480c9bbf89086dd40a43005"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/hand_det.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b6047b8d5163347d79572f8c788d5a6bfdc352f8b9946e60495ccb0a83a328c5"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/hand_reco.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ebda53b26b4f2ac10fd34c554c49200b8a7cc1747b824eb857a090cdf988c178"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/handkp_det.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a3301e8956c6602e5f83111c9f9b8136d1ac120459506ff056677f880860c063"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/hifigan.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "397e150a144b9282b93b64aa289efee5f0a11b426b57a787f54ecfb9840211d2"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/kws.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b51a31c3310a052488cbce9fbbc52a1d9957f574bc31f1969a1757c7917ae8b4"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/licence_reco.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ca9c5813d681bb5fb7380663a3c5d96b3339dccd1f87641a5bebb3e576e5025a"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/multi_kws.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d2b7baefb109707c3c2389212ed97bcb652fc5ba214865bbcd8b9e983bbeb490"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/nanotrack_backbone_sim.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "973566373206db38f67b35e3028b840d5546b731cb259b975081c603b8e3f98e"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/nanotracker_head_calib_k230.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "44afdcb2b8d236f3c95a4309d8f434a23aeadccba17dca23ea2e0672209614d3"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/ocr_det_int16.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2a37d3397c16c23d3b5c39fcc138bbe3e105d188faefd7e9647badf0cc85d0f3"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/ocr_rec_int16.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "7a307f867d6fbfbc902deb127fb998cd701e62910f3a0e6b40aa87daaca8648c"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/person_detect_yolov5n.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "da86b39ab7e5a2fb442c5b6ac7905a85826ac968f1b94a06901c0420a60a275d"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/recognition.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2a73658f69b204bdbf8fa08cc94b860ad7995332adf475bfcae2d50b82429ca4"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/yolo11n-obb.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d57489458911447521c861a28d460da0aa2af2f9501eef838cacf346cd1673f1"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/yolo_license_plate_det.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "24ccc6bbce28be79e0722c84a0823f6dbd39cbae290dd1d3e979978693e77169"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/yolov5n-falldown.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "fe9be87cf2ea3b12fc2e6a6f9785ae2e97d1f3e51775249bd1f945d0b19d3d2d"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/yolov8n-obb.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "49aeb0bd99b6dbcb505f1d552cba319345a1230ca829806870e5157735d57c46"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/yolov8n-pose.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b36ad4f6e4951dcb122b82d118bbe3bde5cf7a84e75572febeb504398330020c"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/yolov8n_224.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "746a083036c4d4eece377d443f9b9b389830c08aab52b8257ac323068c6c13be"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/yolov8n_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "28efdba09be9c3d40f210fd5cf75f2cd7bd80986d07a33af7f34946777080fa5"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/yolov8n_seg_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e760de6cc07b68fec86ff95fc5f5b27fded0a853df74451ae8112460a26aecd4"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/yunet_640.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a2aed0ec0d6752920a878636357e20e9cbcf0ca72c3e517014075ed5086a02a1"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/zh_fastspeech_1_f32.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "17ed9619be3f6e9f6181fc95a5e8ae8e4e3e8367867ae84e23c31bd7e98e32aa"
+    },
+    {
+      "path": "/sdcard/examples/kmodel/zh_fastspeech_2.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0301673648c6f0140b8867eb28fa1f9462d6b731f4e36b829a75c8a160000897"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/0.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b18b185e7e7a0fdbd74b9aa8939a30bf7a5e01c0d6107ed1e9c9d9790202f6b9"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/1.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "53ec0f201e5e18f99456bcaabb78be4fe873ffe430852ccefcbe6f8658188ff6"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/2.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9b0ad6ea5884840b96cdc48f0e46a7d1348bb29abb1f82ce77475ab16571a1a2"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/3.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "c5c393a6ea7391104a7c3dc23d5e2cb33f9e8624354cf0b77dda8a89306f2ef8"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/4.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ca0f4b73e2ef25c5767100bb66ba16167bf5ac25862ccc1513288d1e3cbd3172"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/5.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bb9220717c81b571002edc874b5a575b45ef71c97b27152019323968ecdce91d"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/6.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "23d0a1b0b8e9e2362f2431cb60c74963338ed6eeada8bb927b5a63049bc815cc"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/7.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f9f63021e6116ed511ec9fb801fd6a7eb0e4829fa65f0a8bbe5f1fa6564c5eb0"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/8.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4181415a69f7126be36e12186cce0f73b879b65982e2e94c9362f7fa79722d76"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_utils/dict.txt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8288453b9cc4b490c13c05a87d8bb1345998a48901321aa4f7b2ccaafa74c8fb"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_kmodel/embedding.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "115f7f5ff64fb0fce724b3a37c3a877e84fb92f2295b3b0ec30bf4084ee15fcd"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_kmodel/insect_det.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6e8a3e97a9c36afa2ef64c0c231746f17383e74064c5ca16d84f87d8a035d806"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_kmodel/landscape_multilabel.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "88a0647dcb526015cd35a97e56998dd1d831eea9b45813df0e512a3515e61a79"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_kmodel/ocr_det_int16.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2a37d3397c16c23d3b5c39fcc138bbe3e105d188faefd7e9647badf0cc85d0f3"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_kmodel/ocr_rec_int16.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "7a307f867d6fbfbc902deb127fb998cd701e62910f3a0e6b40aa87daaca8648c"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_kmodel/ocular_seg.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "856054f72cff8ba40fdc2ff028a36b7616581d253b2018e459b0402ae6ee146c"
+    },
+    {
+      "path": "/sdcard/examples/ai_test_kmodel/veg_cls.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a40b4052e66d2f4ef5aeebc76f90285195f0fc006f3504dd647d57af35873f96"
+    },
+    {
+      "path": "/sdcard/examples/99-HelloWorld/helloworld.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "db63149bd0e2e4fa2f3446dba3074805e9e84b313fbd73bfa1c11eeaa9a70952"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/grayscale_find_blobs.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "57c689f482119062ab9320b34fa0f39ee53e9d1337a9238383e1ccf5109cf6bb"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/grayscale_find_circles.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8000a8e4ec596d73adabbd3b67eff43346e44a4ec23edafa4ecd58f02d45741f"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/grayscale_find_corners.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d6fd97ae1ad58fa059a2ba4277cb94dd7f3b988801328bbcb5b5d5eef3b247af"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/grayscale_find_edges.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a33639d5264cac55e7c181617422a94c0c10dc8b0e62a81a5e6d9f0268277fe1"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/grayscale_find_rectangle.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b3768ddbe3626fe29f74b1d0cfbdbedec0dc7bd76dcc2dc376584368cdf593f2"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/grayscale_find_rectangle_with_corners.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "09b577cea9999119cdcc5115aa3a94a921b77da5bcb1409f7987020014526c41"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/grayscale_threshold_binary.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "87dbab32189a643f51f9609a6307114f3c370dc1ce313f9aaeaa8eed0e407827"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_adjust_exposure.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "29af2d8a11e637f68c7d84fa8e8d757809440ed1ac6ed5225cb1df42ee85a890"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_adjust_exposure_fast.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "15868734c4aa478ed0e99cc88f7fcb81e9b00660bed474f95efb9455b7dd8d02"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_blackhat.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "834547387e98d4d4b69e2562267d4cfbd5f45621a3605cc313dc7e243f62c616"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_calc_histogram.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4a792b8b5fdff5eb290aed8ee993f2c981035264d14fc7c7ae7edebbd7625e6f"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_close.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e59a9ca213e25429dd8e498353f18b269f9e970e25eb4778e6c4f5a4fa5368c4"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_dilate.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4b48a8b594d39de7b2105446ef437e6ae94f955e2364c813a54d464e458249cd"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_erode.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6765743967e5229333d81e368081b5916611e8e7aaee0244ff6b584742d47946"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_find_blobs.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "05847270cecf8d1a982adb9b30110ed6d46c2033c4e4032c6c243ffd06050fa0"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_find_circles.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6fcbb06ee56eed595c423f34ff7a1f29b404113d9ed915f5b4bb340a38bc9b2e"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_find_corners.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0d914dc31ce3a70946b9e6521e6094b043009be39e8ffb0227d880681775cbf1"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_find_edges.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e71e9666592d2d005f2b214b2399872f5ab86daa2d5c4c825d5ede75d15bbefb"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_find_rectangels.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9ba8a12213b16624fcb01cdf1d50ba566dfb94de8554cdd6c13591d6a8c53a57"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_find_rectangle_with_corners.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4bb73ca78f36a9fe11430504b0b2e7e167e363558ac434c6d6ab6cf592e25b2f"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_gaussian_blur.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0c4049c01979444421dd0e34e9be446a846f570003e1aaf01ba51bc6a7b69ade"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_gradient.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d21a90abbfff0664a0b4a18fd443c2f12c7834a343abbe7b5b36c15d9a2ee781"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_mean_blur.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "16e3952f2581c6512310ec78fb3bf1b5efb5bd5b2b0c8f1a6d805915b2ea5b0c"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_open.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "16ab6255452e424687447728835ca83d5867f53fe27b0c61f8f7e6c42aa2b951"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_pnp_distance.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "cb64890192a8b2224cc66237dc4628dec34d7ab59e9237da2e96f256fac240db"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_pnp_distance_from_corners.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e1d3974b7009f010fe961f65ebc27934daa4ebb60b07e23d15836b75e06824af"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_pnp_distance_from_corners_and_find_target.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d93dde683132f08d9d8b2beeec1ad134031397878c802df77077e81e53b09186"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_threshold_binary.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ac7d35ce362558a89ace76308bb1b8d35d38c41082c315055b5ae5b7b5888c01"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_tophat.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2386c0e7d44f8c352df406bf42012e8225452e1819de3c1a73b5bcbfa7824264"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_undistort.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0b54aff4982dd2922cdcefa4d8a8fcf540bf62eb3dec52a860fcdf626bea0fe9"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_white_balance_gray_world_fast.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "fbce978596c26674030761d02261aadea6e37439a862e3851b58ec0ef3dfc550"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_white_balance_gray_world_fast_ex.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6e836dd7ba30049014921c7889225fda3aa3f79f7fb21194f57e24813a228bd7"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_white_balance_white_patch.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "c3c3b125a625f46814219c55635568c93240ac15d006375f0a151ec13e7e77e9"
+    },
+    {
+      "path": "/sdcard/examples/23-CV_Lite/rgb888_white_balance_white_patch_ex.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "556ab17c806ae9f431b1bebfd02e5b1fb958d68a85014ad44bce1749b271d772"
+    },
+    {
+      "path": "/sdcard/examples/22-Others/ai2d_for_affine_rotate.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8093288584382acdcdbe9219ae3fd02fa65697a879aa7ec5c6e3a10c824492d5"
+    },
+    {
+      "path": "/sdcard/examples/22-Others/kpu_run_fps.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b33c4e87a04b77bf187c4903e78c0a079d9b3b4891ecfe25b5bce12c3f30c96b"
+    },
+    {
+      "path": "/sdcard/examples/22-Others/read_image_for_display.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "c21a0312c8d97c48285b4a8ba64de6cdb2e68adc23bf75143e051005c58d734d"
+    },
+    {
+      "path": "/sdcard/examples/22-Others/save_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "55b892994559d2b7477fd6f5ad550e9e18c7139614cf57566da0fd9d573dc24b"
+    },
+    {
+      "path": "/sdcard/examples/21-AI-With-Others/ai_lvgl.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bd3924a68ba7bae953ff9f4856cf28f82c06af11c0c74938468db635b008413c"
+    },
+    {
+      "path": "/sdcard/examples/21-AI-With-Others/ai_multi_thread.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "636697929a0a0c3f66836c0c0abc59a0e79a012161de2c4a63f7b7f83cb35a69"
+    },
+    {
+      "path": "/sdcard/examples/21-AI-With-Others/ai_save_mp4.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "081261c556817b1006950d8ae0f0a9f2f7984f5207fac5d5ded1642eb13e0c3d"
+    },
+    {
+      "path": "/sdcard/examples/21-AI-With-Others/ai_uart.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "025887a59e7f6e1053c997c3a3b7d1315d6a9e8946b1191b5e10a362fc2d9250"
+    },
+    {
+      "path": "/sdcard/examples/21-AI-With-Others/ai_uvc_hard_decode.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8c00f16d3ff70137592ce21087b4a2d7f542ef78993015ef3dd5d2bb733c6df4"
+    },
+    {
+      "path": "/sdcard/examples/21-AI-With-Others/ai_uvc_soft_decode.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "28d765aae2412e156fbb0d82d220f64734582a8d35411e7c564d121b7f50c6b2"
+    },
+    {
+      "path": "/sdcard/examples/21-AI-With-Others/face_detect_yunet_from_mp4.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "426c3d76a36e9b5ad907a41cab07f467339e2de41f970189bcc23f283a317c16"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolo11_cls_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ef17910246ed113e6fc3e0dde86c64f03578f6d860ef19e325395e3ff0211c03"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolo11_cls_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bcb6f2cc863dff076f7685af2783b2e82289c1e7634c36880f4609f2165d0579"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolo11_det_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9dd7e5e162eecbd2c6a28a162b9e299de95e9f2f3645b8f76d87cf70769b61d4"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolo11_det_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "906ad2318e68232d5bc180e1187bc16edf71880abeb6c201ffd7ab095161171d"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolo11_obb_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1233aa3f8074197afe58e5983e38ccec33fff047bb464997481b1b58b87e286d"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolo11_obb_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "75003e05f2dbbae8b52c2c21be982c6929a407ab32e12bb8190ea03e145a86de"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolo11_seg_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5051558ca58534e2b11727ab640c9d3565a2f93618a0bad40b3e7e2aa7263c63"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolo11_seg_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "51378510793305e6efc87852c48bc2c79667f7c784c5aab900a4acf5a60ba8e0"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov5_cls_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ed403d8a0cb469bc68c450e61783eca3b09658db3810a0bf6fbc03e5923ae526"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov5_cls_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f27771b021aa42e0b6d5f316881d01b673d2ba8674fc2b57601d42f6049d1cd3"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov5_det_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e09344f0b33ce93272e9aabc47b6f167823775efbbda4258c3bac991691f2de7"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov5_det_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ec6273cc45e5b5223a08573d4e0e5611c7d19a0756d5ac24937f5b02a6b33945"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov5_seg_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f810d25444f0b0014ab43391c3ecd93d0b468212bfc0f5458124b0d51e928b70"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov5_seg_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0ff5c72880934d6b639486b85b0063a543b3b4ebae810e6293b1567ebb5519cb"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov8_cls_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f19e3c62189d4a86dad05b4cb889425d8c16700671120db85a4e1b4a23e59939"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov8_cls_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8f88c49c7ba31b12369eb8406013e62fc9b22c6a708293026bb29f5d2d777bf7"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov8_det_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "c337162c717d4150716fb325bbaea6202a2e32fda033d6514a47d8a6fd11066c"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov8_det_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "dd753bb8464893ff01e8aa7d48e29ef74bd926b29bc4e53b14284b77fe3a7524"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov8_obb_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0d5b4c6d0369d8a860851ec6ad8a94a501367009f18ffed1b6bdbb90c1904b37"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov8_obb_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0a83ed56075528ea5a70a3964e6eecc97e6001fc0ff6b69b7504fe2238856665"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov8_seg_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9c8801698fea741fa2d451aaf118e00fd9f8d2c42fd9e62b8d03c6529d39c4f6"
+    },
+    {
+      "path": "/sdcard/examples/20-YOLO-Module-Examples/yolov8_seg_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "43be96b4dac6a846916e2432b89a2ad2c897fd089a81ccc997d2d532012bda61"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_cls_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1312df233768625c5b34dd8ae1254bf4ac7008267925cae80a9dbb3cad40e026"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_cls_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "37e11e73ccc0116ad2c234b794e2fa775b2e2245f63afd63ea5394658f995985"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_det_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "331fb37708ce6d98f68df579d695f1db1bb3eff79114afbcde23de2a9d735b37"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_det_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f7b83e9af284fdb6d2a7269e59416b77a17f00fe6ed12cf1b13d9a345614c659"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_ml_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "01a610ff0b9f15414bfe8f3133bbb01e6f04fe71b43f11982863d1f407dd763e"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_ml_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ba4ce3f7ec66d807289637102c550267525bb8ca8889b7ec8a994aa4ccf1b952"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_multl_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "449b6441fcd118fb059517fc81f9de65365d6844d6e9f533b905bd5ebc557b8f"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_multl_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8fbec2a9add4b2c98789683836958abcc677ae8cf6bb281af01f62fb1eaf6af4"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_ocr_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "077d6b7014f4b1d1c3d48441c95e61a6af68e4bf5af411f543953ccc364200b5"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_ocr_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1438bc98c52cb8042b9109909ba5e539b6dc78a823dcdb5af0cad87eeaa5a65d"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_ocrdet_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "3a96b55c95a545f1284427c9721577c784c7c038e7a6ac1b7370f54c97b9eb4d"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_ocrdet_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "532e6fb482c46de54636e2c9c5aa3f3d54e30210d20dffbab5c37413f29d8da5"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_ocrrec_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9352d2c9bf2ff996737f1d1e0e9c36e75d82143f09d57339328a80b087f3d2ad"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_seg_image.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0ff0abbc8c006f1fbcca2e4d4fc28a41480a59f2e5b7642eb3a2e60756f58342"
+    },
+    {
+      "path": "/sdcard/examples/19-CloudPlatScripts/deploy_seg_video.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2fc2f4bc1e7d713a6b2c15c2147371e2df09dca3fee24158055c1997861ce3d9"
+    },
+    {
+      "path": "/sdcard/examples/18-NNCase/ai2d+kpu.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "eaf33eb8481c7e026bb9552eefd6a4cec7e4dc8a6a60ccc49164f6475d59a3d3"
+    },
+    {
+      "path": "/sdcard/examples/18-NNCase/face_detection",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/18-NNCase/kpu.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1ca0a6775274987e32cf9c8f7e5546423c9fa905af55857e9561a936ec7d77b3"
+    },
+    {
+      "path": "/sdcard/examples/18-NNCase/face_detection/face_detection_320.kmodel",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "56d35ded2a717fafcc1a357fd6e634531fa1693e59c77707140d8c6e1693eae9"
+    },
+    {
+      "path": "/sdcard/examples/18-NNCase/face_detection/face_detection_ai2d_input.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "64ef404e4abf4417afa611fa174fc863cc13e211ab5aaa3c7832e369c8fb0395"
+    },
+    {
+      "path": "/sdcard/examples/18-NNCase/face_detection/face_detection_ai2d_output.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6fbf44729ba648e318f5a99714629c3d98f63b083ac3dad04640e60684be7cc2"
+    },
+    {
+      "path": "/sdcard/examples/18-NNCase/face_detection/prior_data_320.bin",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b617d85d9b71110f775008e3bf2ecda74b7b850bbf36334e6ae0c22a802f5c42"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_auto_focus_lcd.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f553daa087cae0fc205e704f1dbcfce95dea350d02bfe3d4a592f0f3eedbfe43"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_dual_bind_hdmi.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0fd33d0578e37da0a2795001c5d45d31ae09b89b97a6bd527c7bdcbf93bc2c9c"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_mirror_flip.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d725652ca2bb136eaffdba4c07644dd360705912e26202ea2c03a057e33f0e95"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_single_bind_hdmi.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "3344702abf37198759adbd7dad5e66a503b4b0250236a3060b07ef9a30fd8e08"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_single_bind_lcd.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b36558fb2bb941b1e64f062d457aec73a67bc18b992c148757b1562aa8babeb8"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_single_show_hdmi.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "7cc7147952967c6a3016a9a08c64d38c7e312a6929e6e45cc706f41b732cf186"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_single_show_lcd.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0bf2804bbeb348c08e27ff90f54fd79f7e0c62750c54730d7fa9784c5bbb63de"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_single_show_spi_lcd.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1534a42a4dc990074f9a271c41b7fe5a09f8c5a13765c3c837d382dddef115fe"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_snapshot_and_save.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d6084f70892fedddc997e386f7e63d9c112189b708bd06d9494b1a18ce0e38da"
+    },
+    {
+      "path": "/sdcard/examples/17-Sensor/camera_triple_bind_hdmi.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a07f2ba811841c89827f4f4f59fbdc9044585773514612312af18ecd2b2af5c7"
+    },
+    {
+      "path": "/sdcard/examples/16-AI-Cube/ClassificationApp.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e58c986ffae2b17047cf604b6ce77a46617420943afbca4dbe810c2f1818eabf"
+    },
+    {
+      "path": "/sdcard/examples/16-AI-Cube/DataCollectionCamera.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1428079d567206a004842b78b394a10060f40d097422e8b9a56a9772c98d6d2b"
+    },
+    {
+      "path": "/sdcard/examples/16-AI-Cube/DetectionApp.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "750505a45c0fc40be107ae91e4b4442ae7f1e9ed5f7e6ce2d26ba64275718073"
+    },
+    {
+      "path": "/sdcard/examples/16-AI-Cube/MultiLabelApp.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ef708655e011d6c1dcf4033002ac508c23767ac80441c0d652d65f4a0d612dcd"
+    },
+    {
+      "path": "/sdcard/examples/16-AI-Cube/OCR_Det.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "fb0d3b213d702018dd4ee106bbfbed9badee82973fa442f081b6cb959abd3881"
+    },
+    {
+      "path": "/sdcard/examples/16-AI-Cube/SegmentationApp.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f9b172778ac8e6aba6646a0a00781ca5e9bd07d7346c9db90b9c9457ba74575e"
+    },
+    {
+      "path": "/sdcard/examples/16-AI-Cube/SelfLearningApp.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f083e57735f20fe8751033099f3409011c94ed390646f14658e20f40a7891bb0"
+    },
+    {
+      "path": "/sdcard/examples/16-AI-Cube/logo.jpg",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e7d605ff019e33a0f077997027c8923fa039e6a6fded109e386b31dc903414a3"
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/data",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/lvgl_demo.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e0ae81e25bf2b00f4fd077584b7d2501ddc9c121724057160116beb49c20febc"
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/lvgl_touch_demo.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "3a1759b5b214cd5bd87d23e263c5381703d6f46d0203d1b24908ee72582e0ce0"
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/lvgl_touch_demo_freetype.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "210031fbb23dc11c6752dca768109625ff8a32d4f9674f206414326e31651217"
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/data/font",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/data/img",
+      "directory": true,
+      "bytes": 0
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/data/img/animimg001.png",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1519e1b0bf5d6b0d87bbc1ac57dcdcdc2eff2a0b8eae94a8999d5008872b9211"
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/data/img/animimg002.png",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0623336edd3a4fa5ba6b58270ba61257c0f5c67a6d9fb32220a0b9ac4099815c"
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/data/img/animimg003.png",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8046132676d16ccb69be124aab69cf0334a1bac6cd015a91c63ac42a29602028"
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/data/font/lv_font_simsun_16_cjk.fnt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ed89085a5ae874cec61f7d2cdb53263dab649214a3b2a1ba2a146f51c3d9e212"
+    },
+    {
+      "path": "/sdcard/examples/15-LVGL/data/font/montserrat-16.fnt",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9fc3c11b6684fab3e3d7e79963076f68299954075ba7a006d19b207dbcf92e85"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/http_client.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8f4962be813427c61821b42566bc2fd2a4249ffd82bb73a2eb1e4102bcab95e1"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/http_server.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f8b1c2a5178d4cd1e6f4f2bae78afcc6c8ce372b94a33e48fd607a94277e35da"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/https_client.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a7d2eafae66b4fb226486c7bcd5587e159a6e32802d34fa569dc7487866390f1"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/https_client2.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "afd89c7062e9ac16c18a3e6851640d1562dca54b61d74b4b34d42263a7f35a1a"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/network_lan.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2d42ad3b1bee2daffbabf86c596c82e3cc69aaee5676c163c224bacbfa448db4"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/network_lte.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "07f145d6b92fcdedbcdd358aed217e83363c7f742deec2861f4d9404602aef03"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/network_wlan_ap.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "57ded79e0950e530da6f721dfc8a3c0e53555deac81ad03d5ddfcb44363e0b2b"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/network_wlan_sta.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2164e73f95b511ede075f0be43c48030466a9ff8214feecb6e376653f1a3ffe1"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/tcp_client.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6492d791cd04f8601cf3076b93865dbb22c2e517107a5acdd8048d585cb9d660"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/tcp_server.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f889c275c7122ad84c68a67f0b5716ee92d7656bbfc52215d18f38647e646f54"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/udp_clinet.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e0ac6f8419318c0f69d88b07fca5231ec5b2da00c5adaa9e8269f0fe2697cb5c"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/udp_multicast.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f6680834ae200ddaae6e4381ac89e9a4e000bf94d03c37699e652f54af129eb1"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/udp_multicast_receiver_pc.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2880cb69231d30d55e1c74fa072c7aa561f43b97a6d9a4c6e1c4bd7442907dab"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/udp_multicast_sender_pc.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "c77c0c583918b3a2b5c21d284c607ffc696482a6ba25df7c038f1e7f3992f15d"
+    },
+    {
+      "path": "/sdcard/examples/14-Socket/udp_server.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "535bebeb9fffa045cbe075cc6b2479c2c0851e0d6cbb0c10390504616a5940ab"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/adaptive_histogram_equalization.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e7d05b10a395714f7d0000f3714aba1b37745c42f2256b0af5809350def06d12"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/blur_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "937616ba3e87f5bdc0de5cec2822c8a2e0795b28210705a4f87fe3dbdb0ed462"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/color_binary_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "996450b9909493c28e356373b5b934b5079519fba1230c729ade3828e9ecee5f"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/color_light_removal.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9575572fc942a685a483b9473b418860c336397d1f4897b3269fad75a2481a24"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/edge_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "601c25d3d9d8a425ff19218a60247648066e5d58348a7db71e21faea603e3fad"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/erode_and_dilate.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "3352fd10eff96a115d55bf5828379403e36fdd5582524bb0885805106205c502"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/gamma_correction.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bcc326d3b9580f64f9fbc9c8b31e96f9bf6c8a4c5dca4a55fba81186294cc52c"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/grayscale_bilateral_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "940745772b0fff550c65420288e2a13d98d2e240a29b9a567f6eb2dfb531858f"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/grayscale_binary_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f15c84aad90ee441eb2f2e718e4e371c0aaf59276f71c815e5378be923e9e253"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/grayscale_light_removal.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0f8fbcd290b1cc1ff835f2027b140c4bd86ad274119cfa8740c24eab728f958a"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/histogram_equalization.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b3713ad173f6c93b6378f6b2eaadb83ac4c696a7acb4c3503a596a91c763a959"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/kernel_filters.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0f29f2530d377451fd60427148cb9621245b5d282b9461ae288b40513e6211c2"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/lens_correction.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bf6ad970a652e5cd9d823c6a9e6913205b19e50874d47e23698b5be5b2a4ca9a"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/linear_polar.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "743b183c71e316393954a9abe7b2b791e9da0bfa48768c18bb0c577e3497644d"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/log_polar.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "eb06d5f9caba4427b4a01d6e9a811adc8bae29ab6dff153e6e488bd2454cccf7"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/mean_adaptive_threshold_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "451f7247ce24f302f77eee37c18250cbad53274ed9dd4209551d14d345ddc4f3"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/mean_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b5186362ed1851b45a801704242265652d436cb97b0f2a053eb71882d51f667f"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/median_adaptive_threshold_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0e52d556366f08d234f38235d712d25fafa9a2bd1379182bba4f0b8b47530865"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/median_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ed2c6cdfb698d2c1b1660b34eee156b78112310eca2a4ba970837c55559fbbcb"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/midpoint_adaptive_threshold_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0a7ba44985251788903df72dc81fe4a1270038495191d9d987f4ebe41651e90f"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/midpoint_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "dbf377ea6675aa8d032c90665b3a430097e7d4740f1631eecfb8a94da6cc40b2"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/mode_adaptive_threshold_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "18353f7ea95c08f835bb2af408cd233c428181055948c5e0a97385dbdca4edf9"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/mode_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5c9b43ad31af9fdd50bbf93a8263766bee5f8d371300b5e35bcf7123356e86cb"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/negative.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "79e6f2999690e918c34e818405a394706d41c3467c0c68d106a16398a429b890"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/perspective_and_rotation_correction.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "049993ad00cea4fc8840d8ca55504b5b985680cf88c6cf9467ff6cd8a8678b7a"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/perspective_correction.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1d87a2b26656b876372b6df3e662de85683039d289c5a486b6f478bf134dfc1c"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/rotation_correction.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4ade109bf701a59f03bbc58d0ca4b7375b038a06a28091f2429a3fbccbb2148f"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/sharpen_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "97fafe76276b2fb05cd05716a167d16a45927c8a552c23bfa194eea2dc60b822"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/unsharp_filter.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "7cc6afd66d7aff6d7f290202c2d5476d3a8cdae34b20b2d0f99b16c1cd72becf"
+    },
+    {
+      "path": "/sdcard/examples/12-Image-Filters/vflip_hmirror_transpose.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b35406c3a822d38e844be16f7d9b188e1a0252c11924aa55bf7681871a9c0156"
+    },
+    {
+      "path": "/sdcard/examples/11-Feature-Detection/edges.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "02c0c77488c09274ececa10fe680d8e2ca7cb4966774d5819f8526824fa0486b"
+    },
+    {
+      "path": "/sdcard/examples/11-Feature-Detection/find_blobs.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "acbfe46292d8bf3a95fcc22e110d6656075cf23b6841096e905216f8822f2817"
+    },
+    {
+      "path": "/sdcard/examples/11-Feature-Detection/find_lines.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "653d373169b05de4e9a1121393852b044992964549d6c33a3381edf026f0e4a6"
+    },
+    {
+      "path": "/sdcard/examples/11-Feature-Detection/find_rects.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5fdb1f1d74f9e6e11dcaab4b54dec61a0cdef1d201c5fb8587dd4cc7ffe356b4"
+    },
+    {
+      "path": "/sdcard/examples/11-Feature-Detection/hog.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "26724d59076d0eaa66daf1ec9821157d998412338263961b5598364cd52d3577"
+    },
+    {
+      "path": "/sdcard/examples/11-Feature-Detection/lbp.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "51f86bb0822aa02499376e2302e6a88bed70abaa4e482d384d5becd754b49212"
+    },
+    {
+      "path": "/sdcard/examples/11-Feature-Detection/linear_regression_fast.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "650c6e3a76978ef59ceb6fd2f04ac3e9a7855502d5f59721fdf84ffb9f37f528"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/arrow_drawing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "7ade330b9be6dc72a1c0fef0195fb0f190bdb24642bb14f99f663085cb3f0d7c"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/circle_drawing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "3bc4843c4aefbbe71c3d086ebd4b9e123ca43299521bc9e780d79947512cdc72"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/cross_drawing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6de9fb852177a9f89a224feed0e0149d733713be1a3c84f11bf4115361901854"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/ellipse_drawing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5deec98d30752d0794db074f708a82fdcd88d8fe9f26881b6b262a8c0e310af8"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/flood_fill.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "10aa76f1806e1f81e95f8f0677f33261591604d3bfed47e11e2a11129b283430"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/image_drawing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "52efcca303473ebc742f2612d9eabf853c53d387025fba1b35356c6d99410a9f"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/image_drawing_advanced.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ad0ff97c5c9d6226a42ad5e598b6ff929cfdec7049b92c3249332bf11b0da1c0"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/image_drawing_alpha_blending_test.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "7a6f09540803a5fc6214bb2c2e231907de97191c60d35f205f989d0f24471c32"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/keypoints_drawing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "426d43ff2b111690cfe3085a86f2bb40174867475e43acc07e12db7eaa070161"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/line_drawing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b62d8cb0ae6d610fed7c471dab4ee2745501e8c36178c2ec7b6cfd2392797be6"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/rectangle_drawing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d10aab8e030db143631ff9cb6fb8beaf5cd73a19cacb83a977c2bd574a615d19"
+    },
+    {
+      "path": "/sdcard/examples/10-Drawing/text_drawing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bb29cda98721047511f9f1372f7daa6d79a12baebeca438840c7f94a3b44913e"
+    },
+    {
+      "path": "/sdcard/examples/09-Color-Tracking/automatic_grayscale_color_tracking.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ba13de6e698126599e31383ea60f9502fdd88be3302380b6b803e9497382dcf7"
+    },
+    {
+      "path": "/sdcard/examples/09-Color-Tracking/automatic_rgb565_color_tracking.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "add68e0b5715daa57c25b516524024657b7731994c4bc659da26925d2a5009d4"
+    },
+    {
+      "path": "/sdcard/examples/09-Color-Tracking/black_grayscale_line_following.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4a42c8752da67d891c968a6fec35d871f5ce1b37b11223941c641108ff3eef06"
+    },
+    {
+      "path": "/sdcard/examples/09-Color-Tracking/image_histogram_info.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "72b3a5f419b9b0f817836c142d6df45cab248b44f90ed266cb605b1a5aada872"
+    },
+    {
+      "path": "/sdcard/examples/09-Color-Tracking/image_statistics_info.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5a9bae10a8c502cf64017d05c69b9e4f267d73fce4fa8f920de1028bdd075e05"
+    },
+    {
+      "path": "/sdcard/examples/09-Color-Tracking/multi_color_code_tracking.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "67dcf43d22569b68903afb58e9afdb29586f7000466b123bb923056069d8ec2e"
+    },
+    {
+      "path": "/sdcard/examples/09-Color-Tracking/single_color_code_tracking.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "13193cb1d9b2f10b8eafedd314ff825fc0c975e633177f24eaf5ed8022ba8bd7"
+    },
+    {
+      "path": "/sdcard/examples/08-Codes/find_barcodes.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a4ef774976d112af05b131d4b09e62636982d016db95b67be1e9d71c39aebea1"
+    },
+    {
+      "path": "/sdcard/examples/08-Codes/find_datamatrices.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4bde1ee29fc0f41af7ea8358f7f3e1d92bf8f317ea7c2b79581f4994e1512941"
+    },
+    {
+      "path": "/sdcard/examples/08-Codes/find_qrcodes.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0de93f4f2024630357f0cc62a96b84bfef37d328c21bff33a77cc8b0d6bdb93c"
+    },
+    {
+      "path": "/sdcard/examples/07-April-Tags/find_apriltags.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2a92809c7081140ac9d32481edfa8b4e0d9736acc3169237b2e06a1d19db6cd7"
+    },
+    {
+      "path": "/sdcard/examples/07-April-Tags/find_apriltags_3d_pose.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9186a3c75d5719daa7c202e47a3a7b2ae332bb38c78ac76441c74556d2687362"
+    },
+    {
+      "path": "/sdcard/examples/06-Display/display_hdmi.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "84413f6a630ee009eaddb00de9ec3de1192a8531bfeca9ee6c66369f44a1f10c"
+    },
+    {
+      "path": "/sdcard/examples/06-Display/display_lcd.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d44123be2a285347184ddac15cfd59504845825a9199ca82373b44bf4093a268"
+    },
+    {
+      "path": "/sdcard/examples/06-Display/display_nt35516.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "fa31ef89675513288c83ec202284fb0a768b5273d19ed9bd078f57119125f949"
+    },
+    {
+      "path": "/sdcard/examples/06-Display/display_virt.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2f4553a19765f8718186dff4f2d89075902bc478136db44480159049a442e00d"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/body_seg.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bc66cd3b666d156835d40af2383fefde30876a1ce78dbc5a17c7634ccdd8715f"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/dynamic_gesture.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "7cbd8662f6c5647c7157e4987b2d8efa34c8919cfb2187ce40e1386b732a524f"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/eye_gaze.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "63205772da9aae1ec1533e8e3566801aa76abf426f04e92cfef6e9f6ffb5a777"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_detect_yunet.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "3b757a89a3ee0ee8174c723c0674294cf28eb8379b56d6663488d7cf4e51d9d3"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_detection.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ab4296a5170d99721945ac36d6a6a6793f2eb71cdf7aedf37123c3d753712f98"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_landmark.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8e15f8c9c5814b681a495fa97c50305ed116c295b4636ffad9ec8f9fd37e1c07"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_liveness_rgb.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bf60a8c9b1c0c5e915029c6229ba88e531d07162c8806ce6fc70d13878b6ac62"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_mesh.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "613faa9a888adf1f5bdf62832656a99071e531c34e56cd8fafacc6a6deccc21e"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_parse.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "c31923729ce46ef6d6474f3f3dbcf6aed82e9c3397fa6cbe31488c3255177d3a"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_pose.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9afcf985be09961c9b21a936edc525310c123eb7c9829c293bf8b6a063aa114b"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_recognition.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d08b1a9148c8aa6cac5d5c71878ebf6624e55d503068078ac0067d5f4716be3d"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_recognition_lite.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6f3d11b6a327c2ec22d911b43660380f89494ad6318e469aedb4f4afed4076b4"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_registration.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "fc26eb1fe7e75b6858dd56c5c432eff86e53f7b44054cd377726673c3b472f03"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/face_registration_lite.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "89216e2148b5116485306056cd125ffe7f4b2032eeb946e68876d2a7bacaa931"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/falldown_detect.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "048874fead8ea24c5e0724d5e6e3ad660e8a1ef2c7d283746c8abf9f7680c6ee"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/finger_guessing.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "de5e56eeb369f651187b4f1a32bca98f9de451ae64cb3565b183712ab76cac65"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/hand_detection.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "55cee25f091734cf72801283a4235dc9df23138a662d8e6efa7d853950e7cb88"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/hand_keypoint_class.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4432072d130365740717747e07f6acc0bdd6a394bfd16205242c4be47fa394ec"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/hand_keypoint_detection.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "944aba39b33a9390626a52fb854b6cd33a1d1fad5ee04812bf6bddce48a922a4"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/hand_recognition.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1e35026d4c162a7b996582be669c7554ab330a83fbcd2787f4978850a538b811"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/keyword_spotting.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "76af96404434650e9599ea8688d02a0a2fb0c40a54d83b109db5c025e3d2cfa9"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/license_plate_det.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "fac2a9838da5105f9b94810814310547019ebe48e972e6c621110b0258cae83c"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/license_plate_det_rec.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9ebf98223543b5b29a16cfe4fa250319e5b572432b96670a11ead0e05b9c1c7b"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/license_plate_det_rec_yolo.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5540daa2d1a49110da03ba8373906cb8019a3495230a6d2a1afee047ebf25365"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/license_plate_det_yolo.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "075e0cf7c7a9b10a9648f5e0f93aef0a4e888e85ccf34173729000eaa825fe51"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/multi_kws.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ad5297e1c45663e134c20ce86fbfdeb57540b37f2249cd5eea63c519f2433d18"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/nanotracker.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a5beefbf12313d4a2c6229673279df0f6cf74b9958cadc617d60188c7b436047"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/object_detect_yolov8n.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f740f5aa94f4482477ab0099744d93f7befa4a6521006c239d3b094794cba449"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/ocr_det.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "36e7cc7a3026c537952aec823a33b8e5828b40a7018330c64fcc1c41ee2d856f"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/ocr_rec.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "48682002dbf99e51d666924d38df4f617a397d7bb3ea4f2f1c7372227b047168"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/person_detection.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2ddb8379c22c92920c9cb5063222a56a7ad909d61cb4d1f49ae5cefea06d6b86"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/person_keypoint_detect.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a06404cf286abafa05e7b482b05084bcfa3e6a66134aa6aca8cb7d815b38373e"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/puzzle_game.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "29b259a4ad897e6f8ddfa76c7a0cd53e629266d037c1f52f524e8cad6477c26c"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/segment_yolov8n.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d979c6e8e9f6e6823510e37b9473fded3b19bd16fc1c6e5af13397276c0a96d3"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/self_learning.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "10ce750b52e713034a145a3c33f2b0c1ad98b16609027a1b02081b4b73cb2a8d"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/space_resize.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5cc0705549227887d090e8fa3762a3562494a217683cb5e8356f8b215b02135c"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/tts_zh.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "77c428f6b31768e410e64fc64ebd836fb69f944a14784d5452fe05ecdc67ee1c"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/yolo11n_obb.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "58702d9bcaed8fa3c66eb5b0aa84fbb069fd59f2940c856e6ad189eb79a1f715"
+    },
+    {
+      "path": "/sdcard/examples/05-AI-Demo/yolov8n_obb.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1dec7ee63edddc88a00242275855f3dd5e482380f5546bc77e833bcf00385b59"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/ucryptolib_aes128_cbc.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "764a82f471875dc9c1031df05cf75e61a732203f273ad89c7b4adc296b0c6b75"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/ucryptolib_aes128_ctr.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4ae31f0c61da0a4fcb2363a10b0b91555cc54f2f6ca753d22d262b1e56e3dbd2"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/ucryptolib_aes128_ecb.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d6c73eef989e5ad81996d284db2a3eb5ec59addc147996fb5927bc2981f68f4d"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/ucryptolib_aes128_ecb_enc.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b22fd47bc1630f755c331e0c6aef26c7706e52d74f3b6273a7861938ff436af4"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/ucryptolib_aes128_ecb_inpl.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e5f70fd515f2f0cb6d9f16adf6431e86fe0742f126e9eb8162b5b00850fb6793"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/ucryptolib_aes128_ecb_into.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b44d8165b2b58258040e4c026429dd4b302a51242aea33e5b9120231d9b76495"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/ucryptolib_aes256_cbc.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "14526a11612a654af33a84adf947b2e978c31a29cbf09707f1cf965127225044"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/ucryptolib_aes256_ecb.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5f80b6e36e6277755d1b573b271200d65397d065d6d2c18bcf8b61974f8e1724"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/uhashlib_md5.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5f4ad94b2c42a1c17ab341a2ab51b7589ee3942aa0cd50d2a4147ce48ac94cb1"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/uhashlib_sha1.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b0fba860a3568fa20f37ba973de5444d9e6ce416d918b231373f36c37f09657f"
+    },
+    {
+      "path": "/sdcard/examples/04-Cipher/uhashlib_sha256.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "babae9670d3f176c31ea4d987c97d317dde186b09200f0ecc8ac36ce69600eda"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/adc.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "632aaa8170bea27813996abc5c12a5bfbfbe9a8a6a8d71a71c108d2ed7db050f"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/dht.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9fde2008d1e95ee8487d6a10f262607152af0d659af094a0d8cecfacbd65c05f"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/display_and_touch.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "951206737c11e7c070af2f6c726db8d61457d9167d2c12578c4bdc542febd64f"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/ds18b20.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9b3b5d7fcfa97bb938cf8c1db17384e07b90446d14ed844ff690ed4d0dda436a"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/fft.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "39e3cd406e57bbd25a6541d62de68223f4e013d0c6684b480a34f36d6bdb211a"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/fpioa.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "01712940887c0e9bd00ff8718454f5ad46e2ead6c21a906113e3a5fd4d79b468"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/i2c_24c32.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4bacb71471a3d1fb95c7abd4bea2c13fc2d81601adf767a26cb686ea66e787bc"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/i2c_mpu6050.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4653ec048569611256b60081a1ab697276f9e059d4b3f8ed841b06817249f688"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/i2c_slave.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "471e987fc7e2b4d3aabb4848f18a3784b8463c1b3d2e64593d0639e93aec82c9"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/i2c_ssd1306.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8cd58df154372e97dc579dfee29bb5d124f560a496988d6acbaa1a8626c1f0a4"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/pin.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a9ae6d9d2fe1aa13fe59102a192ee71432dd933c2ad77262db8608656a94a34f"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/pin_irq.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f3c01f3532aa50fac1617828750b6fced63100fc7cbbf9ec659a1779d845f780"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/pwm.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "020625a1547f5c4a29fa2ff98875dfa6d1037667158c7e7998d25f63bd412795"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/pwm_servo.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "328bf75fda376bd43080b29bb909451ac9f2937dc30f1e05a02f90edff566171"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/read_chip_temperature.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "828b26f0dcc1fb5b7a070e094f6dd9504b87f8a1d8d9140c82c5e1550bf27886"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/read_chipid.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "34bec5f461024a684fa82dd02a53883b3999b03ffaaf271e3dc96412c8105250"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/reset.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e9542dad7e965e1d0135f496ca6cd2f94339861d491d0a0d837ed3c05bac1a8e"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/rtc.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "04186a8d32ec434ac185762e6a1a47671af1bfe4613b62f06bb099498ca1d2be"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/spi.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "46b03d65c26b7c9152a3f96c8187111ee00d3e800a0d018eb7d80c21ac68594c"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/spi_lcd_show.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "06e62e3dadfacd80319797b521ddbf83b9f0d0954aa8d8152716f965325cf31e"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/spi_lcd_show_custom_screen.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "813273dbcc1aeca23c896cd663e3d4a9280520eb86bc69ebd91ec5d59ad5d2f9"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/timer.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "8acf2578e30b592942277810475949ea4e9c198e6a3dbfc4c957ea0b1b34ace6"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/touch.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "3e9fba0e4db3060e66652b588b0f9656cd076ccafe25bc1d4f7c749228f2fe4a"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/touch_user_cst328.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1c1f5bc588361a9f8d4754d40f0d67c2a45331132d4ed4443ebf0947cf935c3e"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/uart.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "b0e594f280a2d24d747a82b3add6e70351b79ba4569e1fea67877f8565fa7683"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/uart1.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "e8a77180bf9533a540128d3389290162b7031037b1b03e932105891c29df888b"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/uart2.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d29ac35116aae53f9c930077a59bf0e9c7d6247f2bf353a068f9854d52f22005"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/wdt.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "1db58cdf7e085f911b0285721697b951467d2addae71f8d32d5e4786644ac05b"
+    },
+    {
+      "path": "/sdcard/examples/03-Machine/ws2812.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2d135a26a43f7043060c9d67419ae74648d517bc2d0398ae8c452c510834403c"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/acodec.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "d27c85e4844c431538710a1bd6acb0236a6f69204e07e3a8d0e66311daeae3a4"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/ai_rtsp.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "03bd1a3b9879d95a1111c0c1c1221c7554eb7bec67c53b09229d3fdc718e51aa"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/audio.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9202ed65e391d59a6f5f056dc1d80e7b35151e5f926120f92c9a405dfc3092bc"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/audio_pdm.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "a9f17438ff6336b910d294275e3072d8734ffbdcd8346b0710ea8f824e7684a5"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/mp4demuxer.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2d246c48fdd6b2e80d5003f22a3b6659af24a1ec7d12bf6ee4d7ade27b34ed5c"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/mp4muxer.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "3a374330c8a61b9f8b162edef963e23dada015d8e55e276695515d238b6143b6"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/rtsp_server.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0740577ca19ce1226416ef802d2acc3bf5c1aabb70244df321d1c7618416a8a4"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/uvc.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "30ac2e7a335edb7717c819c1b282aa65de365c69fc069cb7d4c72e3cb12e1708"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/uvc_with_csc.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "5441c0139f957393de87612840e39e6c7334b5ebadab0e6151768da50e1b961e"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/video_decoder.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9b3111d4dc581260b7eb1ddce46665139ed321b17a4ffa74ff4e5f4c6e1c32f3"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/video_encoder.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "9688d49e1ce7727f9807cc7bddba2fb344a79767e8c204ce69b25fe9deca37cf"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/video_player.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "6f58f2ae0a8d4fb0493407298b4c9d39e756766f54a77af4d634d5d8997a8cf2"
+    },
+    {
+      "path": "/sdcard/examples/02-Media/virtual_wbc_rtsp.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "bae2165cfd93734fbcb7f12e31f7ef36778f146a057e22b346e5d4fc6728b56b"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_crc16.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0ce023989f25064b4d38c7f01f821dcd7c94c096d8347f2f09088f10b9536211"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_files.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4f42786bf4c5e6d3a25df0fb4f62bcd2c4dc1e8b2a5c6414f63be324b54a7f34"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_fs_info.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "f9debc0defa070f3f91faa789bd7a85f6f00c6147c7960a17e35e224829ddf2c"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_globals.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ed1ca705def941c5c5e874be830817596740333198e1b1a7267c6fb466dc03cd"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_json.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "630ed5013ae9632484b516cf529e8a177d43721bb236144af3ef2aab121c3d2e"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_logging.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "93808456dff1858162f8306ed7d25bbe9c994945dc91a43fcf36cc8970de0ba9"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_sha256.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "0a3719fb3ed57c854fc13fb15d2746aae41465538e3d5c9f7f85d3f6dc1bb278"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_sys_info.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "c54900d8b22150809e53bde9f76733b0dea79fb269858d1e2d63d3152bde0474"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_thread.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "ccb1aae6d877730465bab50acfda92c8fc20902d290fa3955498d65e29e43bba"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_time.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "4be5d552318b6393f9d4a8115ae700ee2fdd2fe4176eb7383bc20fc5d8552c1c"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_tree.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "34cacd4cf66281e1c5d645bb2c8089c5bd5e80e834606899a28503abbc9687bd"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_view_mem.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "2d04380637925018824ad3692e839d1fb99f783bd29aa94a82d5445caad70850"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_yield.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "44fdb83543d60d67a8d8d26225b5321a565f72176891a60b28a4ac0130108999"
+    },
+    {
+      "path": "/sdcard/examples/01-Micropython-Basics/demo_yield_task.py",
+      "directory": false,
+      "bytes": 0,
+      "hashed": true,
+      "sha256": "09fe363f40067df738dfdc224f992b73b8660fdeaad3ff72ea844fa4c20747e1"
+    }
+  ],
+  "omitted_windows_metadata_entries": 3
+}

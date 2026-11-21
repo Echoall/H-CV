@@ -1,0 +1,56 @@
+{
+  "sensor_type": 31,
+  "sensor_id": 2,
+  "actual": [
+    1280,
+    960,
+    90
+  ],
+  "requested": [
+    1280,
+    960,
+    90
+  ],
+  "sensor": "gc2093_csi2",
+  "status": "ok",
+  "frames": 1000,
+  "fps": 43.154544501838885,
+  "interval_p50": 23013,
+  "interval_p95": 25159,
+  "interval_p99": 26768,
+  "interval_max": 27689,
+  "snapshot_p50": 17231,
+  "snapshot_p95": 19565,
+  "snapshot_p99": 20660,
+  "snapshot_max": 21302,
+  "over_1_5_nominal": 983,
+  "worst_outlier": {
+    "index": 230,
+    "interval": 27689,
+    "snapshot": 20638,
+    "between_calls": 7051
+  },
+  "heap_increase_during_snapshot": 0,
+  "delayed_with_heap_increase": 0,
+  "image": {
+    "sensor_gray_constant": 303,
+    "gray_constant": 134348801,
+    "height": 480,
+    "crop": null,
+    "width": 640,
+    "format": 134348801,
+    "channel1": [
+      1280,
+      720
+    ]
+  },
+  "case": [
+    1280,
+    960,
+    90,
+    640,
+    480,
+    true,
+    false
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "frames": 6,
+  "valid_frames": 6,
+  "valid_rate": 1.0,
+  "mean_error_px": 0.0,
+  "std_error_px": 0.0,
+  "rms_error_px": 0.0,
+  "max_abs_error_px": 0.0,
+  "p95_abs_error_px": 0.0,
+  "detector": "ideal"
+}

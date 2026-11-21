@@ -1,0 +1,10 @@
+OS: Microsoft Windows 10.0.26200
+Python 3.14.6
+matplotlib==3.11.2
+numpy==2.5.5
+opencv-python==5.1.0.95
+pyserial==3.5
+pytest==9.2.0
+No broken requirements found.
+.............                                                            [100%]
+13 passed in 0.06s
