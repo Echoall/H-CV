@@ -63,7 +63,13 @@ class ProfileDetector:
         self._offset = 0.0
         self._fast_noise = self.noise_floor
         self._fast_frame = 0
+        self._fast_retrying = False
+        self._fast_retry_count = 0
+        self._fast_exclude_left = -1
+        self._fast_exclude_right = -1
         self._fast_background = None
+        self._fast_background_sum = 0
+        self._fast_background_sq_sum = 0
         self._fast_probe = None
         self._fast_threshold = 0
         self.found = False
@@ -76,6 +82,10 @@ class ProfileDetector:
             for index in range(self.width):
                 value = int(reference[index])
                 fast_background[index] = max(0, min(255, value))
+                self._fast_background_sum += fast_background[index]
+                self._fast_background_sq_sum += (
+                    fast_background[index] * fast_background[index]
+                )
             self._fast_background = fast_background
             self._fast_threshold = max(
                 1,
@@ -306,63 +316,213 @@ class ProfileDetector:
         )
         return self
 
-    def _update_fast(self, profile, predicted_u=None):
-        """Low-allocation M1 path for the fixed 640-column board ROI.
-
-        The full detector remains the default for offline evaluation.  M1 only
-        needs a bounded real-time path, so this variant keeps the calibrated
-        baseline and uses a single-pass peak, width and centroid calculation.
-        """
-        if not hasattr(profile, "shape"):
-            profile = array(profile)
-        if len(profile.shape) != 1 or int(profile.size) != self.width:
-            raise ValueError("column profile width differs from calibration")
+    def _update_fast(self, profile, predicted_u=None, _profile_bytes=None):
+        """Low-allocation detector with the P2 baseline checks retained."""
+        if not self._fast_retrying:
+            self._fast_retry_count = 0
+            self._fast_exclude_left = -1
+            self._fast_exclude_right = -1
+        if _profile_bytes is None:
+            if not hasattr(profile, "shape"):
+                profile = array(profile)
+            if len(profile.shape) != 1 or int(profile.size) != self.width:
+                raise ValueError("column profile width differs from calibration")
         self._set_not_found()
         self._fast_frame += 1
         probe = self._fast_probe
         if probe is not None:
             probe[0] = gc.mem_free()
-        if str(getattr(profile, "dtype", "")).startswith("float"):
-            profile_bytes = bytearray(
-                int(profile[index]) for index in range(self.width)
-            )
+        if _profile_bytes is None:
+            if str(getattr(profile, "dtype", "")).startswith("float"):
+                profile_bytes = bytearray(
+                    int(profile[index]) for index in range(self.width)
+                )
+            else:
+                profile_bytes = profile.tobytes()
         else:
-            profile_bytes = profile.tobytes()
+            profile_bytes = _profile_bytes
         if probe is not None:
             probe[1] = gc.mem_free()
         background = self._fast_background
         if probe is not None:
             probe[2] = gc.mem_free()
+        if self._shape_image is None:
+            return self._update_fast_board(
+                profile_bytes,
+                predicted_u,
+                probe,
+            )
+
+        count = self.width
+        profile_sum = 0
+        cross_sum = 0
+        for index in range(count):
+            value = profile_bytes[index]
+            base = background[index]
+            profile_sum += value
+            cross_sum += base * value
+        denominator = (
+            count * self._fast_background_sq_sum
+            - self._fast_background_sum * self._fast_background_sum
+        )
+        if denominator > 0:
+            gain = (
+                count * cross_sum
+                - self._fast_background_sum * profile_sum
+            ) / denominator
+            gain = min(4.0, max(0.25, gain))
+        else:
+            gain = 1.0
+        offset = (
+            profile_sum - gain * self._fast_background_sum
+        ) / count
+
+        # Remove the small set of ball/interference pixels before the final
+        # affine fit. The calibrated profile remains the fixed reference.
+        kept_count = 0
+        kept_sum = 0
+        kept_background_sum = 0
+        kept_background_sq_sum = 0
+        kept_cross_sum = 0
+        for index in range(count):
+            base = background[index]
+            value = profile_bytes[index]
+            residual = value - (gain * base + offset)
+            if abs(residual) <= 8.0:
+                kept_count += 1
+                kept_sum += value
+                kept_background_sum += base
+                kept_background_sq_sum += base * base
+                kept_cross_sum += base * value
+        kept_denominator = (
+            kept_count * kept_background_sq_sum
+            - kept_background_sum * kept_background_sum
+        )
+        if kept_count > 0 and kept_denominator > 0:
+            gain = (
+                kept_count * kept_cross_sum
+                - kept_background_sum * kept_sum
+            ) / kept_denominator
+            gain = min(4.0, max(0.25, gain))
+            offset = (
+                kept_sum - gain * kept_background_sum
+            ) / kept_count
+        self._gain = gain
+        self._offset = offset
+        residual_sum = 0.0
+        noise_count = kept_count if kept_count > 0 else count
+        for index in range(count):
+            residual = profile_bytes[index] - (
+                gain * background[index] + offset
+            )
+            if kept_count == 0 or abs(residual) <= 8.0:
+                residual_sum += residual
+        residual_mean = residual_sum / noise_count
+        deviation_sum = 0.0
+        for index in range(count):
+            residual = profile_bytes[index] - (
+                gain * background[index] + offset
+            )
+            if kept_count == 0 or abs(residual) <= 8.0:
+                deviation_sum += abs(residual - residual_mean)
+        self._fast_noise = max(
+            self.noise_floor,
+            1.4826 * deviation_sum / noise_count,
+        )
+        self._fast_threshold = self.snr_min * self._fast_noise
+
         peak = -1
         peak_value = 0.0
+        peak_score = 0.0
         if predicted_u is None:
             lower = 0
             upper = self.width
         else:
             lower = max(0, int(float(predicted_u) - self.gate))
             upper = min(self.width, int(float(predicted_u) + self.gate + 1))
-        for index in range(lower, upper):
-            residual = background[index] - profile_bytes[index]
-            if self.polarity == "bright":
-                residual = -residual
-            elif self.polarity == "both" and residual < 0:
-                residual = -residual
-            if residual > peak_value:
-                peak_value = residual
-                peak = index
-        if peak < 0 or peak_value < self._fast_threshold:
+        if self._shape_image is None:
+            for center in range(lower, upper):
+                if (
+                    self._fast_exclude_left <= center
+                    <= self._fast_exclude_right
+                ):
+                    continue
+                residual = profile_bytes[center] - (
+                    gain * background[center] + offset
+                )
+                if self.polarity == "bright":
+                    value = residual
+                elif self.polarity == "dark":
+                    value = -residual
+                else:
+                    value = abs(residual)
+                if value > peak_value:
+                    peak_value = value
+                    peak = center
+            peak_score = peak_value
+        else:
+            for center in range(lower, upper):
+                if (
+                    self._fast_exclude_left <= center
+                    <= self._fast_exclude_right
+                ):
+                    continue
+                window_start = max(0, center - self.half)
+                window_end = min(self.width, center + self.half + 1)
+                window_sum = 0.0
+                for index in range(window_start, window_end):
+                    residual = profile_bytes[index] - (
+                        gain * background[index] + offset
+                    )
+                    if self.polarity == "bright":
+                        value = residual
+                    elif self.polarity == "dark":
+                        value = -residual
+                    else:
+                        value = abs(residual)
+                    if value > 0.0:
+                        window_sum += value
+                score = window_sum / (window_end - window_start)
+                center_residual = profile_bytes[center] - (
+                    gain * background[center] + offset
+                )
+                if self.polarity == "bright":
+                    center_value = center_residual
+                elif self.polarity == "dark":
+                    center_value = -center_residual
+                else:
+                    center_value = abs(center_residual)
+                if score > peak_score:
+                    peak_score = score
+                    peak_value = center_value
+                    peak = center
+        if peak < 0 or peak_score < self._fast_threshold:
             if predicted_u is not None:
                 peak = -1
                 peak_value = 0
+                peak_score = 0.0
                 for index in range(self.width):
-                    residual = background[index] - profile_bytes[index]
+                    if (
+                        self._fast_exclude_left <= index
+                        <= self._fast_exclude_right
+                    ):
+                        continue
+                    residual = profile_bytes[index] - (
+                        gain * background[index] + offset
+                    )
                     if self.polarity == "bright":
-                        residual = -residual
-                    elif self.polarity == "both" and residual < 0:
-                        residual = -residual
-                    if residual > peak_value:
-                        peak_value = residual
+                        value = residual
+                    elif self.polarity == "dark":
+                        value = -residual
+                    else:
+                        value = abs(residual)
+                    if value > peak_value:
+                        peak_value = value
                         peak = index
+                if peak < 0 or peak_value < self._fast_threshold:
+                    peak = -1
+            else:
+                peak = -1
         if peak < 0:
             self._misses += 1
             if probe is not None:
@@ -372,33 +532,31 @@ class ProfileDetector:
             return self
         if probe is not None:
             probe[3] = gc.mem_free()
-        half = peak_value // 2
+        half = peak_value * 0.5
         outer = self.diameter
+        if peak <= outer or peak + outer >= self.width:
+            self._misses += 1
+            if probe is not None:
+                value = gc.mem_free()
+                probe[4] = value
+                for index in range(5, 8):
+                    probe[index] = value
+            return self
+        left_outer = profile_bytes[peak - outer] - (
+            gain * background[peak - outer] + offset
+        )
+        right_outer = profile_bytes[peak + outer] - (
+            gain * background[peak + outer] + offset
+        )
+        if self.polarity == "dark":
+            left_outer = -left_outer
+            right_outer = -right_outer
+        elif self.polarity == "both":
+            left_outer = abs(left_outer)
+            right_outer = abs(right_outer)
         if (
-            peak <= outer
-            or peak + outer >= self.width
-            or (
-                (
-                    background[peak - outer] - profile_bytes[peak - outer]
-                    if self.polarity != "bright"
-                    else profile_bytes[peak - outer] - background[peak - outer]
-                )
-                if self.polarity != "both"
-                else abs(
-                    background[peak - outer] - profile_bytes[peak - outer]
-                )
-            ) >= half
-            or (
-                (
-                    background[peak + outer] - profile_bytes[peak + outer]
-                    if self.polarity != "bright"
-                    else profile_bytes[peak + outer] - background[peak + outer]
-                )
-                if self.polarity != "both"
-                else abs(
-                    background[peak + outer] - profile_bytes[peak + outer]
-                )
-            ) >= half
+            self._shape_image is None
+            and (left_outer >= half or right_outer >= half)
         ):
             self._misses += 1
             if probe is not None:
@@ -407,6 +565,7 @@ class ProfileDetector:
                 for index in range(5, 8):
                     probe[index] = value
             return self
+
         left = max(0, peak - self.half)
         right = min(self.width, peak + self.half + 1)
         width = right - left
@@ -416,11 +575,15 @@ class ProfileDetector:
         weighted = 0.0
         floor = peak_value * 0.05
         for index in range(left, right):
-            value = background[index] - profile_bytes[index]
+            residual = profile_bytes[index] - (
+                gain * background[index] + offset
+            )
             if self.polarity == "bright":
-                value = -value
-            elif self.polarity == "both" and value < 0:
-                value = -value
+                value = residual
+            elif self.polarity == "dark":
+                value = -residual
+            else:
+                value = abs(residual)
             value -= floor
             if value > 0.0:
                 total += value
@@ -454,12 +617,169 @@ class ProfileDetector:
         self.diag["score"] = peak_value
         self.diag["noise"] = self._fast_noise
         self.diag["fwhm_px"] = width
+        if self._shape_image is not None:
+            vertical_fwhm = self._fast_vertical_width(
+                self._shape_image, peak
+            )
+            self.diag["vertical_fwhm_px"] = vertical_fwhm
+            if vertical_fwhm > 1.5 * self.diameter:
+                if self._fast_retry_count < 3:
+                    self._fast_retry_count += 1
+                    self._fast_exclude_left = max(
+                        0, peak - self.diameter
+                    )
+                    self._fast_exclude_right = min(
+                        self.width - 1, peak + self.diameter
+                    )
+                    self._fast_retrying = True
+                    result = self._update_fast(
+                        profile,
+                        predicted_u=None,
+                        _profile_bytes=profile_bytes,
+                    )
+                    self._fast_retrying = False
+                    self._fast_exclude_left = -1
+                    self._fast_exclude_right = -1
+                    return result
+                self._set_not_found()
+                self._misses += 1
         if probe is not None:
             probe[7] = gc.mem_free()
         return self
 
+    def _update_fast_board(self, profile_bytes, predicted_u, probe):
+        """Integer baseline path used by the live single-row board loop."""
+        background = self._fast_background
+        peak = -1
+        peak_value = 0
+        if predicted_u is None:
+            lower = 0
+            upper = self.width
+        else:
+            lower = max(0, int(float(predicted_u) - self.gate))
+            upper = min(self.width, int(float(predicted_u) + self.gate + 1))
+        for index in range(lower, upper):
+            residual = background[index] - profile_bytes[index]
+            if self.polarity == "bright":
+                value = -residual
+            elif self.polarity == "dark":
+                value = residual
+            else:
+                value = abs(residual)
+            if value > peak_value:
+                peak_value = value
+                peak = index
+        if peak < 0 or peak_value < self._fast_threshold:
+            self._misses += 1
+            if probe is not None:
+                value = gc.mem_free()
+                for index in range(3, 8):
+                    probe[index] = value
+            return self
+        if probe is not None:
+            probe[3] = gc.mem_free()
+        half = peak_value // 2
+        outer = self.diameter
+        if peak <= outer or peak + outer >= self.width:
+            self._misses += 1
+            return self
+        left_outer = background[peak - outer] - profile_bytes[peak - outer]
+        right_outer = background[peak + outer] - profile_bytes[peak + outer]
+        if self.polarity == "bright":
+            left_outer = -left_outer
+            right_outer = -right_outer
+        elif self.polarity == "both":
+            left_outer = abs(left_outer)
+            right_outer = abs(right_outer)
+        if left_outer >= half or right_outer >= half:
+            self._misses += 1
+            return self
+        left = max(0, peak - self.half)
+        right = min(self.width, peak + self.half + 1)
+        width = right - left
+        if probe is not None:
+            probe[4] = gc.mem_free()
+        total = 0.0
+        weighted = 0.0
+        floor = peak_value * 0.05
+        for index in range(left, right):
+            residual = background[index] - profile_bytes[index]
+            if self.polarity == "bright":
+                value = -residual
+            elif self.polarity == "both" and residual < 0:
+                value = -residual
+            else:
+                value = residual
+            value -= floor
+            if value > 0.0:
+                total += value
+                weighted += index * value
+        if total <= 0.0:
+            self._misses += 1
+            return self
+        if probe is not None:
+            probe[5] = gc.mem_free()
+        self.u = weighted / total
+        self.snr = peak_value / max(self._fast_noise, self.noise_floor)
+        self.quality = int(
+            min(
+                255.0,
+                max(
+                    0.0,
+                    255.0 * (self.snr - self.snr_min)
+                    / (self.snr_good - self.snr_min),
+                ),
+            )
+        )
+        if probe is not None:
+            probe[6] = gc.mem_free()
+        self.found = True
+        self._misses = 0
+        self.diag["peak"] = peak
+        self.diag["score"] = peak_value
+        self.diag["noise"] = self._fast_noise
+        self.diag["fwhm_px"] = width
+        if probe is not None:
+            probe[7] = gc.mem_free()
+        return self
+
+    def _fast_vertical_width(self, image, center_column):
+        rows, columns = shape_2d(image)
+        left = max(0, center_column - 5 * self.diameter)
+        left_end = max(0, center_column - 4 * self.diameter)
+        right = min(columns, center_column + 4 * self.diameter)
+        right_end = min(columns, center_column + 5 * self.diameter)
+        values = []
+        peak = 0.0
+        for row in range(rows):
+            center = float(image[row, center_column])
+            total = 0.0
+            count = 0
+            for column in range(left, left_end):
+                total += float(image[row, column])
+                count += 1
+            for column in range(right, right_end):
+                total += float(image[row, column])
+                count += 1
+            baseline = total / count if count else center
+            residual = center - baseline
+            if self.polarity == "dark":
+                value = -residual
+            elif self.polarity == "bright":
+                value = residual
+            else:
+                value = abs(residual)
+            value = max(0.0, value)
+            values.append(value)
+            peak = max(peak, value)
+        if peak <= 0.0:
+            return 0
+        half = peak * 0.5
+        above = [row for row, value in enumerate(values) if value >= half]
+        return above[-1] - above[0] + 1 if above else 0
+
     def update_image(self, gray_roi, predicted_u=None):
-        image = array(gray_roi, dtype=float)
+        image = gray_roi if self.fast else array(gray_roi, dtype=float)
         rows, columns = shape_2d(image)
         if rows == 0 or columns != self.width:
             raise ValueError("image width differs from calibration")

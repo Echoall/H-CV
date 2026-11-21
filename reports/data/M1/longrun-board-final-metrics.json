@@ -1,0 +1,18 @@
+{
+  "sample_windows": 1207,
+  "summary": {
+    "frames": 54764,
+    "elapsed_us": 610612688,
+    "dropped": 0,
+    "found": 4575,
+    "valid": 1789,
+    "predicted": 40315,
+    "rx_crc": 0,
+    "rx_len": 0,
+    "mem_free": 11104832
+  },
+  "max_sample_process_p95_us": 1478,
+  "max_sample_total_p95_us": 13275,
+  "max_sample_gc_us": 90585,
+  "max_sample_detect_p95_us": 1218
+}
