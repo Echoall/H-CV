@@ -1,5 +1,7 @@
 """One-dimensional projective compensation and calibration helpers."""
 
+import math
+
 
 def _as_values(values):
     return [float(value) for value in values]
@@ -74,7 +76,60 @@ def apply_similarity(x_value, coefficients):
     return scale * float(x_value) + offset
 
 
-def compensate(u_value, current_u, reference_u):
+def _project_pin_hole(s_value, theta, model):
+    height = float(model["height_mm"])
+    scale = float(model["scale_px_per_mm"])
+    center = float(model["center_u"])
+    pivot = float(model.get("pivot_mm", -125.0))
+    distance = float(s_value) - pivot
+    x = pivot + distance * math.cos(theta)
+    z = distance * math.sin(theta)
+    return center + scale * height * x / (height - z)
+
+
+def _inverse_pin_hole(u_value, theta, model):
+    height = float(model["height_mm"])
+    scale = float(model["scale_px_per_mm"])
+    center = float(model["center_u"])
+    pivot = float(model.get("pivot_mm", -125.0))
+    ratio = (float(u_value) - center) / (scale * height)
+    distance = (
+        ratio * height - pivot
+    ) / (math.cos(theta) + ratio * math.sin(theta))
+    return pivot + distance
+
+
+def _estimate_tilt(current, positions, model):
+    candidates = []
+    height = float(model["height_mm"])
+    scale = float(model["scale_px_per_mm"])
+    center = float(model["center_u"])
+    pivot = float(model.get("pivot_mm", -125.0))
+    for u_value, s_value in zip(current, positions):
+        distance = float(s_value) - pivot
+        ratio = (float(u_value) - center) / (scale * height)
+        argument = (
+            ratio * height - pivot
+        ) / (distance * math.sqrt(1.0 + ratio * ratio))
+        if abs(argument) > 1.0:
+            continue
+        phase = math.atan(ratio)
+        delta = math.acos(max(-1.0, min(1.0, argument)))
+        candidates.extend((phase + delta, phase - delta))
+    valid = [value for value in candidates if -math.radians(30) <= value <= math.radians(30)]
+    if not valid:
+        raise ValueError("cannot estimate tilt from marker geometry")
+    best = min(
+        valid,
+        key=lambda theta: sum(
+            (_project_pin_hole(s, theta, model) - u) ** 2
+            for u, s in zip(current, positions)
+        ),
+    )
+    return best
+
+
+def compensate(u_value, current_u, reference_u, model=None):
     """Map a current ball position into the reference image coordinate.
 
     Returns ``(mapped_u, mode, coefficients)``.  The mode is ``FULL`` for a
@@ -103,6 +158,25 @@ def compensate(u_value, current_u, reference_u):
         except ValueError:
             pass
     if len(pairs) >= 2:
+        if model is not None and "marker_s_mm" in model:
+            marker_s = [float(value) for value in model["marker_s_mm"]]
+            usable = []
+            for current, reference in pairs:
+                index = min(
+                    range(len(reference_u)),
+                    key=lambda item: abs(float(reference_u[item]) - reference),
+                )
+                usable.append((current, marker_s[index]))
+            theta = _estimate_tilt(
+                [pair[0] for pair in usable],
+                [pair[1] for pair in usable],
+                model,
+            )
+            recovered_s = _inverse_pin_hole(u_value, theta, model)
+            mapped = interpolate_lut(
+                recovered_s, marker_s, [float(value) for value in reference_u]
+            )
+            return mapped, "GEOMETRIC", (theta, recovered_s)
         coefficients = fit_similarity(
             [pairs[0][0], pairs[1][0]],
             [pairs[0][1], pairs[1][1]],
@@ -136,6 +210,8 @@ def compensation_quality(mode):
     """Quality multiplier for a detector result after marker compensation."""
     if mode == "FULL":
         return 1.0
+    if mode == "GEOMETRIC":
+        return 0.75
     if mode == "DEGRADED":
         return 0.25
     return 0.0

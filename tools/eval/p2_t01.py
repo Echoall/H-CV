@@ -175,6 +175,51 @@ def run_profile(output):
                     "error_px": "",
                     "snr": detector.snr,
                 })
+    for kind in ("glare", "local_shadow"):
+        for x_position in (100, 200, 250, 300, 350, 500):
+            for width in (12, 40, 60):
+                for strength in (25, 40):
+                    reference_image, _ = generate_scene(
+                        ball_x=-1000, noise=0, highlight=False,
+                        magnet_shadow=False,
+                    )
+                    image, truth = generate_scene(
+                        ball_s_mm=60,
+                        polarity="dark",
+                        highlight=True,
+                        noise=2,
+                        seed=11,
+                        **{kind: {
+                            "x_px": x_position,
+                            "width_px": width,
+                            "strength": strength,
+                        }},
+                    )
+                    detector = ProfileDetector(
+                        np.mean(reference_image[166:214], axis=0),
+                        PARAMS,
+                    )
+                    detector.update_image(image[166:214])
+                    rows.append({
+                        "kind": "ball_" + kind,
+                        "polarity": "dark",
+                        "highlight": 1,
+                        "theta_deg": 0,
+                        "blur_px": 0,
+                        "position_mm": 60,
+                        "seed": 11,
+                        "gain": "",
+                        "offset": "",
+                        "width_px": width,
+                        "strength": strength,
+                        "interference_x_px": x_position,
+                        "found": int(detector.found),
+                        "truth_px": truth["u_px"],
+                        "measured_px": detector.u if detector.found else "",
+                        "error_px": detector.u - truth["u_px"]
+                        if detector.found else "",
+                        "snr": detector.snr,
+                    })
     output.mkdir(parents=True, exist_ok=True)
     path = output / "profile-robust.csv"
     fields = sorted({key for row in rows for key in row})
@@ -201,6 +246,9 @@ def main():
     interference = [
         row for row in rows if row["kind"] in ("glare", "local_shadow")
     ]
+    ball_interference = [
+        row for row in rows if row["kind"] in ("ball_glare", "ball_local_shadow")
+    ]
     report = {
         "frames": len(rows),
         "ball_frames": len(balls),
@@ -208,6 +256,10 @@ def main():
         "empty_false_positives": sum(row["found"] for row in empties),
         "interference_frames": len(interference),
         "interference_false_positives": sum(row["found"] for row in interference),
+        "ball_interference_frames": len(ball_interference),
+        "ball_interference_misses": sum(
+            not row["found"] for row in ball_interference
+        ),
         "ball_summary": summarize(balls, "polarity"),
         "elapsed_ms": elapsed_ms,
     }

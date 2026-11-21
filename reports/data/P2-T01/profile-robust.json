@@ -1,27 +1,29 @@
 {
-  "frames": 267,
+  "frames": 339,
   "ball_frames": 240,
   "empty_exposure_frames": 9,
   "empty_false_positives": 0,
   "interference_frames": 18,
   "interference_false_positives": 0,
+  "ball_interference_frames": 72,
+  "ball_interference_misses": 0,
   "ball_summary": [
     {
       "group": "bright",
       "samples": 120,
       "found": 120,
-      "rms_px": 0.41057792310359265,
-      "p95_abs_px": 0.6910570595432262,
-      "max_abs_px": 0.7298520858096538
+      "rms_px": 0.3818586432013571,
+      "p95_abs_px": 0.6274494365055815,
+      "max_abs_px": 0.6782999683887283
     },
     {
       "group": "dark",
       "samples": 120,
       "found": 120,
-      "rms_px": 0.48947940666042355,
-      "p95_abs_px": 0.8345557052873858,
-      "max_abs_px": 0.9026084001898198
+      "rms_px": 0.48881429649648656,
+      "p95_abs_px": 0.8410822839708345,
+      "max_abs_px": 0.9312109331013971
     }
   ],
-  "elapsed_ms": 28554.945399984717
+  "elapsed_ms": 34721.54669999145
 }

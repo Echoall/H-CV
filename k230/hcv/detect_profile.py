@@ -1,6 +1,6 @@
 """Vectorised one-dimensional ball detector."""
 
-from .compat import array, box_filter, join_1d, np, shape_2d
+from .compat import array, box_filter, np, shape_2d
 
 
 class ProfileDetector:
@@ -52,6 +52,7 @@ class ProfileDetector:
         self._residual = np.zeros(self.width, dtype=float)
         self._kernel = np.ones(self.diameter, dtype=float) / self.diameter
         self._shape_mask = np.ones(self.width, dtype=float)
+        self._shape_image = None
         self._noise = float(self.noise_floor)
         self._noise_age = self.noise_update_interval
         self._misses = 0
@@ -65,16 +66,31 @@ class ProfileDetector:
 
     def _fit_illumination(self, profile):
         """Fit current profile to the calibrated profile."""
-        ref_mean = float(np.mean(self.background))
-        cur_mean = float(np.mean(profile))
-        centered = self.background - ref_mean
-        denominator = float(np.sum(centered * centered))
-        if denominator <= 1e-9:
-            gain = 1.0
-        else:
-            gain = float(np.sum(centered * (profile - cur_mean)) / denominator)
-        gain = min(4.0, max(0.25, gain))
-        offset = cur_mean - gain * ref_mean
+        gain = 1.0
+        offset = float(np.mean(profile) - np.mean(self.background))
+        for _ in range(2):
+            residual = profile - (gain * self.background + offset)
+            center = float(np.median(residual))
+            spread = max(
+                1.0,
+                1.4826 * float(np.median(np.abs(residual - center))),
+            )
+            weights = (np.abs(residual - center) <= 3.0 * spread) * 1.0
+            weight_sum = float(np.sum(weights))
+            ref_mean = float(np.sum(weights * self.background) / weight_sum)
+            cur_mean = float(np.sum(weights * profile) / weight_sum)
+            centered = self.background - ref_mean
+            denominator = float(np.sum(weights * centered * centered))
+            if denominator <= 1e-9:
+                gain = 1.0
+            else:
+                gain = float(
+                    np.sum(
+                        weights * centered * (profile - cur_mean)
+                    ) / denominator
+                )
+            gain = min(4.0, max(0.25, gain))
+            offset = cur_mean - gain * ref_mean
         self._gain = gain
         self._offset = offset
         self._residual[:] = profile - (gain * self.background + offset)
@@ -92,6 +108,38 @@ class ProfileDetector:
         self.quality = 0
         self.snr = 0.0
 
+    def _vertical_width(self, image, center_column):
+        rows, columns = shape_2d(image)
+        column = image[:, center_column]
+        neighbor_left = image[
+            :, max(0, center_column - 5 * self.diameter):
+            max(0, center_column - 4 * self.diameter)
+        ]
+        neighbor_right = image[
+            :, min(columns, center_column + 4 * self.diameter):
+            min(columns, center_column + 5 * self.diameter)
+        ]
+        if neighbor_left.shape[1] and neighbor_right.shape[1]:
+            baseline_rows = (
+                np.mean(neighbor_left, axis=1)
+                + np.mean(neighbor_right, axis=1)
+            ) * 0.5
+        elif neighbor_left.shape[1]:
+            baseline_rows = np.mean(neighbor_left, axis=1)
+        elif neighbor_right.shape[1]:
+            baseline_rows = np.mean(neighbor_right, axis=1)
+        else:
+            baseline_rows = np.ones(rows) * float(np.mean(column))
+        if self.polarity == "dark":
+            vertical = np.maximum(0.0, baseline_rows - column)
+        elif self.polarity == "bright":
+            vertical = np.maximum(0.0, column - baseline_rows)
+        else:
+            vertical = np.abs(column - baseline_rows)
+        peak = float(np.max(vertical))
+        above = np.where(vertical >= peak * 0.5)[0]
+        return int(above[-1] - above[0] + 1) if above.size else 0
+
     def update(self, profile, predicted_u=None):
         profile = array(profile, dtype=float)
         if len(profile.shape) != 1 or int(profile.size) != self.width:
@@ -108,17 +156,25 @@ class ProfileDetector:
         self._noise_age += 1
 
         self._smoothed[:] = box_filter(self._deviation, self.diameter)
-        if predicted_u is None:
-            peak = int(np.argmax(self._smoothed))
-        else:
+        local = np.where(
+            (self._smoothed[1:-1] >= self._smoothed[:-2])
+            & (self._smoothed[1:-1] >= self._smoothed[2:])
+        )[0] + 1
+        candidates = [int(value) for value in local]
+        if not candidates:
+            candidates = [int(np.argmax(self._smoothed))]
+        if predicted_u is not None:
             prediction = float(predicted_u)
-            left = max(0, int(prediction - self.gate))
-            right = min(self.width, int(prediction + self.gate) + 1)
-            if left >= right:
-                peak = int(np.argmax(self._smoothed))
-            else:
-                peak = left + int(np.argmax(self._smoothed[left:right]))
-
+            gated = [
+                value for value in candidates
+                if abs(value - prediction) <= self.gate
+            ]
+            if gated:
+                candidates = gated
+        candidates.sort(
+            key=lambda value: float(self._smoothed[value]), reverse=True
+        )
+        peak = candidates[0]
         score = float(self._smoothed[peak])
         self.snr = score / max(self._noise, self.noise_floor)
         self.diag = {
@@ -129,7 +185,41 @@ class ProfileDetector:
             "offset": self._offset,
             "misses": self._misses,
         }
-        if self.snr < self.snr_min:
+        valid_peak = None
+        valid_fwhm = 0
+        for candidate in candidates:
+            candidate_score = float(self._smoothed[candidate])
+            candidate_snr = candidate_score / max(self._noise, self.noise_floor)
+            if candidate_snr < self.snr_min:
+                continue
+            candidate_half = float(self._deviation[candidate]) * 0.5
+            candidate_left = candidate
+            while (
+                candidate_left > 0
+                and self._deviation[candidate_left - 1] >= candidate_half
+            ):
+                candidate_left -= 1
+            candidate_right = candidate
+            while (
+                candidate_right + 1 < self.width
+                and self._deviation[candidate_right + 1] >= candidate_half
+            ):
+                candidate_right += 1
+            candidate_fwhm = candidate_right - candidate_left + 1
+            if 0.6 * self.diameter <= candidate_fwhm <= 1.5 * self.diameter:
+                if self._shape_image is not None:
+                    vertical_fwhm = self._vertical_width(
+                        self._shape_image, candidate
+                    )
+                    if vertical_fwhm > 1.5 * self.diameter:
+                        continue
+                valid_peak = candidate
+                valid_fwhm = candidate_fwhm
+                self.snr = candidate_snr
+                if self._shape_image is not None:
+                    self.diag["vertical_fwhm_px"] = vertical_fwhm
+                break
+        if valid_peak is None:
             self._misses += 1
             if self._misses >= self.recovery_frames:
                 target = self._gain * self.background + self._offset
@@ -139,22 +229,8 @@ class ProfileDetector:
                 )
                 self._misses = 0
             return self
-
-        peak_half = float(self._deviation[peak]) * 0.5
-        left_fwhm = peak
-        while left_fwhm > 0 and self._deviation[left_fwhm - 1] >= peak_half:
-            left_fwhm -= 1
-        right_fwhm = peak
-        while (
-            right_fwhm + 1 < self.width
-            and self._deviation[right_fwhm + 1] >= peak_half
-        ):
-            right_fwhm += 1
-        fwhm = right_fwhm - left_fwhm + 1
-        self.diag["fwhm_px"] = fwhm
-        if fwhm < 0.6 * self.diameter or fwhm > 1.5 * self.diameter:
-            self._misses += 1
-            return self
+        peak = valid_peak
+        self.diag["fwhm_px"] = valid_fwhm
 
         left = max(0, peak - self.half)
         right = min(self.width, peak + self.half + 1)
@@ -197,29 +273,9 @@ class ProfileDetector:
         rows, columns = shape_2d(image)
         if rows == 0 or columns != self.width:
             raise ValueError("image width differs from calibration")
+        self._shape_image = image
         result = self.update(np.mean(image, axis=0), predicted_u=predicted_u)
-        if not result.found:
-            return result
-        column = image[:, int(round(result.u))]
-        edge = min(5, max(1, int(column.size // 5)))
-        baseline = float(np.median(join_1d(column[:edge], column[-edge:])))
-        if self.polarity == "dark":
-            vertical = np.maximum(0.0, baseline - column)
-        elif self.polarity == "bright":
-            vertical = np.maximum(0.0, column - baseline)
-        else:
-            vertical = np.abs(column - baseline)
-        vertical_peak = float(np.max(vertical))
-        vertical_above = np.where(vertical >= vertical_peak * 0.5)[0]
-        vertical_width = (
-            int(vertical_above[-1] - vertical_above[0] + 1)
-            if vertical_above.size else 0
-        )
-        result.diag["vertical_fwhm_px"] = vertical_width
-        if vertical_width > 1.5 * self.diameter:
-            result.found = False
-            result.quality = 0
-            result.snr = 0.0
+        self._shape_image = None
         return result
 
     def detect(self, roi_img_or_array, ctx=None):

@@ -132,6 +132,41 @@ def test_two_markers_use_similarity_fallback():
     assert compensation_quality(mode) == pytest.approx(0.25)
 
 
+@pytest.mark.parametrize("theta", [0.0, 10.0, 20.0])
+@pytest.mark.parametrize("missing", [0, 1, 2])
+def test_two_markers_with_known_hinge_geometry_stay_below_two_mm(theta, missing):
+    model = {
+        "height_mm": 300.0,
+        "scale_px_per_mm": 1.6,
+        "center_u": 320.0,
+        "pivot_mm": -125.0,
+        "marker_s_mm": [-110.0, 0.0, 110.0],
+    }
+    reference = [
+        float(value)
+        for value in project_s_to_u(model["marker_s_mm"], theta_deg=0)
+    ]
+    current = [
+        float(value)
+        for value in project_s_to_u(model["marker_s_mm"], theta_deg=theta)
+    ]
+    errors = []
+    for position in (-100.0, -50.0, 0.0, 50.0, 100.0):
+        measured = float(project_s_to_u(position, theta_deg=theta))
+        observed = [
+            value if index != missing else None
+            for index, value in enumerate(current)
+        ]
+        compensated, mode, _ = compensate(
+            measured, observed, reference, model=model
+        )
+        recovered = (compensated - 320.0) / 1.6
+        errors.append(recovered - position)
+        assert mode == "GEOMETRIC"
+    assert max(abs(error) for error in errors) < 2.0
+    assert compensation_quality(mode) == pytest.approx(0.75)
+
+
 def test_missing_markers_use_identity_fallback():
     measured, mode, coefficients = compensate(200.0, [None], [100.0])
     assert measured is None
