@@ -1,0 +1,6 @@
+HCV_BIND_CLEANUP,stage=setbufs
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "/sdcard/hcv/hcv/stream_bind_probe.py", line 68, in run
+  File "media/sensor.py", line 1, in __init__
+OSError: sensor(2) is already inited.
