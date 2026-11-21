@@ -156,11 +156,15 @@ class ProfileDetector:
         self._noise_age += 1
 
         self._smoothed[:] = box_filter(self._deviation, self.diameter)
-        local = np.where(
+        local_values = np.where(
             (self._smoothed[1:-1] >= self._smoothed[:-2])
-            & (self._smoothed[1:-1] >= self._smoothed[2:])
-        )[0] + 1
-        candidates = [int(value) for value in local]
+            & (self._smoothed[1:-1] >= self._smoothed[2:]),
+            arange(1, self.width - 1),
+            -1,
+        )
+        candidates = [
+            int(value) for value in local_values if int(value) >= 0
+        ]
         if not candidates:
             candidates = [int(np.argmax(self._smoothed))]
         if predicted_u is not None:
