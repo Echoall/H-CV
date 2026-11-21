@@ -1,0 +1,4 @@
+SCALE_PROBE,case=gradient,shape=(1, 640),min=0,max=0,expected=117.5
+CROP_PROBE,case=gradient,shape=(48, 640),gc_alloc=128,source_bytes_unchanged=True,same_address=False
+SCALE_PROBE,case=nonlinear,shape=(1, 640),min=240,max=240,expected=60
+CROP_PROBE,case=nonlinear,shape=(48, 640),gc_alloc=128,source_bytes_unchanged=True,same_address=False

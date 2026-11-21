@@ -1,0 +1,9 @@
+REDUCE_PROBE,method=pool,case=gradient,shape=(640,),left_min=117,left_max=117,right_min=137,right_max=137,us=429,gc_alloc=544,source_unchanged=True
+REDUCE_PROBE,method=scale_area,case=gradient,shape=(640,),left_min=118,left_max=118,right_min=138,right_max=138,us=518,gc_alloc=640,source_unchanged=True
+REDUCE_PROBE,method=mean_bytes,case=gradient,shape=(640,),left_min=118,left_max=118,right_min=138,right_max=138,us=480,gc_alloc=704,source_unchanged=True
+REDUCE_PROBE,method=pool,case=nonlinear,shape=(640,),left_min=60,left_max=60,right_min=195,right_max=195,us=441,gc_alloc=544,source_unchanged=True
+REDUCE_PROBE,method=scale_area,case=nonlinear,shape=(640,),left_min=60,left_max=60,right_min=195,right_max=195,us=507,gc_alloc=640,source_unchanged=True
+REDUCE_PROBE,method=mean_bytes,case=nonlinear,shape=(640,),left_min=60,left_max=60,right_min=195,right_max=195,us=469,gc_alloc=704,source_unchanged=True
+REDUCE_PROBE,method=pool,case=uint8_max,shape=(640,),left_min=255,left_max=255,right_min=0,right_max=0,us=445,gc_alloc=544,source_unchanged=True
+REDUCE_PROBE,method=scale_area,case=uint8_max,shape=(640,),left_min=255,left_max=255,right_min=0,right_max=0,us=505,gc_alloc=640,source_unchanged=True
+REDUCE_PROBE,method=mean_bytes,case=uint8_max,shape=(640,),left_min=255,left_max=255,right_min=0,right_max=0,us=418,gc_alloc=704,source_unchanged=True

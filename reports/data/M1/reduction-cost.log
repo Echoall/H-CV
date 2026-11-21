@@ -1,0 +1,4 @@
+REDUCE_COST,method=mean_bytes,runs=10,us=[476, 469, 463, 464, 462, 463, 461, 462, 460, 467],gc_alloc=[864, 704, 704, 704, 704, 704, 704, 704, 704, 704],dtype=66,min=118,max=118
+REDUCE_COST,method=widened_sum,runs=10,us=[2195, 2148, 2147, 2145, 2146, 2150, 2162, 2151, 2146, 2147],gc_alloc=[704, 704, 704, 704, 704, 704, 704, 704, 704, 704],dtype=72,min=5640,max=5640
+REDUCE_UNSUPPORTED,method=sum_dtype,error=TypeError('extra keyword arguments given',)
+IMAGE_REDUCE_API,mean_pool=True,area=1

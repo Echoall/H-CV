@@ -1,0 +1,6 @@
+SUM_PROBE,case=gradient,input_dtype=66,shape=(640,),dtype=66,min=8,max=8,expected=5640
+SUM_PROBE,case=gradient,input_dtype=72,shape=(640,),dtype=72,min=5640,max=5640,expected=5640
+MEAN_PROBE,case=gradient,shape=(640,),dtype=102,min=117.5,max=117.5,expected=117.5
+SUM_PROBE,case=uint8_max,input_dtype=66,shape=(640,),dtype=66,min=208,max=208,expected=12240
+SUM_PROBE,case=uint8_max,input_dtype=72,shape=(640,),dtype=72,min=12240,max=12240,expected=12240
+MEAN_PROBE,case=uint8_max,shape=(640,),dtype=102,min=255.0,max=255.0,expected=255.0
