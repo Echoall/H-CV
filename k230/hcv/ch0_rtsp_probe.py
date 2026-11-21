@@ -110,9 +110,11 @@ def run():
             encoder.GetStream(VENC_CHANNEL, stream_data)
             try:
                 for index in range(stream_data.pack_cnt):
-                    payload = uctypes.bytearray_at(
-                        stream_data.data[index],
-                        stream_data.data_size[index],
+                    payload = bytes(
+                        uctypes.bytearray_at(
+                            stream_data.data[index],
+                            stream_data.data_size[index],
+                        )
                     )
                     checked(
                         rtsp.rtspserver_sendvideodata(
