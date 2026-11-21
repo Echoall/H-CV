@@ -1,5 +1,6 @@
 """Compare the M1 fast detector with the P2 detector on the full matrix."""
 
+import argparse
 import json
 import math
 import sys
@@ -211,6 +212,9 @@ def _profile(image, strategy):
         return np.mean(strip[middle - 4:middle + 4], axis=0)
     if strategy == "rows48":
         return strip
+    if strategy == "board48":
+        sums = np.sum(strip, axis=0, dtype=np.uint16)
+        return (sums // strip.shape[0]).astype(np.uint8)
     raise ValueError("unknown row strategy " + strategy)
 
 
@@ -287,6 +291,12 @@ def _summarize(rows):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--board", action="store_true",
+        help="compare only the current one-dimensional board path and P2",
+    )
+    args = parser.parse_args()
     output = Path("reports/data/M1/equivalence")
     output.mkdir(parents=True, exist_ok=True)
     cases = build_cases()
@@ -295,23 +305,31 @@ def main():
         "variants": {},
         "row_strategies": {},
     }
-    for fast in (False, True):
-        for strategy in ("rows48", "rows8", "single"):
-            key = "fast=%s,%s" % (int(fast), strategy)
-            rows = [_run_case(case, fast, strategy) for case in cases]
-            report["variants"][key] = _summarize(rows)
-            report["row_strategies"][key] = {
-                "samples": len(rows),
-                "found": sum(row["found"] for row in rows),
-                "elapsed_p50_us": _percentile(
-                    [row["elapsed_us"] for row in rows], 50
-                ),
-                "elapsed_p95_us": _percentile(
-                    [row["elapsed_us"] for row in rows], 95
-                ),
-                "elapsed_max_us": max(row["elapsed_us"] for row in rows),
-            }
-    (output / "report.json").write_text(
+    if args.board:
+        variants = ((False, "rows48"), (True, "board48"))
+    else:
+        variants = [
+            (fast, strategy)
+            for fast in (False, True)
+            for strategy in ("rows48", "rows8", "single")
+        ]
+    for fast, strategy in variants:
+        key = "fast=%s,%s" % (int(fast), strategy)
+        rows = [_run_case(case, fast, strategy) for case in cases]
+        report["variants"][key] = _summarize(rows)
+        report["row_strategies"][key] = {
+            "samples": len(rows),
+            "found": sum(row["found"] for row in rows),
+            "elapsed_p50_us": _percentile(
+                [row["elapsed_us"] for row in rows], 50
+            ),
+            "elapsed_p95_us": _percentile(
+                [row["elapsed_us"] for row in rows], 95
+            ),
+            "elapsed_max_us": max(row["elapsed_us"] for row in rows),
+        }
+    filename = "board-report.json" if args.board else "report.json"
+    (output / filename).write_text(
         json.dumps(report, indent=2) + "\n",
         encoding="utf-8",
     )
