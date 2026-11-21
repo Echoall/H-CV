@@ -159,3 +159,64 @@ def test_profile_keeps_ball_quality_with_remote_interference(kind):
     detector.update_image(image[166:214])
     assert detector.found
     assert detector.u == pytest.approx(truth["u_px"], abs=1.0)
+
+
+@pytest.mark.parametrize(
+    ("ball_polarity", "opposite_interference"),
+    [
+        ("bright", "local_shadow"),
+        ("dark", "glare"),
+    ],
+)
+def test_profile_calibrated_polarity_ignores_opposite_remote_shape(
+    ball_polarity, opposite_interference
+):
+    reference_image, _ = generate_scene(
+        ball_x=-1000, noise=0, highlight=False, magnet_shadow=False
+    )
+    reference = np.mean(reference_image[166:214], axis=0)
+    image, truth = generate_scene(
+        ball_s_mm=60,
+        polarity=ball_polarity,
+        highlight=True,
+        noise=2,
+        seed=7,
+        **{
+            opposite_interference: {
+                "x_px": 500,
+                "width_px": 40,
+                "strength": 60,
+            }
+        },
+    )
+    detector = ProfileDetector(
+        reference,
+        dict(PARAMS, polarity=ball_polarity),
+    )
+    detector.update_image(image[166:214])
+    assert detector.found
+    assert detector.u == pytest.approx(truth["u_px"], abs=1.0)
+
+
+@pytest.mark.parametrize("kind", ["glare", "local_shadow"])
+@pytest.mark.parametrize("polarity", ["dark", "bright"])
+def test_profile_keeps_ball_when_remote_interference_is_84_pixels_away(
+    kind, polarity
+):
+    reference_image, _ = generate_scene(
+        ball_x=-1000, noise=0, highlight=False, magnet_shadow=False
+    )
+    reference = np.mean(reference_image[166:214], axis=0)
+    image, truth = generate_scene(
+        ball_s_mm=60,
+        polarity=polarity,
+        highlight=True,
+        magnet_shadow=True,
+        noise=2,
+        seed=7,
+        **{kind: {"x_px": 500, "width_px": 40, "strength": 60}},
+    )
+    detector = ProfileDetector(reference, dict(PARAMS, polarity=polarity))
+    detector.update_image(image[166:214])
+    assert detector.found
+    assert detector.u == pytest.approx(truth["u_px"], abs=1.0)
