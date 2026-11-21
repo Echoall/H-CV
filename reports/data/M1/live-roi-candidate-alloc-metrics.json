@@ -1,0 +1,168 @@
+{
+  "begin": {
+    "frames": 60,
+    "free_start": 3772928
+  },
+  "end": {
+    "frames": 60,
+    "free_end": 3542848,
+    "drift": 230080,
+    "detected_frames": 56,
+    "quality_min": 103,
+    "quality_max": 255
+  },
+  "frames": 60,
+  "stages": {
+    "snapshot": {
+      "frames": 60,
+      "total": 65280,
+      "mean": 1088,
+      "min": 1088,
+      "max": 1088,
+      "positive": 60
+    },
+    "frame_view": {
+      "frames": 60,
+      "total": 7680,
+      "mean": 128,
+      "min": 128,
+      "max": 128,
+      "positive": 60
+    },
+    "detect": {
+      "frames": 60,
+      "total": 61440,
+      "mean": 1024,
+      "min": 576,
+      "max": 1056,
+      "positive": 60
+    },
+    "map": {
+      "frames": 60,
+      "total": 10752,
+      "mean": 179,
+      "min": 0,
+      "max": 192,
+      "positive": 56
+    },
+    "track": {
+      "frames": 60,
+      "total": 63104,
+      "mean": 1051,
+      "min": 96,
+      "max": 1184,
+      "positive": 60
+    },
+    "pack": {
+      "frames": 60,
+      "total": 7552,
+      "mean": 125,
+      "min": 96,
+      "max": 128,
+      "positive": 60
+    },
+    "uart": {
+      "frames": 60,
+      "total": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0,
+      "positive": 0
+    },
+    "cleanup": {
+      "frames": 60,
+      "total": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0,
+      "positive": 0
+    }
+  },
+  "details": {
+    "prediction": {
+      "frames": 60,
+      "total": 10560,
+      "mean": 176,
+      "min": 0,
+      "max": 192,
+      "positive": 55
+    },
+    "profile_slice": {
+      "frames": 60,
+      "total": 0,
+      "mean": 0,
+      "min": 0,
+      "max": 0,
+      "positive": 0
+    },
+    "detector_update": {
+      "frames": 60,
+      "total": 61440,
+      "mean": 1024,
+      "min": 576,
+      "max": 1056,
+      "positive": 60
+    },
+    "fast_copy_profile": {
+      "frames": 60,
+      "total": 1920,
+      "mean": 32,
+      "min": 32,
+      "max": 32,
+      "positive": 60
+    },
+    "fast_residual_setup": {
+      "frames": 60,
+      "total": 21120,
+      "mean": 352,
+      "min": 352,
+      "max": 352,
+      "positive": 60
+    },
+    "fast_peak_search": {
+      "frames": 60,
+      "total": 17856,
+      "mean": 297,
+      "min": 0,
+      "max": 320,
+      "positive": 56
+    },
+    "fast_width_scan": {
+      "frames": 60,
+      "total": 1824,
+      "mean": 30,
+      "min": 0,
+      "max": 64,
+      "positive": 56
+    },
+    "fast_centroid": {
+      "frames": 60,
+      "total": 1792,
+      "mean": 29,
+      "min": 0,
+      "max": 32,
+      "positive": 56
+    },
+    "fast_quality": {
+      "frames": 60,
+      "total": 1792,
+      "mean": 29,
+      "min": 0,
+      "max": 32,
+      "positive": 56
+    },
+    "fast_diag": {
+      "frames": 60,
+      "total": 3616,
+      "mean": 60,
+      "min": 0,
+      "max": 96,
+      "positive": 56
+    }
+  },
+  "frame_drift": {
+    "min": 1984,
+    "max": 4032,
+    "mean": 3832.5333333333333
+  }
+}

@@ -1,0 +1,12 @@
+LIVE_PROBE,case=empty,try=0,found=0,u=0.000,us=2970,alloc=704
+LIVE_PROBE,case=empty,try=1,found=0,u=0.000,us=2958,alloc=704
+LIVE_PROBE,case=empty,try=2,found=0,u=0.000,us=2960,alloc=704
+LIVE_PROBE,case=shadow_only,try=0,found=0,u=0.000,us=4868,alloc=992
+LIVE_PROBE,case=shadow_only,try=1,found=0,u=0.000,us=4855,alloc=992
+LIVE_PROBE,case=shadow_only,try=2,found=0,u=0.000,us=4854,alloc=992
+LIVE_PROBE,case=ball_and_shadow,try=0,found=1,u=319.500,us=5096,alloc=1184
+LIVE_PROBE,case=ball_and_shadow,try=1,found=1,u=319.500,us=5069,alloc=1152
+LIVE_PROBE,case=ball_and_shadow,try=2,found=1,u=319.500,us=5070,alloc=1152
+LIVE_PROBE,case=wrong_polarity,try=0,found=0,u=0.000,us=2974,alloc=704
+LIVE_PROBE,case=wrong_polarity,try=1,found=0,u=0.000,us=2958,alloc=704
+LIVE_PROBE,case=wrong_polarity,try=2,found=0,u=0.000,us=2961,alloc=704
