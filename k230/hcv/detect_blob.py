@@ -4,7 +4,7 @@ The detector deliberately requires a predicted horizontal position.  This
 keeps the expensive threshold/blob path out of the full-frame main loop.
 """
 
-from .compat import array, shape_2d, np
+from .compat import arange, array, shape_2d, np
 
 
 class BlobDetector:
@@ -68,15 +68,15 @@ class BlobDetector:
             mask = (crop <= dark_limit) | (crop >= bright_limit)
 
         # Suppress the slot edges and off-axis clutter.
-        rows = np.arange(height, dtype=float)
+        rows = arange(height, dtype=float)
         axis_v = height * 0.5 if self.axis_v is None else float(self.axis_v)
         axis = axis_v + self.axis_slope * (
-            np.arange(x0, x1, dtype=float) - float(predicted_u)
+            arange(x0, x1, dtype=float) - float(predicted_u)
         )
         axis_distance = np.abs(rows[:, None] - axis[None, :])
         mask &= axis_distance <= 0.75 * self.diameter
         mask &= np.abs(
-            np.arange(x0, x1, dtype=float)[None, :] - float(predicted_u)
+            arange(x0, x1, dtype=float)[None, :] - float(predicted_u)
         ) <= 0.8 * self.diameter
 
         point_rows, point_columns = np.where(mask)

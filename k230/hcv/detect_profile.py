@@ -1,6 +1,6 @@
 """Vectorised one-dimensional ball detector."""
 
-from .compat import array, box_filter, np, shape_2d
+from .compat import arange, array, box_filter, ones, np, shape_2d, zeros
 
 
 class ProfileDetector:
@@ -47,11 +47,11 @@ class ProfileDetector:
             raise ValueError("invalid profile detector parameters")
 
         self.background = array(reference, dtype=float)
-        self._deviation = np.zeros(self.width, dtype=float)
-        self._smoothed = np.zeros(self.width, dtype=float)
-        self._residual = np.zeros(self.width, dtype=float)
-        self._kernel = np.ones(self.diameter, dtype=float) / self.diameter
-        self._shape_mask = np.ones(self.width, dtype=float)
+        self._deviation = zeros(self.width, dtype=float)
+        self._smoothed = zeros(self.width, dtype=float)
+        self._residual = zeros(self.width, dtype=float)
+        self._kernel = ones(self.diameter, dtype=float) / self.diameter
+        self._shape_mask = ones(self.width, dtype=float)
         self._shape_image = None
         self._noise = float(self.noise_floor)
         self._noise_age = self.noise_update_interval
@@ -129,7 +129,7 @@ class ProfileDetector:
         elif neighbor_right.shape[1]:
             baseline_rows = np.mean(neighbor_right, axis=1)
         else:
-            baseline_rows = np.ones(rows) * float(np.mean(column))
+            baseline_rows = ones(rows) * float(np.mean(column))
         if self.polarity == "dark":
             vertical = np.maximum(0.0, baseline_rows - column)
         elif self.polarity == "bright":
@@ -240,7 +240,7 @@ class ProfileDetector:
         if mass <= 0:
             self._misses += 1
             return self
-        positions = np.arange(left, right, dtype=float)
+        positions = arange(left, right, dtype=float)
         self.u = float(np.sum(positions * weights) / mass)
         self.quality = int(
             min(

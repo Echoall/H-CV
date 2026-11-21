@@ -10,7 +10,12 @@ def as_array(value, dtype=None):
 
 
 def array(value, dtype=None):
-    return np.array(value, dtype=dtype) if dtype is not None else np.array(value)
+    if dtype is None:
+        return np.array(value)
+    try:
+        return np.array(value, dtype=dtype)
+    except TypeError:
+        return np.array(value)
 
 
 def box_filter(values, width):
@@ -31,3 +36,28 @@ def shape_2d(value):
 
 def join_1d(left, right):
     return np.array(list(left) + list(right))
+
+
+def zeros(size, dtype=None):
+    try:
+        return np.zeros(size, dtype=dtype)
+    except TypeError:
+        return np.zeros(size)
+
+
+def ones(size, dtype=None):
+    try:
+        return np.ones(size, dtype=dtype)
+    except TypeError:
+        return np.ones(size)
+
+
+def arange(start, stop=None, dtype=None):
+    try:
+        if stop is None:
+            return np.arange(start, dtype=dtype)
+        return np.arange(start, stop, dtype=dtype)
+    except TypeError:
+        if stop is None:
+            return np.arange(start)
+        return np.arange(start, stop)
