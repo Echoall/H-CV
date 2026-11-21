@@ -8,6 +8,7 @@ from .compat import absolute, arange, array, box_filter, ones, np, shape_2d, zer
 
 _PROFILE_SCALE = 256
 _FIT_RESIDUAL_LIMIT = 8 * _PROFILE_SCALE
+_REFIT_SAMPLE_COUNT = 33
 
 
 class ProfileDetector:
@@ -94,6 +95,7 @@ class ProfileDetector:
             )
             self._live_deviation = storage("i", [0] * self.width)
             self._live_scores = storage("i", [0] * self.width)
+            self._live_fit_samples = [0] * _REFIT_SAMPLE_COUNT
             fast_background = bytearray(self.width)
             for index in range(self.width):
                 value = int(reference[index])
@@ -374,6 +376,29 @@ class ProfileDetector:
             gain = (count * cross_sum - cur_sum * ref_sum) * _PROFILE_SCALE // denominator
             gain = min(4 * _PROFILE_SCALE, max(_PROFILE_SCALE // 4, gain))
             offset = (cur_sum * _PROFILE_SCALE - gain * ref_sum) // count
+        if self.width - count > 2 * self.diameter:
+            # A broad band can skew least squares even after excluding its core.
+            # The median of spaced pairs tolerates a minority of affected samples.
+            samples = self._live_fit_samples
+            span = self.width // 2
+            middle = _REFIT_SAMPLE_COUNT // 2
+            for index in range(_REFIT_SAMPLE_COUNT):
+                left = index * (span - 1) // (_REFIT_SAMPLE_COUNT - 1)
+                right = left + span
+                base_delta = background[right] - background[left]
+                samples[index] = gain
+                if abs(base_delta) >= 4:
+                    samples[index] = (
+                        (profile_bytes[right] - profile_bytes[left])
+                        * _PROFILE_SCALE // base_delta
+                    )
+            samples.sort()
+            gain = min(4 * _PROFILE_SCALE, max(_PROFILE_SCALE // 4, samples[middle]))
+            for index in range(_REFIT_SAMPLE_COUNT):
+                col = index * (self.width - 1) // (_REFIT_SAMPLE_COUNT - 1)
+                samples[index] = profile_bytes[col] * _PROFILE_SCALE - gain * background[col]
+            samples.sort()
+            offset = samples[middle]
         return gain, offset
 
     def _live_vertical_width(self, pixels, center, rows):
