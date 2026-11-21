@@ -1,11 +1,11 @@
 {
-  "frames": 339,
+  "frames": 363,
   "ball_frames": 240,
   "empty_exposure_frames": 9,
   "empty_false_positives": 0,
   "interference_frames": 18,
   "interference_false_positives": 0,
-  "ball_interference_frames": 72,
+  "ball_interference_frames": 96,
   "ball_interference_misses": 0,
   "ball_summary": [
     {
@@ -25,5 +25,5 @@
       "max_abs_px": 0.9312109331013971
     }
   ],
-  "elapsed_ms": 34721.54669999145
+  "elapsed_ms": 35618.91120002838
 }

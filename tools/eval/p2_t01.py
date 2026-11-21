@@ -176,21 +176,21 @@ def run_profile(output):
                     "snr": detector.snr,
                 })
     for kind in ("glare", "local_shadow"):
-        for x_position in (100, 200, 250, 300, 350, 500):
-            for width in (12, 40, 60):
-                for strength in (25, 40):
+        for polarity in ("dark", "bright"):
+            for strength in (15, 25, 40, 60):
+                for width in (6, 12, 20, 30, 40, 60):
                     reference_image, _ = generate_scene(
                         ball_x=-1000, noise=0, highlight=False,
                         magnet_shadow=False,
                     )
                     image, truth = generate_scene(
                         ball_s_mm=60,
-                        polarity="dark",
+                        polarity=polarity,
                         highlight=True,
                         noise=2,
                         seed=11,
                         **{kind: {
-                            "x_px": x_position,
+                            "x_px": 150,
                             "width_px": width,
                             "strength": strength,
                         }},
@@ -202,7 +202,7 @@ def run_profile(output):
                     detector.update_image(image[166:214])
                     rows.append({
                         "kind": "ball_" + kind,
-                        "polarity": "dark",
+                        "polarity": polarity,
                         "highlight": 1,
                         "theta_deg": 0,
                         "blur_px": 0,
@@ -212,7 +212,7 @@ def run_profile(output):
                         "offset": "",
                         "width_px": width,
                         "strength": strength,
-                        "interference_x_px": x_position,
+                        "interference_x_px": 150,
                         "found": int(detector.found),
                         "truth_px": truth["u_px"],
                         "measured_px": detector.u if detector.found else "",
