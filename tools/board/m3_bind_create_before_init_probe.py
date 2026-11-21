@@ -1,0 +1,8 @@
+"""Probe encoder creation before MediaManager.init."""
+
+import sys
+
+sys.path.insert(0, "/sdcard/hcv")
+from hcv.stream_bind_probe import run
+
+run("create_before_init")
