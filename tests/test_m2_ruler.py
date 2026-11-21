@@ -30,7 +30,7 @@ def test_numbered_ruler_keeps_missing_ticks_from_shifting_ids():
     ticks = detect_long_ticks(image[103:110], 119, 527)
     assert len(ticks) == 22
     assert {mm for mm, _ in ticks} == set(truth) - {-60, 0, 90}
-    assert max(abs(column - truth[mm]) for mm, column in ticks) <= 0.4
+    assert max(abs(column - truth[mm]) for mm, column in ticks) < 0.3
 
 
 def test_ruler_refuses_a_strip_with_too_few_ticks():

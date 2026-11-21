@@ -53,7 +53,8 @@ def record():
         if count == SIGNAL_FRAME:
             print("HCV_FIELD_CUE,frame=%d" % (count - 1))
 
-    run(max_runtime_s=SECONDS, max_frames=limit, observe_ball=observe)
+    run(max_runtime_s=SECONDS, max_frames=limit, observe_ball=observe,
+        calibration_path=globals().get("CALIBRATION_PATH"))
     start(12)
     with open(EVIDENCE, "wb") as output:
         output.write(("HCV1 %d %d %d\n" % (width, height, count)).encode())

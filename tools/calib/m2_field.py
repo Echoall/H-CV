@@ -72,6 +72,45 @@ def select_ruler(image):
     return round(x / 2), round((x + width) / 2), y // 2, (y + height + 1) // 2
 
 
+def confirm_numbering(image, calibration, output):
+    view = cv2.resize(cv2.cvtColor(image, cv2.COLOR_GRAY2BGR), None, fx=2, fy=2)
+    markers = calibration["markers_ref"]
+    center_missing = not any(marker["x_mm"] == 0 for marker in markers)
+    if center_missing:
+        origin = np.interp(0, [marker["x_mm"] for marker in markers],
+                           [marker["u_px"] for marker in markers])
+        markers = [*markers, {"x_mm": 0, "u_px": origin, "v_px": markers[0]["v_px"]}]
+    for marker in markers:
+        x, y = round(2 * marker["u_px"]), round(2 * marker["v_px"])
+        value = int(marker["x_mm"] / 10)
+        color = (0, 200, 255) if value == 0 else (80, 255, 80)
+        cv2.line(view, (x, y), (x, max(0, y - 18)), color, 2)
+        label = "0*" if value == 0 and center_missing else str(value)
+        cv2.putText(view, label, (x - 9, max(12, y - 23)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1, cv2.LINE_AA)
+    success, preview = cv2.imencode(".png", view)
+    if not success:
+        raise RuntimeError("could not encode the numbered preview")
+    preview.tofile(output / "numbered-ruler.png")
+    title = "Confirm 0 cm matches the ruler center. Y to continue, N to stop"
+    print("请确认画面中的 0 号刻度与摆杆中心一致。按 Y 继续，按 N 或 Esc 退出。", flush=True)
+    if center_missing:
+        print("0* 由相邻刻度插值，请对照尺子上实际印刷的 0。", flush=True)
+    try:
+        cv2.imshow(title, view)
+        while True:
+            key = cv2.waitKey(100) & 0xFF
+            if key in (ord("y"), ord("Y")):
+                return True
+            if key in (ord("n"), ord("N"), 27) or (
+                cv2.getWindowProperty(title, cv2.WND_PROP_VISIBLE) < 1
+            ):
+                break
+    finally:
+        cv2.destroyAllWindows()
+    return False
+
+
 def tone(high=False):
     if sys.platform == "win32":
         import winsound
@@ -80,11 +119,13 @@ def tone(high=False):
         print("\a", end="", flush=True)
 
 
-def record(port, directory, transition=False):
+def record(port, directory, transition=False, calibration_path=None):
     directory.mkdir()
     params = "CAPTURE_SECONDS = %d\nSIGNAL_FRAME = %d\n" % (
         8 if transition else 2, 90 if transition else 1,
     )
+    if calibration_path is not None:
+        params += "CALIBRATION_PATH = %r\n" % calibration_path
     with tempfile.TemporaryDirectory(prefix="hcv-field-") as temporary:
         script = Path(temporary) / "capture.py"
         script.write_text(params + (BOARD_TOOLS / "m1_ball_insertion.py").read_text(),
@@ -164,10 +205,23 @@ def field_run(port, output, strip, level_deg):
     image, reference = capture_reference(port, output)
     config = reference["config"]
     calibration = build_calibration(image, strip or select_ruler(image), reference, config, level_deg)
-    write_json(output / "calib.json", calibration)
-    subprocess.run(board_command(port, "put", output / "calib.json", REMOTE + "calib.json"),
+    if not confirm_numbering(image, calibration, output):
+        raise ValueError("ruler numbering was not confirmed")
+    pending = output / "calib.pending.json"
+    write_json(pending, calibration)
+    remote_pending = REMOTE + "calib.pending.json"
+    subprocess.run(board_command(port, "put", pending, remote_pending), check=True)
+    input("把钢球球心对准尺子上实际印刷的 0 刻度。放稳后按回车。")
+    zero_rows, _ = record(port, output / "normal_+0mm", calibration_path=remote_pending)
+    zero = static_result(zero_rows, 0)
+    zero["zero_check_passed"] = zero["valid"] >= 100 and abs(zero["mean_mm"]) < 3
+    results = {"normal_+0mm": zero}
+    save_results(output, results)
+    if not zero["zero_check_passed"]:
+        raise ValueError("zero check failed: put the ball on the physical 0 tick and verify numbering")
+    subprocess.run(board_command(port, "put", pending, REMOTE + "calib.json"),
                    check=True)
-    results = {}
+    pending.replace(output / "calib.json")
 
     def measure(label, prompt, target_mm):
         input(prompt + "，放稳后按回车。")
@@ -178,7 +232,7 @@ def field_run(port, output, strip, level_deg):
 
     for light, prompt in (("normal", "正常照明"), ("off", "关闭台灯"), ("side", "把灯移到一侧")):
         measure(f"{light}_empty", f"{prompt}，取走球并清出检测区", None)
-        positions = STATIC_POSITIONS_MM if light == "normal" else (0,)
+        positions = STATIC_POSITIONS_MM[1:] if light == "normal" else (0,)
         for position in positions:
             measure(f"{light}_{position:+d}mm",
                     f"{prompt}，把球心对准 {position / 10:+g} cm 刻线", position)

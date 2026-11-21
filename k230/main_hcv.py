@@ -521,7 +521,8 @@ def _allocation_probe(
     return frame_count
 
 
-def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=None):
+def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=None,
+        calibration_path=None):
     """Run the bounded M1 loop and print machine-readable evidence lines."""
     config = load_config("/sdcard/hcv")
     warning, warning_err = runtime_config_warning(config)
@@ -590,7 +591,11 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
         profile_pixels = bytearray(width)
         import ulab.numpy as np
         profile_array = np.frombuffer(profile_pixels, dtype=np.uint8)
-        lut, calib_ok, calib_id, lut_err, background = _load_lut(config, width)
+        calibration = (
+            _load_lut(config, width) if calibration_path is None
+            else _load_lut(config, width, calibration_path)
+        )
+        lut, calib_ok, calib_id, lut_err, background = calibration
         if background is None:
             image = sensor.snapshot(chn=0, timeout=1000)
             _write_column_profile(image, roi_bounds, roi_pixels, profile_pixels)
