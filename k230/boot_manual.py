@@ -21,8 +21,7 @@ def _boot_module():
 
 
 def run_manual(root, link, watchdog=None, interrupted=None, sleep=None,
-               fault=None, camera_import=None, ctrl_c_window_s=1.5,
-               heartbeats=1):
+               camera_import=None, ctrl_c_window_s=1.5, heartbeats=1):
     boot_mod = _boot_module()
     if watchdog is None:
         watchdog = boot_mod.SimulatedWatchdog()
@@ -36,10 +35,11 @@ def run_manual(root, link, watchdog=None, interrupted=None, sleep=None,
         link,
         watchdog,
         ctrl_c=ctrl_c,
-        fault=fault,
-        camera_import=camera_import,
     )
-    return session.run(heartbeats=heartbeats)
+    result = session.run(heartbeats=heartbeats)
+    if result.mode == "starting":
+        result.import_camera(camera_import)
+    return result
 
 
 class _WallClock:

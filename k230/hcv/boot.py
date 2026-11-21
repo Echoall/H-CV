@@ -17,7 +17,9 @@ TEMP_FILE = "boot.state.tmp"
 SKIP_FILE = "SKIP_AUTOSTART"
 WDT_TIMEOUT_S = 1.0
 MAINTENANCE_STREAK = 2
+HEALTHY_FRAMES = 90
 RUNTIME_FAIL_LIMIT = 3
+WRITE_BUDGET = 2
 STATUS_PERIOD_S = 0.5
 MANUAL_GUARD_S = 5.0
 STATE_BOOT = 0
@@ -253,22 +255,23 @@ def ctrl_c_seen(duration_s, sleep, interrupted):
 
 
 class BootSession:
-    def __init__(self, store, link, watchdog, ctrl_c=False, fault=None,
-                 camera_import=None):
+    def __init__(self, store, link, watchdog, ctrl_c=False):
         self.store = store
         self.link = link
         self.watchdog = watchdog
         self.ctrl_c = ctrl_c
-        self.fault = fault
-        self.camera_import = camera_import
         self.mode = None
+        self.loaded = None
         self.record = None
         self.wrote = False
+        self.write_warning = False
         self.allow_camera = False
+        self.healthy = 0
         self._commits = 0
         self._done = False
 
     def run(self, heartbeats=1):
+        """Count this boot as STARTING before any camera import or watchdog."""
         if self._done:
             raise RuntimeError("boot session already ran")
         if heartbeats < 0:
@@ -277,22 +280,24 @@ class BootSession:
         if self.ctrl_c or self.store.exists(SKIP_FILE):
             return self._finish("escape", load_record(self.store), False, heartbeats)
         record = load_record(self.store)
+        self.loaded = record
         if record.phase == "STARTING" and record.streak >= MAINTENANCE_STREAK:
             return self._finish("maintenance", record, False, heartbeats)
-        if self.fault == "before_loop":
-            streak = record.streak + 1 if record.phase == "STARTING" else 1
-            written = self._write("STARTING", streak, next_generation(record))
-            mode = "maintenance" if streak >= MAINTENANCE_STREAK else "failed"
-            return self._finish(mode, written, True, heartbeats)
-        if self.fault is not None:
-            raise ValueError("unknown fault")
-        written = self._write("RUNNING", 0, next_generation(record))
-        self.watchdog.enable(WDT_TIMEOUT_S)
+        streak = record.streak + 1 if record.phase == "STARTING" else 1
+        written, committed = self._write("STARTING", streak, next_generation(record))
         self.allow_camera = True
-        result = self._finish("measure", written, True, 0)
-        if self.camera_import is not None:
-            self.camera_import()
-        return result
+        return self._finish("starting", written, committed, 0)
+
+    def import_camera(self, camera_import):
+        """Camera init stays before the watchdog. A hang leaves STARTING on disk."""
+        if self.mode != "starting":
+            raise RuntimeError("camera import is only allowed after a STARTING commit")
+        if self.watchdog.enabled or self.watchdog.expired:
+            raise RuntimeError("watchdog must stay off through camera init")
+        if camera_import is not None:
+            camera_import()
+        if self.watchdog.enabled or self.watchdog.expired or self.watchdog.resets:
+            raise RuntimeError("camera init armed or tripped the watchdog")
 
     def on_frame_complete(self):
         if self.mode != "measure":
@@ -316,37 +321,49 @@ class BootSession:
             raise RuntimeError("fault hold changed boot state or watchdog")
 
     def run_frames(self, clock, frame, count, deadline_s):
-        """Run a bounded measurement. Feed only after a frame returns in time."""
-        if self.mode != "measure" or self._commits != 1:
-            raise RuntimeError("measurement requires the single RUNNING commit")
+        """Count healthy frames. Arm the watchdog only after RUNNING is stored."""
+        if self.mode not in ("starting", "measure"):
+            raise RuntimeError("frames require a boot that is still allowed to start")
         if count < 0 or deadline_s < 0:
             raise ValueError("frame budget must be >= 0")
-        commits = self._commits
         completed = 0
         consecutive_failures = 0
-        while completed < count and clock.now < deadline_s and self.mode == "measure":
+        while completed < count and clock.now < deadline_s and self.mode in ("starting", "measure"):
+            armed_before = self.watchdog.enabled
             try:
                 outcome = frame()
             except Exception:
-                if self.watchdog.observe(clock.now):
+                if armed_before and self.watchdog.observe(clock.now):
                     self._stop_measurement("watchdog_expired")
                     break
+                self.healthy = 0
                 consecutive_failures += 1
                 if consecutive_failures >= RUNTIME_FAIL_LIMIT:
                     self._stop_measurement("faulted")
                 continue
-            if self.watchdog.observe(clock.now):
+            if armed_before and self.watchdog.observe(clock.now):
                 self._stop_measurement("watchdog_expired")
                 break
             consecutive_failures = 0
+            self.healthy += 1
             completed += 1
             if outcome == "stream_error":
                 self.note_stream_error()
-            self.on_frame_complete()
-            self.watchdog.note_feed_time(clock.now)
-        if self._commits != commits:
-            raise RuntimeError("frame loop wrote boot state")
+            if self.mode == "starting" and self.healthy >= HEALTHY_FRAMES:
+                self._promote(clock)
+            if self.mode == "measure":
+                self.on_frame_complete()
+                self.watchdog.note_feed_time(clock.now)
         return completed
+
+    def _promote(self, clock):
+        written, committed = self._write("RUNNING", 0, next_generation(self.record))
+        self.record = written
+        self.wrote = committed
+        if not committed:
+            return
+        self.watchdog.enable(WDT_TIMEOUT_S, now=clock.now)
+        self.mode = "measure"
 
     def _stop_measurement(self, mode):
         self.mode = mode
@@ -354,24 +371,30 @@ class BootSession:
         self.watchdog.disable()
 
     def note_stream_error(self):
-        if self.mode != "measure":
-            raise RuntimeError("stream error outside measurement")
+        if self.mode not in ("starting", "measure"):
+            raise RuntimeError("stream error outside an allowed boot")
         self.link.send(STATE_BOOT, ERR_STREAM, 3)
 
     def _write(self, phase, streak, generation):
-        if self._commits:
-            raise RuntimeError("second boot-state write")
-        self._commits = 1
+        if self._commits >= WRITE_BUDGET:
+            raise RuntimeError("boot state write budget is 2")
+        self._commits += 1
         data = format_record(phase, streak, generation)
-        self.store.commit(STATE_FILE, TEMP_FILE, data)
-        return BootRecord(phase, streak, generation, False)
+        record = BootRecord(phase, streak, generation, False)
+        try:
+            self.store.commit(STATE_FILE, TEMP_FILE, data)
+        except OSError:
+            self.write_warning = True
+            self.link.send(STATE_BOOT, ERR_UNKNOWN, 0)
+            return record, False
+        return record, True
 
     def _finish(self, mode, record, wrote, heartbeats):
         self.mode = mode
         self.record = record
         self.wrote = wrote
-        if mode != "measure":
-            self.allow_camera = False
+        self.allow_camera = mode == "starting"
+        if mode not in ("measure", "starting"):
             for _ in range(heartbeats):
                 self.link.send(STATE_FAULT, ERR_UNKNOWN, 0)
         return self

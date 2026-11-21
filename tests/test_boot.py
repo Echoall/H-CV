@@ -1,7 +1,8 @@
 """Computer-side checks for the manual boot prototype.
 
-Expected streaks come from the approved rule: one unfinished STARTING is a
-single count, and the second consecutive one enters maintenance.
+A hung init leaves the STARTING record written at power-on. The next boot
+still starts when that streak is 1. The boot that reads streak 2 enters
+maintenance. The watchdog stays off until 90 healthy frames have stored RUNNING.
 """
 
 from pathlib import Path
@@ -10,7 +11,9 @@ from k230.hcv.proto import crc8
 from k230.hcv.boot import (
     ERR_STREAM,
     ERR_UNKNOWN,
+    HEALTHY_FRAMES,
     SKIP_FILE,
+    STATE_BOOT,
     STATE_FAULT,
     WDT_TIMEOUT_S,
     BootSession,
@@ -30,102 +33,113 @@ def _line(phase, streak, generation):
     return (body + " %02X\n" % crc8(body.encode("ascii"))).encode("ascii")
 
 
-def _session(store, fault=None, ctrl_c=False, link=None, camera_import=None,
-             heartbeats=1):
+def _session(store, ctrl_c=False, link=None):
     if link is None:
         link = StatusLink()
     watchdog = SimulatedWatchdog()
-    session = BootSession(
-        store, link, watchdog, ctrl_c=ctrl_c, fault=fault,
-        camera_import=camera_import,
-    )
+    session = BootSession(store, link, watchdog, ctrl_c=ctrl_c)
     return session, watchdog, link
+
+
+def _healthy(session, count=HEALTHY_FRAMES, clock=None):
+    if clock is None:
+        clock = ManualClock()
+    return session.run_frames(clock, lambda: None, count=count, deadline_s=30.0)
 
 
 def _statuses(link):
     return [frame[5] for frame in link.sent]
 
 
-def test_one_fault_is_not_maintenance_and_the_second_is():
+def test_hung_init_counts_once_and_the_third_boot_maintains():
     store = MemoryStore()
-    first, watchdog, _link = _session(store, fault="before_loop")
-    failed = first.run()
-    assert failed.mode == "failed"
-    assert failed.wrote is True
-    assert failed.record.phase == "STARTING"
-    assert failed.record.streak == 1
-    assert failed.allow_camera is False
+    first, watchdog, _link = _session(store)
+    started = first.run()
+    assert started.mode == "starting"
+    assert started.record.phase == "STARTING"
+    assert started.record.streak == 1
+    assert started.allow_camera is True
     assert watchdog.enabled is False
-    assert watchdog.feeds == 0
+    # Init never returns, so RUNNING is not written.
 
-    second, watchdog2, link2 = _session(store, fault="before_loop", heartbeats=3)
-    stopped = second.run(heartbeats=3)
-    assert stopped.mode == "maintenance"
-    assert stopped.record.streak == 2
+    second, watchdog2, _link2 = _session(store)
+    again = second.run()
+    assert again.loaded.streak == 1
+    assert again.mode == "starting"
+    assert again.record.streak == 2
     assert watchdog2.enabled is False
-    assert _statuses(link2) == [STATE_FAULT, STATE_FAULT, STATE_FAULT]
-    assert link2.sent[0][6] == ERR_UNKNOWN
 
-    third, watchdog3, _link3 = _session(store, fault=None)
-    held = third.run()
+    third, watchdog3, link3 = _session(store)
+    held = third.run(heartbeats=3)
+    assert held.loaded.streak == 2
     assert held.mode == "maintenance"
     assert held.wrote is False
     assert held.allow_camera is False
     assert watchdog3.enabled is False
+    assert _statuses(link3) == [STATE_FAULT, STATE_FAULT, STATE_FAULT]
+    assert link3.sent[0][6] == ERR_UNKNOWN
     assert store.commits == 2
 
 
-def test_success_after_one_fault_clears_the_streak_and_arms_sim_wdt():
+def test_camera_init_runs_while_starting_and_before_the_watchdog():
     store = MemoryStore()
-    failed, _watchdog, _link = _session(store, fault="before_loop")
-    assert failed.run().mode == "failed"
-
-    order = []
     watchdog = SimulatedWatchdog()
+    order = []
     original_enable = watchdog.enable
 
-    def enable(timeout_s):
-        order.append(("enable", timeout_s))
-        original_enable(timeout_s)
+    def enable(timeout_s, now=0.0):
+        order.append("enable")
+        original_enable(timeout_s, now)
 
     watchdog.enable = enable
+    session = BootSession(store, StatusLink(), watchdog)
+    assert session.run().mode == "starting"
 
     def camera():
-        order.append(("camera", load_record(store).phase))
+        order.append(load_record(store).phase)
+        assert watchdog.enabled is False
 
-    link = StatusLink()
-    session = BootSession(store, link, watchdog, camera_import=camera)
-    result = session.run()
-    assert result.mode == "measure"
-    assert result.allow_camera is True
+    session.import_camera(camera)
+    assert order == ["STARTING"]
+    assert _healthy(session) == HEALTHY_FRAMES
+    assert order == ["STARTING", "enable"]
+    assert session.mode == "measure"
     assert watchdog.timeout_s == WDT_TIMEOUT_S
-    assert order == [("enable", 1.0), ("camera", "RUNNING")]
-    session.on_frame_complete()
     assert watchdog.feeds == 1
-    assert link.sent == []
-
-    again, _watchdog2, _link2 = _session(store, fault="before_loop")
-    assert again.run().mode == "failed"
-    assert again.record.streak == 1
+    assert load_record(store).phase == "RUNNING"
+    assert load_record(store).streak == 0
 
 
-def test_running_power_loss_counts_once():
+def test_running_power_loss_starts_again_at_streak_one():
     store = MemoryStore()
-    ok, _watchdog, _link = _session(store)
-    assert ok.run().mode == "measure"
-    lost, _watchdog2, _link2 = _session(store, fault="before_loop")
+    done, _watchdog, _link = _session(store)
+    assert done.run().mode == "starting"
+    assert _healthy(done) == HEALTHY_FRAMES
+    assert load_record(store).phase == "RUNNING"
+
+    lost, watchdog, _link2 = _session(store)
     result = lost.run()
-    assert result.mode == "failed"
+    assert result.loaded.phase == "RUNNING"
+    assert result.mode == "starting"
     assert result.record.streak == 1
+    assert watchdog.enabled is False
 
 
 def test_corrupt_commit_is_one_starting_and_a_torn_temp_is_ignored():
     store = MemoryStore()
     store.files["boot.state"] = b"HCVBOOT1 STARTING\n"
-    measured, _watchdog, _link = _session(store)
-    assert measured.run().mode == "measure"
-    assert measured.record.phase == "RUNNING"
-    assert measured.record.streak == 0
+    measured, watchdog, _link = _session(store)
+    result = measured.run()
+    assert result.loaded.corrupt is True
+    assert result.loaded.phase == "STARTING"
+    assert result.loaded.streak == 1
+    assert result.mode == "starting"
+    assert result.record.streak == 2
+    assert watchdog.enabled is False
+
+    follow, watchdog2, _link2 = _session(store)
+    assert follow.run().mode == "maintenance"
+    assert watchdog2.enabled is False
 
     torn = MemoryStore()
     torn.files["boot.state"] = _line("RUNNING", 0, 4)
@@ -135,38 +149,31 @@ def test_corrupt_commit_is_one_starting_and_a_torn_temp_is_ignored():
     assert seen.generation == 4
     assert seen.corrupt is False
 
-    both_bad = MemoryStore()
-    both_bad.files["boot.state"] = b"??"
-    both_bad.files["boot.state.tmp"] = b"??"
-    assert load_record(both_bad).corrupt is True
-    faulted, _watchdog2, _link2 = _session(both_bad, fault="before_loop")
-    assert faulted.run().mode == "maintenance"
-    assert faulted.record.streak == 2
 
-
-def test_complete_temp_survives_a_lost_rename():
+def test_complete_temp_survives_a_lost_rename_and_measurement_continues():
     store = MemoryStore()
     store.fail_after_temp = True
-    session, watchdog, _link = _session(store, fault="before_loop")
-    try:
-        session.run()
-    except OSError as error:
-        assert "rename" in str(error)
-    else:
-        raise AssertionError("rename failure did not surface")
+    session, watchdog, link = _session(store)
+    result = session.run()
+    assert result.mode == "starting"
+    assert result.write_warning is True
     assert watchdog.enabled is False
     assert "boot.state" not in store.files
     assert store.commits == 1
+    assert link.sent[-1][5] == STATE_BOOT
+    assert link.sent[-1][6] == ERR_UNKNOWN
     kept = load_record(store)
     assert kept.phase == "STARTING"
     assert kept.streak == 1
     assert kept.corrupt is False
+    assert session.run_frames(ManualClock(), lambda: None, count=1, deadline_s=1.0) == 1
+    assert watchdog.enabled is False
 
 
 def test_skip_and_ctrl_c_escape_without_a_write_or_watchdog():
     store = MemoryStore()
     store.files[SKIP_FILE] = b""
-    skipped, watchdog, link = _session(store, fault="before_loop")
+    skipped, watchdog, link = _session(store)
     result = skipped.run()
     assert result.mode == "escape"
     assert result.wrote is False
@@ -183,19 +190,22 @@ def test_skip_and_ctrl_c_escape_without_a_write_or_watchdog():
     assert link2.sent[0][5] == STATE_FAULT
 
 
-def test_stream_error_does_not_write_or_stop_the_watchdog():
+def test_init_taking_three_seconds_does_not_arm_the_watchdog():
     store = MemoryStore()
-    session, watchdog, link = _session(store)
-    assert session.run().mode == "measure"
-    commits = store.commits
-    session.note_stream_error()
-    session.on_frame_complete()
-    assert store.commits == commits
-    assert load_record(store).phase == "RUNNING"
-    assert watchdog.enabled is True
-    assert watchdog.feeds == 1
-    assert link.sent[-1][6] == ERR_STREAM
-    assert link.sent[-1][12] == 3
+    session, watchdog, _link = _session(store)
+    assert session.run().mode == "starting"
+    clock = ManualClock()
+
+    def init():
+        clock.sleep(3.0)
+
+    session.import_camera(init)
+    assert watchdog.enabled is False
+    assert watchdog.observe(clock.now) is False
+    assert watchdog.expired is False
+    assert watchdog.resets == 0
+    assert session.mode == "starting"
+    assert load_record(store).phase == "STARTING"
 
 
 def test_unavailable_uart_still_refuses_maintenance_without_wdt():
@@ -222,7 +232,7 @@ def test_parser_accepts_an_independently_checksummed_line():
 
 def test_directory_store_renames_one_record(tmp_path):
     store = DirectoryStore(str(tmp_path))
-    session, _watchdog, _link = _session(store, fault="before_loop")
+    session, _watchdog, _link = _session(store)
     result = session.run()
     assert result.record.streak == 1
     final = Path(tmp_path) / "boot.state"
@@ -268,10 +278,10 @@ def test_maintenance_holds_fault_at_two_hertz_until_the_guard():
     assert store.commits == 0
 
 
-def test_three_frame_faults_stop_without_a_second_write_or_feed():
+def test_three_frame_faults_leave_starting_and_do_not_arm_the_watchdog():
     store = MemoryStore()
     session, watchdog, link = _session(store)
-    assert session.run(heartbeats=0).mode == "measure"
+    assert session.run(heartbeats=0).mode == "starting"
 
     def frame():
         raise RuntimeError("injected before the frame finished")
@@ -283,14 +293,15 @@ def test_three_frame_faults_stop_without_a_second_write_or_feed():
     assert watchdog.enabled is False
     assert watchdog.resets == 0
     assert store.commits == 1
+    assert load_record(store).phase == "STARTING"
     session.hold(ManualClock(), deadline_s=0.5)
     assert _statuses(link) == [STATE_FAULT]
 
 
-def test_one_frame_fault_then_a_good_frame_still_feeds():
+def test_ninety_healthy_frames_after_one_fault_then_feed():
     store = MemoryStore()
     session, watchdog, _link = _session(store)
-    assert session.run().mode == "measure"
+    assert session.run().mode == "starting"
     seen = {"n": 0}
 
     def frame():
@@ -299,43 +310,53 @@ def test_one_frame_fault_then_a_good_frame_still_feeds():
             raise RuntimeError("one injected fault")
         return None
 
-    completed = session.run_frames(ManualClock(), frame, count=1, deadline_s=5.0)
-    assert completed == 1
+    completed = session.run_frames(
+        ManualClock(), frame, count=HEALTHY_FRAMES, deadline_s=30.0,
+    )
+    assert completed == HEALTHY_FRAMES
     assert session.mode == "measure"
     assert watchdog.feeds == 1
-    assert store.commits == 1
+    assert store.commits == 2
+    assert load_record(store).streak == 0
 
 
-def test_a_late_frame_expires_the_sim_watchdog_without_reset_or_feed():
+def test_a_slow_frame_after_arming_expires_without_a_hardware_reset():
     store = MemoryStore()
     session, watchdog, _link = _session(store)
-    assert session.run().mode == "measure"
+    assert session.run().mode == "starting"
     clock = ManualClock()
+    assert _healthy(session, clock=clock) == HEALTHY_FRAMES
+    feeds = watchdog.feeds
 
     def frame():
         clock.sleep(WDT_TIMEOUT_S)
         return None
 
-    completed = session.run_frames(clock, frame, count=4, deadline_s=5.0)
+    completed = session.run_frames(clock, frame, count=1, deadline_s=30.0)
     assert completed == 0
     assert session.mode == "watchdog_expired"
     assert watchdog.expired is True
-    assert watchdog.feeds == 0
+    assert watchdog.feeds == feeds
     assert watchdog.resets == 0
-    assert store.commits == 1
 
 
-def test_stream_error_inside_the_frame_loop_still_feeds_once():
+def test_stream_error_on_the_ninetieth_frame_still_arms_and_feeds():
     store = MemoryStore()
     session, watchdog, link = _session(store)
-    assert session.run().mode == "measure"
-    completed = session.run_frames(
-        ManualClock(), lambda: "stream_error", count=1, deadline_s=5.0,
-    )
-    assert completed == 1
+    assert session.run().mode == "starting"
+    seen = {"n": 0}
+
+    def frame():
+        seen["n"] += 1
+        if seen["n"] == HEALTHY_FRAMES:
+            return "stream_error"
+        return None
+
+    completed = session.run_frames(ManualClock(), frame, count=HEALTHY_FRAMES, deadline_s=30.0)
+    assert completed == HEALTHY_FRAMES
     assert session.mode == "measure"
     assert watchdog.feeds == 1
-    assert store.commits == 1
+    assert store.commits == 2
     assert link.sent[-1][6] == ERR_STREAM
     assert link.sent[-1][12] == 3
 
