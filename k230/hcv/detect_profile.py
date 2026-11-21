@@ -137,8 +137,13 @@ class ProfileDetector:
         else:
             vertical = absolute(column - baseline_rows)
         peak = float(np.max(vertical))
-        above = np.where(vertical >= peak * 0.5)[0]
-        return int(above[-1] - above[0] + 1) if above.size else 0
+        above_values = np.where(
+            vertical >= peak * 0.5,
+            arange(rows),
+            -1,
+        )
+        above = [int(value) for value in above_values if int(value) >= 0]
+        return int(above[-1] - above[0] + 1) if above else 0
 
     def update(self, profile, predicted_u=None):
         profile = array(profile, dtype=float)
