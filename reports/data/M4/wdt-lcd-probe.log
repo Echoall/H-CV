@@ -1,0 +1,23 @@
+BEFORE_TICKS_MS 41000
+BOARD 0.04 WDT_ARMED 41038
+BOARD 0.04 WDT_FEED display 41039
+BOARD 0.069 LCD_INIT_OK
+BOARD 0.069 WDT_FEED media 41067
+BOARD 0.069 vb common pool count 2
+BOARD 0.07 MEDIA_INIT_OK
+BOARD 0.07 WDT_FEED jpeg_load 41068
+BOARD 0.076 JPEG_LOAD_OK
+BOARD 0.076 WDT_FEED rgb_convert 41075
+BOARD 0.079 RGB_CONVERT_OK
+BOARD 0.08 RECTANGLE_OK
+BOARD 0.08 WDT_FEED lcd_show 41078
+BOARD 0.081 Traceback (most recent call last):
+BOARD 0.081 File "<stdin>", line 31, in <module>
+BOARD 0.082 File "media/display.py", line 1, in show_image
+BOARD 0.082 File "media/display.py", line 1, in _config_layer
+BOARD 0.082 ValueError: width must be an integral multiple of 8 pixels
+USB_HANDLE_DISCONNECTED 5.685 ClearCommError failed (PermissionError(13, '�豸��ʶ������', None, 22))
+SECONDS_FROM_LAST_FEED_TO_USB_DROP 5.606
+AFTER_TICKS_MS 1763
+RECOVERED_USB COM3
+BOARD_UPTIME_RESET_CONFIRMED

@@ -1,0 +1,15 @@
+2026/11/21 19:35:29 INF MediaMTX v1.21.4, windows, amd64
+2026/11/21 19:35:29 INF configuration loaded from <USER_PROFILE>\AppData\Local\Temp\hcv-vlc-test\validated-libvlc-v2\mediamtx.yml
+2026/11/21 19:35:29 INF [RTSP] started with listeners on 127.0.0.1:58660 (TCP/RTSP)
+2026/11/21 19:35:29 INF [RTSP] [conn 127.0.0.1:58661] opened
+2026/11/21 19:35:29 INF [RTSP] [session 6db48a03] created by 127.0.0.1:58661
+2026/11/21 19:35:29 INF [path hcv] stream is available and online, 1 track (H264)
+2026/11/21 19:35:29 INF [RTSP] [session 6db48a03] is publishing to path 'hcv'
+2026/11/21 19:35:29 INF [path hcv] RTP packets are too big (1460 > 1440), remuxing them into smaller ones
+2026/11/21 19:35:30 INF [RTSP] [conn 127.0.0.1:58662] opened
+2026/11/21 19:35:30 INF [RTSP] [session b5502d68] created by 127.0.0.1:58662
+2026/11/21 19:35:30 INF [RTSP] [session b5502d68] is reading from path 'hcv', with TCP, 1 track (H264)
+2026/11/21 19:35:35 INF [RTSP] [session b5502d68] destroyed: torn down by 127.0.0.1:58662
+2026/11/21 19:35:35 INF [RTSP] [conn 127.0.0.1:58662] closed: read tcp 127.0.0.1:58660->127.0.0.1:58662: wsarecv: An existing connection was forcibly closed by the remote host.
+2026/11/21 19:35:35 INF [RTSP] [conn 127.0.0.1:58661] closed: read tcp 127.0.0.1:58660->127.0.0.1:58661: wsarecv: An existing connection was forcibly closed by the remote host.
+2026/11/21 19:35:35 INF [RTSP] [session 6db48a03] destroyed: not in use

@@ -146,3 +146,57 @@ int main(void)
             assert record in py_records
         else:
             assert record not in py_records
+
+
+def test_mcu_example_only_publishes_real_calibrated_measurements(tmp_path):
+    if shutil.which("gcc") is None:
+        pytest.skip("gcc not found")
+    source = Path(__file__).resolve().parents[1] / "protocol" / "c"
+    harness = tmp_path / "example_check.c"
+    executable = tmp_path / "example_check.exe"
+    harness.write_text(
+        r'''
+#include <assert.h>
+#include "hcv_proto.h"
+
+void protocol_init(void);
+void uart_rx_interrupt(uint8_t byte);
+static unsigned samples;
+
+void control_accept_ball(int16_t position, int16_t velocity, uint16_t t_cap_ms)
+{
+    assert(position == 520 && velocity == -1234 && t_cap_ms == 65532u);
+    ++samples;
+}
+
+int main(void)
+{
+    const uint8_t statuses[] = {0x01, 0x06, 0x04, 0x07, 0x85, 0x05, 0x25, 0x05};
+    const unsigned counts[] = {0, 0, 0, 0, 0, 1, 2, 2};
+    hcv_ball_t ball = {65532u, 0, 240, 523, 520, -1234, 12, HCV_INV};
+    uint8_t bytes[19];
+    size_t item, index, length;
+
+    protocol_init();
+    for (item = 0; item < sizeof(statuses); ++item) {
+        ball.status = statuses[item];
+        if (item == 7)
+            ball.pos_filt = HCV_INV;
+        length = hcv_encode_ball((uint8_t)item, &ball, bytes, sizeof(bytes));
+        assert(length == sizeof(bytes));
+        for (index = 0; index < length; ++index)
+            uart_rx_interrupt(bytes[index]);
+        assert(samples == counts[item]);
+    }
+    return 0;
+}
+''', encoding="utf-8",
+    )
+    compile_result = subprocess.run(
+        ["gcc", "-std=c99", "-Wall", "-Wextra", "-Werror", "-I", str(source),
+         str(source / "hcv_proto.c"), str(source / "example_mcu.c"), str(harness),
+         "-o", str(executable)],
+        capture_output=True, text=True,
+    )
+    assert compile_result.returncode == 0, compile_result.stderr
+    subprocess.run([str(executable)], check=True)

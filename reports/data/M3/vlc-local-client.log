@@ -1,0 +1,219 @@
+-- logger module started --
+main debug: VLC media player - 3.0.23 Vetinari
+main debug: Copyright © 1996-2025 the VideoLAN team
+main debug: revision 3.0.23-2-0-g79128878dd
+main debug: configured with /builds/videolan/vlc/extras/package/win32/../../../configure  '--enable-update-check' '--enable-lua' '--enable-faad' '--enable-flac' '--enable-theora' '--enable-avcodec' '--enable-merge-ffmpeg' '--enable-mpc' '--enable-libass' '--enable-schroedinger' '--enable-realrtsp' '--enable-live555' '--enable-shout' '--enable-goom' '--enable-sse' '--enable-mmx' '--enable-libcddb' '--enable-zvbi' '--disable-telx' '--enable-nls' '--host=x86_64-w64-mingw32' '--with-contrib=../contrib/x86_64-w64-mingw32' '--with-breakpad=https://win.crashes.videolan.org' '--enable-qt' '--enable-skins2' '--enable-dvdread' '--enable-caca' 'host_alias=x86_64-w64-mingw32' 'CFLAGS= -D__MSVCRT_VERSION__=0x700 -D_WIN32_WINNT=0x0502 -DWINVER=0x0502 ' 'CPPFLAGS= -D__MSVCRT_VERSION__=0x700 -D_WIN32_WINNT=0x0502 -DWINVER=0x0502' 'CXXFLAGS= -D__MSVCRT_VERSION__=0x700 -D_WIN32_WINNT=0x0502 -DWINVER=0x0502 ' 'PKG_CONFIG=pkg-config' 'PKG_CONFIG_LIBDIR=/usr/x86_64-w64-mingw32/lib/pkgconfig:/usr/lib/x86_64-w64-mingw32/pkgconfig'
+main debug: using multimedia timers as clock source
+main debug:  min period: 1 ms, max period: 1000000 ms
+main debug: searching plug-in modules
+main debug: loading plugins cache file <USER_PROFILE>\AppData\Local\Temp\hcv-vlc-test\vlc-3.0.23\plugins\plugins.dat
+main warning: cannot read <USER_PROFILE>\AppData\Local\Temp\hcv-vlc-test\vlc-3.0.23\plugins\plugins.dat: No error
+main debug: recursively browsing `<USER_PROFILE>\AppData\Local\Temp\hcv-vlc-test\vlc-3.0.23\plugins'
+main debug: plug-ins loaded: 497 modules
+main debug: looking for logger module matching "any": 2 candidates
+file debug: opening logfile `<USER_PROFILE>\AppData\Local\Temp\hcv-vlc-test\validated-libvlc-v2\client.log'
+main debug: using logger module "file"
+main debug: translation test: code is "C"
+main debug: looking for keystore module matching "memory": 3 candidates
+main debug: using keystore module "memory"
+main debug: CPU has capabilities MMX MMXEXT SSE SSE2 SSE3 SSSE3 SSE4.1 SSE4.2 FPU
+main debug: creating audio output
+main debug: looking for audio output module matching "any": 6 candidates
+mmdevice debug: using default device
+mmdevice debug: version 2 session control unavailable
+mmdevice debug: display name changed: VLC media player (LibVLC 3.0.23)
+mmdevice debug: volume from -63.000000 dB to +0.000000 dB with 0.500000 dB increments
+main debug: using audio output module "mmdevice"
+main debug: keeping audio output
+main debug: Creating an input for 'rtsp://127.0.0.1:58660/hcv'
+main debug: using sout chain=`duplicate{dst=display,dst=std{access=file,mux=mp4,dst="<USER_PROFILE>/AppData/Local/Temp/hcv-vlc-test/validated-libvlc-v2/received sample.mp4"}}'
+main debug: stream=`duplicate'
+main debug: looking for sout stream module matching "duplicate": 23 candidates
+duplicate debug: creating 'duplicate'
+duplicate debug:  * adding `display'
+main debug: stream=`display'
+main debug: looking for sout stream module matching "display": 23 candidates
+main debug: using sout stream module "display"
+duplicate debug:  * adding `std{access=file,mux=mp4,dst="<USER_PROFILE>/AppData/Local/Temp/hcv-vlc-test/validated-libvlc-v2/received sample.mp4"}'
+main debug: stream=`std'
+main debug: looking for sout stream module matching "std": 23 candidates
+main debug: set config option: sout-standard-access to file
+main debug: set config option: sout-standard-mux to mp4
+main debug: set config option: sout-standard-dst to <USER_PROFILE>/AppData/Local/Temp/hcv-vlc-test/validated-libvlc-v2/received sample.mp4
+main debug: looking for sout access module matching "file": 11 candidates
+file debug: file access output opened (<USER_PROFILE>/AppData/Local/Temp/hcv-vlc-test/validated-libvlc-v2/received sample.mp4)
+main debug: using sout access module "file"
+main debug: looking for sout mux module matching "mp4": 11 candidates
+mp4 debug: Mp4 muxer opened
+main debug: using sout mux module "mp4"
+stream_out_standard debug: using `file/mp4://<USER_PROFILE>/AppData/Local/Temp/hcv-vlc-test/validated-libvlc-v2/received sample.mp4'
+main debug: using sout stream module "stream_out_standard"
+main debug: using sout stream module "duplicate"
+main debug: using timeshift granularity of 50 MiB
+main debug: using timeshift path: <USER_PROFILE>\AppData\Local\Temp
+main debug: `rtsp://127.0.0.1:58660/hcv' gives access `rtsp' demux `any' path `127.0.0.1:58660/hcv'
+main debug: creating demux: access='rtsp' demux='any' location='127.0.0.1:58660/hcv' file='\\127.0.0.1:58660\hcv'
+main debug: looking for access_demux module matching "rtsp": 15 candidates
+live555 debug: version 2016.11.28
+live555 debug: RTP subsession 'video/H264'
+main debug: selecting program id=0
+live555 debug: setup start: 0.000000 stop:0.000000
+live555 debug: We have a timeout of 55 seconds
+live555 debug: play start: 0.000000 stop:0.000000
+main debug: using access_demux module "live555"
+main debug: looking for packetizer module matching "any": 25 candidates
+h264 debug: found NAL_SPS (sps_id=0)
+h264 debug: found NAL_PPS (pps_id=0 sps_id=0)
+main debug: using packetizer module "h264"
+main debug: starting in async mode
+main debug: looking for meta reader module matching "any": 2 candidates
+lua debug: Trying Lua scripts in <USER_PROFILE>\AppData\Roaming\vlc\lua\meta\reader
+lua debug: Trying Lua scripts in <USER_PROFILE>\AppData\Local\Temp\hcv-vlc-test\vlc-3.0.23\lua\meta\reader
+lua debug: Trying Lua playlist script <USER_PROFILE>\AppData\Local\Temp\hcv-vlc-test\vlc-3.0.23\lua\meta\reader\filename.luac
+main debug: no meta reader modules matched
+main debug: `rtsp://127.0.0.1:58660/hcv' successfully opened
+main debug: switching to sync mode
+main debug: Buffering 0%
+main debug: Buffering 4%
+main debug: Buffering 8%
+main debug: Buffering 12%
+main debug: Buffering 20%
+main debug: Buffering 29%
+main debug: Buffering 37%
+main debug: Buffering 49%
+main debug: Buffering 62%
+main debug: Buffering 74%
+main debug: Stream buffering done (283 ms in 124 ms)
+main error: buffer deadlock prevented
+main debug: Decoder wait done in 1 ms
+live555 debug: tk->rtpSource->hasBeenSynchronizedUsingRTCP()
+main debug: adding a new sout input for `h264` (sout_input: 0000029fe753b260)
+duplicate debug: duplicated a new stream codec=h264 (es=0 group=0)
+main debug: looking for video decoder module matching "any": 19 candidates
+avcodec debug: using ffmpeg Lavc58.134.100
+avcodec debug: CPU flags: 0x000fd3db
+avcodec debug: allowing 6 thread(s) for decoding
+avcodec debug: codec (h264) started
+avcodec debug: using frame thread mode with 6 threads
+main debug: using video decoder module "avcodec"
+duplicate debug:     - added for output 0
+main debug: adding a new input
+mp4 debug: adding input
+duplicate debug:     - added for output 1
+avcodec debug: available hardware decoder output format 53 (dxva2_vld)
+avcodec debug: available hardware decoder output format 118 (d3d11va_vld)
+avcodec debug: available hardware decoder output format 174 (d3d11)
+avcodec debug: available software decoder output format 0 (yuv420p)
+avcodec debug: trying format d3d11va_vld
+main debug: looking for text renderer module matching "any": 3 candidates
+freetype debug: Using DWrite backend
+freetype debug: DWrite_GetFamily(): family name: Arial
+freetype debug: DWrite_ParseFamily(): using font at index 0 with weight 400 for bold: 0, italic: 0
+freetype debug: DWrite_ParseFamily(): using font at index 1 with weight 700 for bold: 1, italic: 0
+freetype debug: DWrite_ParseFamily(): using font at index 2 with weight 400 for bold: 0, italic: 1
+freetype debug: DWrite_ParseFamily(): using font at index 3 with weight 700 for bold: 1, italic: 1
+main debug: using text renderer module "freetype"
+main debug: looking for video converter module matching "any": 24 candidates
+swscale debug: 32x32 (32x32) chroma: YUVA -> 16x16 (16x16) chroma: RGBA with scaling using Bicubic (good quality)
+main debug: using video converter module "swscale"
+main debug: looking for video converter module matching "any": 24 candidates
+yuvp debug: YUVP to YUVA converter
+main debug: using video converter module "yuvp"
+main debug: Deinterlacing available
+main debug: deinterlace -1, mode auto, is_needed 0
+main debug: looking for vout window module matching "any": 3 candidates
+main debug: no vout window modules matched
+main debug: Opening vout display wrapper
+main debug: looking for vout display module matching "dummy": 12 candidates
+main debug: using vout display module "vdummy"
+main debug: original format sz 320x192, of (0,0), vsz 320x192, 4cc DX11, sar 1:1, msk r0x0 g0x0 b0x0
+main debug: VoutDisplayEvent 'window state' 0
+main debug: VoutDisplayEvent 'window state' 0
+main debug: VoutDisplayEvent 'resize' 320x192
+main debug: looking for hw decoder module matching "any": 2 candidates
+d3d11va debug: Created the D3D11 device type 1 level b100.
+d3d11va debug: CreateDevice succeed
+d3d11va debug: - 'MPEG-2 & MPEG-1 variable-length decoder' is supported
+d3d11va debug: - 'MPEG-2 variable-length decoder' is supported
+d3d11va debug: - 'MPEG-1 variable-length decoder, no D pictures' is supported
+d3d11va debug: - 'VC-1 variable-length decoder' is supported
+d3d11va debug: - 'VC-1 variable-length decoder' is supported
+d3d11va debug: - 'Unknown decoder 0x32fcfe3f-0xde46-0x4a49-0x861bac71110649d5' is supported
+d3d11va debug: - 'H.264 stereo high profile, mbs flag set' is supported
+d3d11va debug: - 'H.264 stereo high profile' is supported
+d3d11va debug: - 'H.264 variable-length decoder, no film grain technology' is supported
+d3d11va debug: - 'Unknown decoder 0x0bac4fe5-0x1532-0x4429-0xa854f84de0264422' is supported
+d3d11va debug: - 'HEVC Main profile' is supported
+d3d11va debug: - 'HEVC Main 10 profile' is supported
+d3d11va debug: - 'Unknown decoder 0x1a72925f-0x0c2c-0x4f15-0x96fbb17d1473603f' is supported
+d3d11va debug: - 'Unknown decoder 0x15df9b21-0x06c4-0x47f1-0x841ea67c97d7f312' is supported
+d3d11va debug: - 'Unknown decoder 0x0bac4fe5-0x1532-0x4429-0xa854f84de04953db' is supported
+d3d11va debug: - 'Unknown decoder 0x55bcac81-0xf311-0x4093-0xa7d01cbc0b849bee' is supported
+d3d11va debug: - 'Unknown decoder 0x4008018f-0xf537-0x4b36-0x98cf61af8a2c1a33' is supported
+d3d11va debug: - 'Unknown decoder 0x0dabeffa-0x4458-0x4602-0xbc030795659d617c' is supported
+d3d11va debug: - 'Unknown decoder 0x9798634d-0xfe9d-0x48e5-0xb4dadbec45b3df01' is supported
+d3d11va debug: - 'MPEG-4 Part 2 variable-length decoder, Simple Profile' is supported
+d3d11va debug: - 'MPEG-4 Part 2 variable-length decoder, Simple&Advanced Profile, no GMC' is supported
+d3d11va debug: - 'MPEG-4 Part 2 nVidia bitstream decoder' is supported
+d3d11va debug: - 'Unknown decoder 0x33fcfe41-0xde46-0x4a49-0x861bac71110649d5' is supported
+d3d11va debug: - 'VP9 profile 0' is supported
+d3d11va debug: - 'VP9 profile 2' is supported
+d3d11va debug: - 'Unknown decoder 0xdda19dc7-0x93b5-0x49f5-0xa9b32bda28a2ce6e' is supported
+d3d11va debug: - 'AV1 Main profile 8' is supported
+d3d11va debug: - 'Unknown decoder 0x6affd11e-0x1d96-0x42b1-0xa21593a31f09a53d' is supported
+d3d11va debug: - 'Unknown decoder 0x914c84a3-0x4078-0x4fa9-0x984ce2f262cb5c9c' is supported
+d3d11va debug: - 'Unknown decoder 0x8a1a1031-0x29bc-0x46d0-0xa007e9b092ca6767' is supported
+d3d11va debug: Trying to use 'H.264 variable-length decoder, no film grain technology' as input
+d3d11va debug: NV12 output is supported for decoder H.264 variable-length decoder, no film grain technology.
+d3d11va debug: Using output format NV12 for decoder H.264 variable-length decoder, no film grain technology
+d3d11va debug: va_pool_SetupDecoder id 27 320x192 count: 24
+d3d11va debug: ID3D11VideoDecoderOutputView succeed with 24 surfaces (320x192)
+d3d11va debug: we got 3 decoder configurations
+d3d11va debug: configuration[0] ConfigBitstreamRaw 1
+d3d11va debug: configuration[1] ConfigBitstreamRaw 2
+d3d11va debug: configuration[2] ConfigBitstreamRaw 2
+d3d11va debug: DxCreateDecoderSurfaces succeed
+main debug: using hw decoder module "d3d11va"
+avcodec: Using D3D11VA (NVIDIA GeForce RTX 5060 Laptop GPU, vendor 10de(NVIDIA), device 2d59, revision a1) for hardware decoding
+main debug: auto hiding mouse cursor
+mp4 warning: i_length <= 0
+main debug: killing decoder fourcc `h264'
+main debug: removing module "h264"
+main debug: removing a sout input (sout_input: 0000029fe753b260)
+main debug: killing decoder fourcc `h264'
+main debug: removing module "avcodec"
+main debug: saving a free vout
+main debug: reusing provided vout
+mp4 debug: tk 1 elst media time 0 duration 4850953 offset 0
+mp4 debug: removing input
+main warning: no more input streams for this mux
+main debug: removing module "live555"
+main debug: Program doesn't contain anymore ES
+main debug: destroying useless sout
+main debug: destroying chain... (name=duplicate)
+main debug: removing module "duplicate"
+duplicate debug: closing a duplication
+main debug: destroying chain... (name=display)
+main debug: removing module "display"
+main debug: destroying useless vout
+main debug: removing module "vdummy"
+main debug: removing module "freetype"
+main debug: removing module "yuvp"
+main debug: removing module "swscale"
+main debug: destroying chain done
+main debug: destroying chain... (name=std)
+main debug: removing module "stream_out_standard"
+main debug: removing module "mp4"
+mp4 debug: Close
+mp4 debug: movie duration 4s
+mp4 debug: created 1 chunks (stco)
+main debug: removing module "file"
+file debug: file access output closed
+main debug: destroying chain done
+main debug: destroying chain done
+main debug: removing module "mmdevice"
+main debug: exiting
+main debug: no exit handler
+main debug: removing all interfaces
+main debug: removing module "memory"
+-- logger module stopped --

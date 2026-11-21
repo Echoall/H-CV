@@ -1,0 +1,37 @@
+{
+  "methods": [
+    {
+      "method": "mean",
+      "frames": 60,
+      "p50_us": 450,
+      "p95_us": 1254,
+      "max_us": 2983,
+      "alloc_first": 992,
+      "alloc_last": 992,
+      "alloc_max": 992,
+      "free": 10066688
+    },
+    {
+      "method": "sum",
+      "frames": 60,
+      "p50_us": 200,
+      "p95_us": 252,
+      "max_us": 292,
+      "alloc_first": 960,
+      "alloc_last": 960,
+      "alloc_max": 960,
+      "free": 10066656
+    },
+    {
+      "method": "scale",
+      "frames": 60,
+      "p50_us": 353,
+      "p95_us": 495,
+      "max_us": 2888,
+      "alloc_first": 576,
+      "alloc_last": 576,
+      "alloc_max": 576,
+      "free": 10066656
+    }
+  ]
+}

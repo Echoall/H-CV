@@ -117,6 +117,54 @@ def test_profile_update_image_and_result_have_unified_shape():
     assert isinstance(result[3], dict)
 
 
+def test_profile_m1_fast_path_detects_synthetic_ball():
+    reference_image, _ = generate_scene(
+        ball_x=-1000, noise=0, highlight=False, magnet_shadow=False
+    )
+    image, truth = generate_scene(
+        ball_s_mm=20, polarity="dark", highlight=True, seed=19
+    )
+    params = dict(PARAMS, polarity="dark", m1_fast=True)
+    detector = ProfileDetector(
+        np.mean(reference_image[166:214], axis=0), params, width=640
+    )
+    detector.update(np.mean(image[166:214], axis=0))
+    assert detector.found
+    assert detector.u == pytest.approx(truth["u_px"], abs=2.0)
+
+
+def test_profile_m1_fast_uint8_profile_matches_float_profile():
+    reference_image, _ = generate_scene(
+        ball_x=-1000, noise=0, highlight=False, magnet_shadow=False
+    )
+    image, truth = generate_scene(
+        ball_s_mm=20, polarity="dark", highlight=True, seed=19
+    )
+    params = dict(PARAMS, polarity="dark", m1_fast=True)
+    reference = np.mean(reference_image[166:214], axis=0)
+    profile = np.mean(image[166:214], axis=0)
+    regular = ProfileDetector(reference, params, width=640)
+    byte_path = ProfileDetector(reference, params, width=640)
+    regular.update(profile, predicted_u=truth["u_px"])
+    byte_path.update(profile.astype(np.uint8), predicted_u=truth["u_px"])
+    assert byte_path.found and regular.found
+    assert byte_path.u == regular.u
+    assert byte_path.quality == regular.quality
+
+
+def test_live_profile_handles_wide_affine_fit_on_uint8_input():
+    background = (40 + np.arange(640) // 4).astype(np.uint8)
+    roi = np.tile(background + 12, (48, 1))
+    roi[15:33, 312:328] -= 60
+    profile = (np.sum(roi, axis=0, dtype=np.uint16) // 48).astype(np.uint8)
+    detector = ProfileDetector(
+        background, dict(PARAMS, polarity="dark", m1_fast=True)
+    )
+    detector.update(profile, roi_pixels=roi.tobytes())
+    assert detector.found
+    assert detector.u == pytest.approx(319.5, abs=0.25)
+
+
 @pytest.mark.parametrize("kind", ["glare", "local_shadow"])
 @pytest.mark.parametrize("width", [12, 40, 60])
 @pytest.mark.parametrize("strength", [25, 40, 65])

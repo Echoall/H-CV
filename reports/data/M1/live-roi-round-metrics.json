@@ -1,0 +1,151 @@
+{
+  "sample_windows": 70,
+  "summary": {
+    "frames": 3144,
+    "elapsed_us": 35600918,
+    "dropped": 0,
+    "found": 0,
+    "valid": 0,
+    "predicted": 0,
+    "lost": 3144,
+    "rx_crc": 0,
+    "rx_len": 0,
+    "mem_free": 3736448
+  },
+  "max_sample_process_p95_us": 4402,
+  "max_sample_total_p95_us": 12735,
+  "max_sample_gc_us": 81647,
+  "max_sample_detect_p95_us": 4226,
+  "rounds": [
+    {
+      "round": 0,
+      "frames": 2702,
+      "dropped": 0,
+      "active_us": 30007754,
+      "valid": 0,
+      "gc_us": 81647,
+      "gc_dropped_est": 7,
+      "free": 4772896,
+      "detect_p99_max_us": 4226,
+      "detect_max_us": 5480,
+      "process_p99_max_us": 4402,
+      "process_max_us": 5647,
+      "total_p99_max_us": 12956,
+      "total_max_us": 14982,
+      "duration_dropped": 0
+    },
+    {
+      "round": 1,
+      "final": 1,
+      "frames": 442,
+      "dropped": 0,
+      "active_us": 4904664,
+      "valid": 0,
+      "gc_us": 0,
+      "gc_dropped_est": 0,
+      "free": 3736672,
+      "detect_p99_max_us": 3321,
+      "detect_max_us": 3475,
+      "process_p99_max_us": 3524,
+      "process_max_us": 3636,
+      "total_p99_max_us": 12921,
+      "total_max_us": 14512,
+      "duration_dropped": 0
+    }
+  ],
+  "active_us": 34912418,
+  "inter_round_gc_us": 81647,
+  "inter_round_gc_dropped_est": 7,
+  "active_duration_dropped": 0,
+  "duration_dropped_including_gc": 5,
+  "memory": [
+    {
+      "round": 0,
+      "phase": "start",
+      "mp_free": 3736320,
+      "sys_heap_free": 59568192,
+      "sys_page_free": 433356800,
+      "sys_mmz_free": 526442496
+    },
+    {
+      "round": 0,
+      "phase": "before_gc",
+      "mp_free": 522688,
+      "sys_heap_free": 59567232,
+      "sys_page_free": 429137920,
+      "sys_mmz_free": 526442496
+    },
+    {
+      "round": 0,
+      "phase": "after_gc",
+      "mp_free": 4772960,
+      "sys_heap_free": 59567872,
+      "sys_page_free": 432295936,
+      "sys_mmz_free": 526442496
+    },
+    {
+      "round": 1,
+      "phase": "stopped",
+      "mp_free": 3736672,
+      "sys_heap_free": 64476160,
+      "sys_page_free": 434667520,
+      "sys_mmz_free": 535822336
+    }
+  ],
+  "max_window_us": {
+    "snapshot": {
+      "p50": 6001,
+      "p95": 7635,
+      "p99": 7758,
+      "max": 9935
+    },
+    "detect": {
+      "p50": 4226,
+      "p95": 4226,
+      "p99": 4226,
+      "max": 5480
+    },
+    "map": {
+      "p50": 2,
+      "p95": 3,
+      "p99": 5,
+      "max": 95
+    },
+    "track": {
+      "p50": 13,
+      "p95": 19,
+      "p99": 104,
+      "max": 116
+    },
+    "pack": {
+      "p50": 123,
+      "p95": 210,
+      "p99": 215,
+      "max": 2357
+    },
+    "uart": {
+      "p50": 1645,
+      "p95": 1730,
+      "p99": 1738,
+      "max": 2488
+    },
+    "process": {
+      "p50": 4402,
+      "p95": 4402,
+      "p99": 4402,
+      "max": 5647
+    },
+    "total": {
+      "p50": 11043,
+      "p95": 12735,
+      "p99": 12956,
+      "max": 14982
+    },
+    "gc": {
+      "p50": 81647,
+      "p95": 81647,
+      "p99": 81647,
+      "max": 81647
+    }
+  }
+}
