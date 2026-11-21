@@ -43,6 +43,9 @@ def run(stage):
         "setbufs",
         "create_before_init",
         "link_before_init",
+        "create_link_init",
+        "link_init_create",
+        "init_create_link",
         "create_after_init",
         "link_after_init",
     )
@@ -93,7 +96,29 @@ def run(stage):
             print("HCV_BIND_STEP,media_init")
             tick()
 
-        if stage in ("create_before_init", "create_after_init", "link_before_init", "link_after_init"):
+        if stage in (
+            "create_before_init",
+            "create_after_init",
+            "link_before_init",
+            "link_after_init",
+            "create_link_init",
+            "link_init_create",
+            "init_create_link",
+        ):
+            if stage == "link_init_create":
+                source = sensor.bind_info(chn=1)["src"]
+                print("HCV_BIND_STEP,bind_info")
+                tick()
+                link = MediaManager.link(
+                    source,
+                    (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL),
+                )
+                print("HCV_BIND_STEP,media_link")
+                tick()
+                MediaManager.init()
+                media_started = True
+                print("HCV_BIND_STEP,media_init")
+                tick()
             checked(
                 venc.kd_mpi_venc_create_chn(CHANNEL, encoder_attributes(config)),
                 "create H.264 encoder",
@@ -102,16 +127,51 @@ def run(stage):
             print("HCV_BIND_STEP,encoder_created")
             tick()
 
-        if stage in ("link_before_init", "link_after_init"):
-            source = sensor.bind_info(chn=1)["src"]
-            print("HCV_BIND_STEP,bind_info")
-            tick()
-            link = MediaManager.link(
-                source,
-                (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL),
-            )
-            print("HCV_BIND_STEP,media_link")
-            tick()
+        if stage in ("link_before_init", "link_after_init", "create_link_init", "init_create_link"):
+            if stage == "init_create_link":
+                source = sensor.bind_info(chn=1)["src"]
+                print("HCV_BIND_STEP,bind_info")
+                tick()
+                link = MediaManager.link(
+                    source,
+                    (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL),
+                )
+                print("HCV_BIND_STEP,media_link")
+                tick()
+            elif stage == "create_link_init":
+                source = sensor.bind_info(chn=1)["src"]
+                print("HCV_BIND_STEP,bind_info")
+                tick()
+                link = MediaManager.link(
+                    source,
+                    (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL),
+                )
+                print("HCV_BIND_STEP,media_link")
+                tick()
+                MediaManager.init()
+                media_started = True
+                print("HCV_BIND_STEP,media_init")
+                tick()
+            elif stage == "link_before_init":
+                source = sensor.bind_info(chn=1)["src"]
+                print("HCV_BIND_STEP,bind_info")
+                tick()
+                link = MediaManager.link(
+                    source,
+                    (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL),
+                )
+                print("HCV_BIND_STEP,media_link")
+                tick()
+            elif stage == "link_after_init":
+                source = sensor.bind_info(chn=1)["src"]
+                print("HCV_BIND_STEP,bind_info")
+                tick()
+                link = MediaManager.link(
+                    source,
+                    (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL),
+                )
+                print("HCV_BIND_STEP,media_link")
+                tick()
     finally:
         try:
             if sensor_started:
