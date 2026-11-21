@@ -35,12 +35,14 @@ def main():
         [18.0, 48.0, 78.0],
         {
             "marker_v_px": 13,
-            "marker_width_px": 7,
-            "marker_min_depth": 8,
+            "marker_width_px": 10,
+            "marker_min_depth": 2,
             "polarity": "dark",
         },
     )
-    assert markers.update_image(marker_image).result()["count"] == 3
+    marker_result = markers.update_image(marker_image).result()
+    print(marker_result)
+    assert marker_result["count"] == 3
     mapped, mode, _ = compensate(45, (18, 48, 78), (20, 50, 80))
     assert mode == "FULL"
     assert abs(mapped - 47) < 0.01
