@@ -500,7 +500,7 @@ def _allocation_probe(
     return frame_count
 
 
-def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
+def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=None):
     """Run the bounded M1 loop and print machine-readable evidence lines."""
     config = load_config("/sdcard/hcv")
     warning, warning_err = runtime_config_warning(config)
@@ -749,6 +749,8 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
             uart_start = time.ticks_us()
             link.uart.write(ball_buffer)
             health.add("uart", time.ticks_diff(time.ticks_us(), uart_start))
+            if observe_ball is not None:
+                observe_ball(image, ball_buffer)
             health.add("total", time.ticks_diff(time.ticks_us(), loop_start))
             health.frame(t_cap_us)
             ball_seq = (ball_seq + 1) & 0xFF
