@@ -133,6 +133,25 @@ def test_profile_m1_fast_path_detects_synthetic_ball():
     assert detector.u == pytest.approx(truth["u_px"], abs=2.0)
 
 
+def test_profile_m1_fast_byte_profile_matches_regular_update():
+    reference_image, _ = generate_scene(
+        ball_x=-1000, noise=0, highlight=False, magnet_shadow=False
+    )
+    image, truth = generate_scene(
+        ball_s_mm=20, polarity="dark", highlight=True, seed=19
+    )
+    params = dict(PARAMS, polarity="dark", m1_fast=True)
+    reference = np.mean(reference_image[166:214], axis=0)
+    profile = np.mean(image[166:214], axis=0)
+    regular = ProfileDetector(reference, params, width=640)
+    byte_path = ProfileDetector(reference, params, width=640)
+    regular.update(profile, predicted_u=truth["u_px"])
+    profile_bytes = bytearray(int(value) for value in profile)
+    byte_path.update_bytes(profile_bytes, predicted_u=truth["u_px"])
+    assert byte_path.found == regular.found
+    assert byte_path.u == pytest.approx(regular.u, abs=1.0)
+
+
 @pytest.mark.parametrize("kind", ["glare", "local_shadow"])
 @pytest.mark.parametrize("width", [12, 40, 60])
 @pytest.mark.parametrize("strength", [25, 40, 65])

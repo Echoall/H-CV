@@ -197,6 +197,18 @@ def _column_profile(image, x0, y0, width, height):
     return roi_image, profile_image, profile_array[0, :]
 
 
+def _sum_profile(image, x0, y0, width, height, output):
+    """Fill a preallocated 8-bit profile from the ROI column sums."""
+    import ulab.numpy as np
+
+    image_array = image.to_numpy_ref()
+    roi_image = image_array[y0:y0 + height, x0:x0 + width]
+    profile_sum = np.sum(roi_image, axis=0)
+    for index in range(width):
+        output[index] = int(profile_sum[index]) // height
+    return output
+
+
 def _print_stats(health, dropped, gc_free, run_info, parser):
     stats = health.all_stats()
     detect = stats[STAGES.index("detect")]

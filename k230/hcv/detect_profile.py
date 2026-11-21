@@ -316,6 +316,18 @@ class ProfileDetector:
         )
         return self
 
+    def update_bytes(self, profile_bytes, predicted_u=None):
+        """Update the fast detector from a preallocated 8-bit profile."""
+        if not self.fast:
+            raise ValueError("byte profiles require m1_fast=true")
+        if len(profile_bytes) != self.width:
+            raise ValueError("column profile width differs from calibration")
+        return self._update_fast(
+            profile_bytes,
+            predicted_u=predicted_u,
+            _profile_bytes=profile_bytes,
+        )
+
     def _update_fast(self, profile, predicted_u=None, _profile_bytes=None):
         """Low-allocation detector with the P2 baseline checks retained."""
         if not self._fast_retrying:
