@@ -163,7 +163,8 @@ class ProfileDetector:
         self._smoothed[:] = box_filter(self._deviation, self.diameter)
         local_values = np.where(
             (self._smoothed[1:-1] >= self._smoothed[:-2])
-            & (self._smoothed[1:-1] >= self._smoothed[2:]),
+            & (self._smoothed[1:-1] >= self._smoothed[2:])
+            & (self._smoothed[1:-1] > 0.0),
             arange(1, self.width - 1),
             -1,
         )
@@ -202,6 +203,8 @@ class ProfileDetector:
             if candidate_snr < self.snr_min:
                 continue
             candidate_half = float(self._deviation[candidate]) * 0.5
+            if candidate_half <= 0.0:
+                continue
             candidate_left = candidate
             while (
                 candidate_left > 0

@@ -12,6 +12,12 @@ def as_array(value, dtype=None):
 def array(value, dtype=None):
     if dtype is None:
         return np.array(value)
+    if hasattr(value, "dtype") and dtype is float:
+        native_float = getattr(np, "float", None)
+        if native_float is not None and value.dtype == native_float:
+            return value
+        if str(value.dtype).startswith("float"):
+            return value
     try:
         return np.array(value, dtype=dtype)
     except TypeError:

@@ -51,71 +51,85 @@ class MarkerDetector:
             x1 = min(width, center + window + 1)
             if x1 - x0 < 3:
                 continue
-            profile = [
-                sum(
-                    float(image[row, column])
-                    for row in range(y0, y1)
-                ) / float(y1 - y0)
-                for column in range(x0, x1)
-            ]
-            ordered = sorted(profile)
-            middle = len(ordered) // 2
-            if len(ordered) % 2:
-                baseline = float(ordered[middle])
-            else:
-                baseline = float(
-                    (ordered[middle - 1] + ordered[middle]) * 0.5
+            try:
+                profile = np.mean(
+                    image[y0:y1, x0:x1],
+                    axis=0,
                 )
+                baseline = float(np.median(profile))
+            except (AttributeError, TypeError, ValueError):
+                profile = [
+                    sum(
+                        float(image[row, column])
+                        for row in range(y0, y1)
+                    ) / float(y1 - y0)
+                    for column in range(x0, x1)
+                ]
+                ordered = sorted(profile)
+                middle = len(ordered) // 2
+                if len(ordered) % 2:
+                    baseline = float(ordered[middle])
+                else:
+                    baseline = float(
+                        (ordered[middle - 1] + ordered[middle]) * 0.5
+                    )
             if self.polarity == "bright":
-                depth = [max(0.0, value - baseline) for value in profile]
+                depth = np.maximum(0.0, profile - baseline)
             else:
-                depth = [max(0.0, baseline - value) for value in profile]
-            peak = max(range(len(depth)), key=lambda value: depth[value])
+                depth = np.maximum(0.0, baseline - profile)
+            peak = int(np.argmax(depth))
             peak_depth = float(depth[peak])
             if peak_depth < self.min_depth:
                 continue
             half = peak_depth * 0.5
-            runs = []
-            run_start = None
-            for profile_index, value in enumerate(depth):
-                if value >= half:
-                    if run_start is None:
-                        run_start = profile_index
-                elif run_start is not None:
-                    runs.append((run_start, profile_index - 1))
-                    run_start = None
-            if run_start is not None:
-                runs.append((run_start, len(depth) - 1))
-
-            candidates = []
-            for start, end in runs:
-                width_px = float(end - start + 1)
-                if not 0.5 * self.marker_width <= width_px <= 1.5 * self.marker_width:
-                    continue
-                run_peak = max(
-                    range(start, end + 1),
-                    key=lambda value: depth[value],
-                )
-                candidates.append(
-                    (
-                        -float(depth[run_peak]),
-                        abs(float(x0 + run_peak) - float(center)),
-                        start,
-                        end,
-                        run_peak,
+            if window == self.search:
+                start = peak
+                while start > 0 and float(depth[start - 1]) >= half:
+                    start -= 1
+                end = peak
+                while end + 1 < len(depth) and float(depth[end + 1]) >= half:
+                    end += 1
+            else:
+                runs = []
+                run_start = None
+                for profile_index in range(len(depth)):
+                    if float(depth[profile_index]) >= half:
+                        if run_start is None:
+                            run_start = profile_index
+                    elif run_start is not None:
+                        runs.append((run_start, profile_index - 1))
+                        run_start = None
+                if run_start is not None:
+                    runs.append((run_start, len(depth) - 1))
+                candidates = []
+                for run_start, run_end in runs:
+                    width_px = float(run_end - run_start + 1)
+                    if not 0.5 * self.marker_width <= width_px <= 1.5 * self.marker_width:
+                        continue
+                    run_peak = int(np.argmax(depth[run_start:run_end + 1]))
+                    run_peak += run_start
+                    candidates.append(
+                        (
+                            -float(depth[run_peak]),
+                            abs(float(x0 + run_peak) - float(center)),
+                            run_start,
+                            run_end,
+                            run_peak,
+                        )
                     )
-                )
-            if not candidates:
-                continue
-            _, _, start, end, peak = min(candidates)
-            selected = list(range(start, end + 1))
+                if not candidates:
+                    continue
+                _, _, start, end, peak = min(candidates)
             peak_depth = float(depth[peak])
-            weights = [depth[index] for index in selected]
-            total = float(sum(weights))
-            position = x0 + float(
-                sum(index * weight for index, weight in zip(selected, weights))
-                / total
-            )
+            total = 0.0
+            weighted = 0.0
+            for profile_index in range(start, end + 1):
+                weight = float(depth[profile_index])
+                total += weight
+                weighted += profile_index * weight
+            if total <= 0.0:
+                continue
+            position = x0 + weighted / total
             self.positions[index] = position
             self.valid[index] = True
             self.depths[index] = peak_depth
