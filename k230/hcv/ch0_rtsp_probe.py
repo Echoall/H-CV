@@ -148,7 +148,8 @@ def run():
                 finally:
                     try:
                         if link is not None:
-                            del link
+                            MediaManager._del_link(link)
+                            link = None
                     finally:
                         try:
                             if encoder_started:
