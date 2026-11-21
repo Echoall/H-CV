@@ -1,0 +1,25 @@
+{
+  "frames": 249,
+  "ball_frames": 240,
+  "empty_exposure_frames": 9,
+  "empty_false_positives": 0,
+  "ball_summary": [
+    {
+      "group": "bright",
+      "samples": 120,
+      "found": 120,
+      "rms_px": 0.41057792310359265,
+      "p95_abs_px": 0.6910570595432262,
+      "max_abs_px": 0.7298520858096538
+    },
+    {
+      "group": "dark",
+      "samples": 120,
+      "found": 120,
+      "rms_px": 0.48947940666042355,
+      "p95_abs_px": 0.8345557052873858,
+      "max_abs_px": 0.9026084001898198
+    }
+  ],
+  "elapsed_ms": 28307.41539999144
+}
