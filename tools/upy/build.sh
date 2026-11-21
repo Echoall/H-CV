@@ -29,7 +29,7 @@ git -C "${BUILD}/ulab" checkout --detach "${ULAB_REF}"
 "${MAKE}" -C "${BUILD}/micropython/ports/unix" clean
 "${MAKE}" -C "${BUILD}/micropython/ports/unix" -j"${JOBS}" \
     PYTHON="${PYTHON}" \
-    USER_C_MODULES="${BUILD}/ulab/code" \
+    USER_C_MODULES="${BUILD}/ulab" \
     CFLAGS_EXTRA="-Wno-error=unterminated-string-initialization"
 
 cp "${BUILD}/micropython/ports/unix/build-standard/micropython" "${BUILD}/micropython-ulab"
