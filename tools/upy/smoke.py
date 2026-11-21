@@ -21,7 +21,7 @@ def main():
     }
     background = np.ones(64) * 100
     image = np.ones((16, 64)) * 100
-    image[:, 28:36] = 40
+    image[4:12, 28:36] = 40
     detector = ProfileDetector(background, params)
     detector.update_image(image)
     assert detector.found
