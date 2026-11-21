@@ -5,6 +5,9 @@ import json
 import os
 
 
+ERR_CONFIG = 10
+
+
 _FIELDS = {
     "schema": int,
     "sensor": {
@@ -180,6 +183,17 @@ def load_config(directory="."):
     _merge(config, _read(prefix + "config.local.json", optional=True))
     _validate(config)
     return config
+
+
+def runtime_config_warning(config):
+    """Return a startup warning and ICD error for an uncalibrated polarity."""
+    polarity = config["detector"]["params"].get("polarity")
+    if polarity == "both":
+        return (
+            "detector.polarity=both; run P2-T03 polarity calibration",
+            ERR_CONFIG,
+        )
+    return None, 0
 
 
 def _canonical_json(value):

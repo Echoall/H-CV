@@ -13,7 +13,7 @@
     "snr_good": 20,
     "noise_floor": 0.5,
     "background_alpha": 0.05,
-    "polarity": "both",
+    "polarity": "dark",
     "noise_update_interval": 30,
     "background_recovery_frames": 30,
     "background_recovery_alpha": 0.05

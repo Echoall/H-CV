@@ -4,7 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from k230.hcv.config import calibration_fingerprint, format_config_for_log, load_config
+from k230.hcv.config import (
+    calibration_fingerprint,
+    format_config_for_log,
+    load_config,
+    runtime_config_warning,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +31,17 @@ def example(tmp_path):
 
 def test_reads_base_config_without_override(tmp_path, example):
     assert load_config(tmp_path) == example
+    assert runtime_config_warning(example) == (None, 0)
+
+
+def test_runtime_config_warns_when_polarity_is_not_calibrated(tmp_path, example):
+    example["detector"]["params"]["polarity"] = "both"
+    write_json(tmp_path / "config.json", example)
+    config = load_config(tmp_path)
+    assert runtime_config_warning(config) == (
+        "detector.polarity=both; run P2-T03 polarity calibration",
+        10,
+    )
 
 
 def test_recursively_overrides_local_fields(tmp_path, example):
