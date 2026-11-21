@@ -34,9 +34,13 @@ def test_tracker_predicts_through_three_missing_frames_then_loses():
         assert result["valid"]
         assert not result["lost"]
     result = tracker.step(None, 4 * 11111)
-    assert result["predicted"]
+    assert not result["predicted"]
     assert not result["valid"]
     assert result["lost"]
+    reacquired = tracker.step(12.0, 5 * 11111)
+    assert reacquired["valid"]
+    assert not reacquired["predicted"]
+    assert not reacquired["lost"]
 
 
 def test_tracker_rejects_single_outlier_and_reacquires_real_jump():
@@ -80,9 +84,13 @@ def test_tracker_reacquire_jump_does_not_infer_extreme_velocity():
     tracker.step(None, 11111)
     tracker.step(None, 22222)
     tracker.step(80.0, 33333)
-    tracker.step(80.0, 44444)
+    lost = tracker.step(80.0, 44444)
+    assert lost["lost"]
+    assert not lost["valid"]
+    assert not lost["predicted"]
     result = tracker.step(80.0, 55555)
-    assert result["reacquire"]
+    assert result["valid"]
+    assert not result["predicted"]
     assert abs(result["velocity_mm_s"]) < 50.0
     for index in range(4, 14):
         result = tracker.step(80.0, index * 11111)
@@ -111,7 +119,7 @@ def test_tracker_missing_frame_status_transitions(missing_count):
         for index in range(missing_count)
     ]
     for index, result in enumerate(results, start=1):
-        assert result["predicted"]
+        assert result["predicted"] is (index <= PARAMS["coast_max"])
         assert result["valid"] is (index <= PARAMS["coast_max"])
         assert result["lost"] is (index > PARAMS["coast_max"])
 
@@ -136,15 +144,13 @@ def test_tracker_reacquire_jump_stays_stable_for_ten_frames():
     tracker.step(0.0, 0)
     tracker.step(None, 11111)
     tracker.step(None, 22222)
-    for index in range(3, 5):
-        result = tracker.step(80.0, index * 11111)
-        assert result["valid"] or result["predicted"]
+    tracker.step(80.0, 3 * 11111)
+    lost = tracker.step(80.0, 4 * 11111)
+    assert lost["lost"]
+    assert not lost["valid"]
+    assert not lost["predicted"]
 
-    reacquired = tracker.step(80.0, 5 * 11111)
-    assert reacquired["reacquire"]
-    assert abs(reacquired["velocity_mm_s"]) < 50.0
-
-    for index in range(6, 16):
+    for index in range(5, 16):
         result = tracker.step(80.0, index * 11111)
         assert result["valid"]
         assert abs(result["position_mm"] - 80.0) < 1.0

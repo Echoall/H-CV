@@ -189,6 +189,14 @@ def _uart_pending(link):
     return link.uart.read(min(int(count), 64)) or b""
 
 
+def _column_profile(image, x0, y0, width, height):
+    """Reduce the ROI to one row using the camera Image C implementation."""
+    roi_image = image.crop(roi=(x0, y0, width, height))
+    profile_image = roi_image.scale(1.0, 1.0 / float(height))
+    profile_array = profile_image.to_numpy_ref()
+    return roi_image, profile_image, profile_array[0, :]
+
+
 def _print_stats(health, dropped, gc_free, run_info, parser):
     stats = health.all_stats()
     detect = stats[STAGES.index("detect")]
@@ -301,8 +309,9 @@ def _allocation_probe(
         stage_deltas[0][frame_count] = before - after
 
         before = gc.mem_free()
-        image_array = image.to_numpy_ref()
-        roi_image = image_array[y0:y0 + height, x0:x0 + width]
+        roi_image, profile_image, profile_array = _column_profile(
+            image, x0, y0, width, height
+        )
         after = gc.mem_free()
         stage_deltas[1][frame_count] = before - after
 
@@ -312,12 +321,13 @@ def _allocation_probe(
         detail_buffers[0][frame_count] = before - after
 
         before = gc.mem_free()
-        roi_profile = roi_image[height // 2, :]
+        roi_profile = profile_array
         after = gc.mem_free()
         detail_buffers[1][frame_count] = before - after
 
         before = gc.mem_free()
         detector.update(roi_profile, predicted_u=predicted_u)
+        del roi_profile, profile_array, profile_image, roi_image
         after = gc.mem_free()
         detail_buffers[2][frame_count] = before - after
         detail_buffers[3][frame_count] = (
@@ -543,12 +553,14 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
             image = sensor.snapshot(chn=0, timeout=1000)
             image = None
         image = sensor.snapshot(chn=0, timeout=1000)
-        image_array = image.to_numpy_ref()
         roi = config["roi"]
         x0, y0, width, height = roi["x"], roi["y"], roi["w"], roi["h"]
-        roi_image = image_array[y0:y0 + height, x0:x0 + width]
         import ulab.numpy as np
-        background = np.array(roi_image[height // 2, :])
+        initial_roi, initial_profile_image, initial_profile = _column_profile(
+            image, x0, y0, width, height
+        )
+        background = np.array(initial_profile)
+        del initial_profile, initial_profile_image, initial_roi
         detector = ProfileDetector(
             background,
             config["detector"]["params"],
@@ -635,14 +647,16 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False):
                 if expected > 1:
                     dropped += expected - 1
             last_cap = t_cap_us
-            image_array = image.to_numpy_ref()
-            roi_image = image_array[y0:y0 + height, x0:x0 + width]
             process_start = time.ticks_us()
 
             detect_start = time.ticks_us()
             predicted_u = _u_prediction(tracker, lut)
-            roi_profile = roi_image[height // 2, :]
+            roi_image, profile_image, profile_array = _column_profile(
+                image, x0, y0, width, height
+            )
+            roi_profile = profile_array
             detector.update(roi_profile, predicted_u=predicted_u)
+            del roi_profile, profile_array, profile_image, roi_image
             found = detector.found
             quality = detector.quality if found else 0
             u_px = detector.u if found else None

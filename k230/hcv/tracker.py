@@ -65,7 +65,14 @@ class KalmanTracker:
                 return self._output(False, False)
             self.coast += 1
             self.lost = self.coast > self.coast_max
-            return self._output(not self.lost, True)
+            if self.lost:
+                result = self._output(False, False)
+                self.initialized = False
+                self.coast = 0
+                self.rejects = []
+                self.reject_times = []
+                return result
+            return self._output(True, True)
 
         measurement = float(position_mm)
         if not self.initialized:
@@ -146,7 +153,14 @@ class KalmanTracker:
 
         self.coast += 1
         self.lost = self.coast > self.coast_max
-        return self._output(not self.lost, True, measurement)
+        if self.lost:
+            result = self._output(False, False, None)
+            self.initialized = False
+            self.coast = 0
+            self.rejects = []
+            self.reject_times = []
+            return result
+        return self._output(True, True, None)
 
     def step_into(self, output, position_mm=None, t_cap_us=0, quality=255):
         """M1 path that writes the result into a preallocated list.
@@ -175,7 +189,14 @@ class KalmanTracker:
                 return output
             self.coast += 1
             self.lost = self.coast > self.coast_max
-            self._set_output(output, not self.lost, True, None)
+            if self.lost:
+                self._set_output(output, False, False, None)
+                self.initialized = False
+                self.coast = 0
+                self.rejects = []
+                self.reject_times = []
+            else:
+                self._set_output(output, True, True, None)
             return output
 
         measurement = float(position_mm)
@@ -260,7 +281,14 @@ class KalmanTracker:
 
         self.coast += 1
         self.lost = self.coast > self.coast_max
-        self._set_output(output, not self.lost, True, None)
+        if self.lost:
+            self._set_output(output, False, False, None)
+            self.initialized = False
+            self.coast = 0
+            self.rejects = []
+            self.reject_times = []
+        else:
+            self._set_output(output, True, True, None)
         return output
 
     def _set_output(self, output, valid, predicted, raw):
