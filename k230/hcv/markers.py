@@ -51,32 +51,40 @@ class MarkerDetector:
             x1 = min(width, center + window + 1)
             if x1 - x0 < 3:
                 continue
-            profile = np.sum(image[y0:y1, x0:x1], axis=0) / float(y1 - y0)
-            edge = min(3, max(1, int(profile.size // 4)))
-            baseline_values = join_1d(profile[:edge], profile[-edge:])
-            baseline = float(np.sum(baseline_values) / len(baseline_values))
+            profile = [
+                sum(
+                    float(image[row, column])
+                    for row in range(y0, y1)
+                ) / float(y1 - y0)
+                for column in range(x0, x1)
+            ]
+            edge = min(3, max(1, int(len(profile) // 4)))
+            baseline_values = profile[:edge] + profile[-edge:]
+            baseline = float(sum(baseline_values) / len(baseline_values))
             if self.polarity == "bright":
-                depth = np.maximum(0.0, profile - baseline)
+                depth = [max(0.0, value - baseline) for value in profile]
             else:
-                depth = baseline - profile
-            depth = np.where(depth > 0.0, depth, 0.0)
-            peak = int(np.argmax(depth))
+                depth = [max(0.0, baseline - value) for value in profile]
+            peak = max(range(len(depth)), key=lambda value: depth[value])
             peak_depth = float(depth[peak])
             if peak_depth < self.min_depth:
                 continue
             half = peak_depth * 0.5
             selected = [
-                index for index in range(int(profile.size))
-                if float(depth[index]) >= half
+                index for index in range(len(profile))
+                if depth[index] >= half
             ]
             if not selected:
                 continue
             width_px = float(selected[-1] - selected[0] + 1)
             if not 0.5 * self.marker_width <= width_px <= 1.5 * self.marker_width:
                 continue
-            weights = depth[selected]
-            total = float(np.sum(weights))
-            position = x0 + float(np.sum(selected * weights) / total)
+            weights = [depth[index] for index in selected]
+            total = float(sum(weights))
+            position = x0 + float(
+                sum(index * weight for index, weight in zip(selected, weights))
+                / total
+            )
             self.positions[index] = position
             self.valid[index] = True
             self.depths[index] = peak_depth
