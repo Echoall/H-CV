@@ -26,6 +26,7 @@ git -C "${BUILD}/ulab" fetch --tags --depth=1 origin "${ULAB_REF}"
 git -C "${BUILD}/ulab" checkout --detach "${ULAB_REF}"
 
 "${MAKE}" -C "${BUILD}/micropython/ports/unix" submodules
+"${MAKE}" -C "${BUILD}/micropython/ports/unix" clean
 "${MAKE}" -C "${BUILD}/micropython/ports/unix" -j"${JOBS}" \
     PYTHON="${PYTHON}" \
     USER_C_MODULES="${BUILD}/ulab/code" \
