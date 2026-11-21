@@ -174,7 +174,7 @@ def run(stage):
                 tick()
     finally:
         try:
-            if sensor_started:
+            if sensor is not None:
                 sensor.stop()
         finally:
             try:
