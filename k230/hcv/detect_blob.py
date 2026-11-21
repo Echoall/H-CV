@@ -4,7 +4,7 @@ The detector deliberately requires a predicted horizontal position.  This
 keeps the expensive threshold/blob path out of the full-frame main loop.
 """
 
-from .compat import arange, array, shape_2d, np
+from .compat import absolute, arange, array, shape_2d, np
 
 
 class BlobDetector:
@@ -56,7 +56,7 @@ class BlobDetector:
         else:
             sample = crop
         median = float(np.median(sample))
-        mad = float(np.median(np.abs(sample - median)))
+        mad = float(np.median(absolute(sample - median)))
         sigma = max(1.4826 * mad, 0.5)
         dark_limit = median - self.k_dark * sigma
         bright_limit = median + self.k_bright * sigma
@@ -73,9 +73,9 @@ class BlobDetector:
         axis = axis_v + self.axis_slope * (
             arange(x0, x1, dtype=float) - float(predicted_u)
         )
-        axis_distance = np.abs(rows[:, None] - axis[None, :])
+        axis_distance = absolute(rows[:, None] - axis[None, :])
         mask &= axis_distance <= 0.75 * self.diameter
-        mask &= np.abs(
+        mask &= absolute(
             arange(x0, x1, dtype=float)[None, :] - float(predicted_u)
         ) <= 0.8 * self.diameter
 
@@ -105,7 +105,7 @@ class BlobDetector:
         elif self.polarity == "bright":
             weights = np.maximum(0.0, values - median)
         else:
-            weights = np.abs(values - median)
+            weights = absolute(values - median)
         total = float(np.sum(weights))
         if total <= 0:
             self.diag = {"reason": "zero_weight", "noise": sigma}
@@ -115,7 +115,7 @@ class BlobDetector:
         span_y = float(np.max(yy) - np.min(yy) + 1)
         density = float(point_count) / max(1.0, span_x * span_y)
         size_match = min(span_x, span_y) / max(1.0, self.diameter)
-        contrast = float(np.max(np.abs(values - median)))
+        contrast = float(np.max(absolute(values - median)))
         self.snr = contrast / sigma
         self.diag = {
             "noise": sigma,
@@ -159,3 +159,4 @@ class BlobDetector:
             int(self.quality),
             dict(self.diag),
         )
+

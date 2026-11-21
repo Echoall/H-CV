@@ -61,3 +61,10 @@ def arange(start, stop=None, dtype=None):
         if stop is None:
             return np.arange(start)
         return np.arange(start, stop)
+
+
+def absolute(value):
+    try:
+        return np.fabs(value)
+    except AttributeError:
+        return abs(value)

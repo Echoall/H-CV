@@ -1,6 +1,6 @@
 """Vectorised one-dimensional ball detector."""
 
-from .compat import arange, array, box_filter, ones, np, shape_2d, zeros
+from .compat import absolute, arange, array, box_filter, ones, np, shape_2d, zeros
 
 
 class ProfileDetector:
@@ -73,9 +73,9 @@ class ProfileDetector:
             center = float(np.median(residual))
             spread = max(
                 1.0,
-                1.4826 * float(np.median(np.abs(residual - center))),
+                1.4826 * float(np.median(absolute(residual - center))),
             )
-            weights = (np.abs(residual - center) <= 3.0 * spread) * 1.0
+            weights = (absolute(residual - center) <= 3.0 * spread) * 1.0
             weight_sum = float(np.sum(weights))
             ref_mean = float(np.sum(weights * self.background) / weight_sum)
             cur_mean = float(np.sum(weights * profile) / weight_sum)
@@ -100,7 +100,7 @@ class ProfileDetector:
             return np.maximum(0.0, -self._residual)
         if self.polarity == "bright":
             return np.maximum(0.0, self._residual)
-        return np.abs(self._residual)
+        return absolute(self._residual)
 
     def _set_not_found(self):
         self.found = False
@@ -135,7 +135,7 @@ class ProfileDetector:
         elif self.polarity == "bright":
             vertical = np.maximum(0.0, column - baseline_rows)
         else:
-            vertical = np.abs(column - baseline_rows)
+            vertical = absolute(column - baseline_rows)
         peak = float(np.max(vertical))
         above = np.where(vertical >= peak * 0.5)[0]
         return int(above[-1] - above[0] + 1) if above.size else 0
@@ -150,7 +150,7 @@ class ProfileDetector:
 
         if self._noise_age >= self.noise_update_interval:
             median = float(np.median(self._residual))
-            mad = float(np.median(np.abs(self._residual - median)))
+            mad = float(np.median(absolute(self._residual - median)))
             self._noise = max(self.noise_floor, 1.4826 * mad)
             self._noise_age = 0
         self._noise_age += 1
@@ -295,3 +295,4 @@ class ProfileDetector:
             int(self.quality),
             dict(self.diag),
         )
+
