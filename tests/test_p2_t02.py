@@ -1,0 +1,86 @@
+import numpy as np
+import pytest
+
+from k230.hcv.geometry import (
+    apply_projective,
+    compensate,
+    fit_projective,
+    fit_similarity,
+    interpolate_lut,
+)
+from k230.hcv.markers import MarkerDetector
+from tools.synth.generate import project_s_to_u, generate_scene
+
+
+def test_marker_detector_finds_three_synthetic_markers():
+    image, truth = generate_scene(
+        ball_x=-1000,
+        theta_deg=20,
+        noise=0,
+        highlight=False,
+        magnet_shadow=False,
+    )
+    expected = [marker["u_px"] for marker in truth["markers"]]
+    detector = MarkerDetector(
+        expected,
+        {
+            "search_px": 12,
+            "marker_v_px": truth["markers"][0]["v_px"],
+            "marker_width_px": 7,
+            "marker_min_depth": 8,
+            "polarity": "dark",
+        },
+    )
+    result = detector.update_image(image).result()
+    assert result["count"] == 3
+    assert all(
+        measured == pytest.approx(reference, abs=0.5)
+        for measured, reference in zip(result["positions"], expected)
+    )
+
+
+def test_projective_compensation_residual_is_submillimetre_at_twenty_degrees():
+    marker_s = [-110.0, 0.0, 110.0]
+    reference_u = project_s_to_u(marker_s, theta_deg=0)
+    current_u = project_s_to_u(marker_s, theta_deg=20)
+    ball_s = 25.0
+    ball_current = float(project_s_to_u(ball_s, theta_deg=20))
+    compensated, mode, _ = compensate(ball_current, current_u, reference_u)
+    expected = float(project_s_to_u(ball_s, theta_deg=0))
+    recovered_s = (compensated - 320.0) / 1.6
+    expected_s = (expected - 320.0) / 1.6
+    assert mode == "FULL"
+    assert abs(recovered_s - expected_s) < 0.5 / 1.6
+
+
+def test_two_markers_use_similarity_fallback():
+    measured, mode, coefficients = compensate(
+        200.0, [100.0, 300.0], [110.0, 310.0]
+    )
+    assert mode == "DEGRADED"
+    assert measured == pytest.approx(210.0)
+    assert coefficients == pytest.approx((1.0, 10.0))
+
+
+def test_missing_markers_use_identity_fallback():
+    measured, mode, coefficients = compensate(200.0, [None], [100.0])
+    assert measured == 200.0
+    assert mode == "NONE"
+    assert coefficients is None
+
+
+def test_ill_conditioned_projective_fit_falls_back_to_similarity():
+    with pytest.raises(ValueError):
+        fit_projective([100.0, 100.0, 100.0], [101.0, 102.0, 103.0])
+    measured, mode, _ = compensate(
+        200.0, [100.0, 100.0, 300.0], [110.0, 120.0, 310.0]
+    )
+    assert mode == "DEGRADED"
+    assert measured == pytest.approx(210.0)
+
+
+def test_calibration_lookup_is_monotonic_and_linear_between_points():
+    assert interpolate_lut(150, [100, 200], [-50, 50]) == pytest.approx(0)
+    assert interpolate_lut(50, [100, 200], [-50, 50]) == pytest.approx(-100)
+    with pytest.raises(ValueError):
+        interpolate_lut(150, [100, 100], [-50, 50])
