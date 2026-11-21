@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pytest
 
@@ -184,6 +186,38 @@ def test_two_markers_with_known_hinge_geometry_stay_below_two_mm(theta, missing)
         assert mode == "GEOMETRIC"
     assert max(abs(error) for error in errors) < 2.0
     assert compensation_quality(mode) == pytest.approx(0.75)
+
+
+@pytest.mark.parametrize("theta", [-20.0, -10.0, 0.0, 10.0, 20.0])
+@pytest.mark.parametrize("missing", [0, 1, 2])
+def test_two_marker_theta_estimate_is_analytic(theta, missing):
+    model = {
+        "height_mm": 300.0,
+        "scale_px_per_mm": 1.6,
+        "center_u": 320.0,
+        "pivot_mm": -125.0,
+        "marker_s_mm": [-110.0, 0.0, 110.0],
+    }
+    reference = [
+        float(value)
+        for value in project_s_to_u(model["marker_s_mm"], theta_deg=0)
+    ]
+    current = [
+        float(value)
+        for value in project_s_to_u(model["marker_s_mm"], theta_deg=theta)
+    ]
+    observed = [
+        value if index != missing else None
+        for index, value in enumerate(current)
+    ]
+    _, mode, coefficients = compensate(
+        current[1],
+        observed,
+        reference,
+        model=model,
+    )
+    assert mode == "GEOMETRIC"
+    assert math.degrees(coefficients[0]) == pytest.approx(theta, abs=1e-9)
 
 
 def test_missing_markers_use_identity_fallback():
