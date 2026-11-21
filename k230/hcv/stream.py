@@ -18,6 +18,16 @@ def _checked(result, action):
         raise OSError("%s returned %s" % (action, result))
 
 
+def _release_link(link):
+    if link is None:
+        return
+    unlink = getattr(MediaManager, "_del_link", None)
+    if unlink is not None:
+        unlink(link)
+    else:
+        del link
+
+
 class H264Stream:
     def __init__(self, config):
         self.settings = config["stream"]
@@ -114,7 +124,7 @@ class H264Stream:
                 finally:
                     try:
                         if self.link is not None:
-                            MediaManager._del_link(self.link)
+                            _release_link(self.link)
                             self.link = None
                     finally:
                         if self.created:

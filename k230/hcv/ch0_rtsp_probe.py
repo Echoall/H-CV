@@ -27,6 +27,16 @@ def checked(result, action):
         raise OSError("%s returned %s" % (action, result))
 
 
+def release_link(link):
+    if link is None:
+        return
+    unlink = getattr(MediaManager, "_del_link", None)
+    if unlink is not None:
+        unlink(link)
+    else:
+        del link
+
+
 def run():
     start(5)
     config = load_config("/sdcard/hcv")
@@ -148,7 +158,7 @@ def run():
                 finally:
                     try:
                         if link is not None:
-                            MediaManager._del_link(link)
+                            release_link(link)
                             link = None
                     finally:
                         try:
