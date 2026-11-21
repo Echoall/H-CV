@@ -70,3 +70,40 @@ def test_tracker_handles_timestamp_wraparound():
     assert first["valid"]
     assert second["valid"]
     assert not math.isnan(second["position_mm"])
+
+
+def test_tracker_reacquire_jump_does_not_infer_extreme_velocity():
+    tracker = KalmanTracker(PARAMS)
+    tracker.step(0.0, 0)
+    tracker.step(None, 11111)
+    tracker.step(None, 22222)
+    tracker.step(80.0, 33333)
+    tracker.step(80.0, 44444)
+    result = tracker.step(80.0, 55555)
+    assert result["reacquire"]
+    assert abs(result["velocity_mm_s"]) < 50.0
+    for index in range(4, 14):
+        result = tracker.step(80.0, index * 11111)
+    assert abs(result["position_mm"] - 80.0) < 1.0
+    assert abs(result["velocity_mm_s"]) < 50.0
+
+
+def test_tracker_two_rejected_measurements_remain_predicted_and_valid():
+    tracker = KalmanTracker(PARAMS)
+    tracker.step(0.0, 0)
+    tracker.step(1.0, 11111)
+    first = tracker.step(100.0, 22222)
+    second = tracker.step(100.0, 33333)
+    assert first["valid"] and first["predicted"]
+    assert second["valid"] and second["predicted"]
+
+
+def test_tracker_constant_acceleration_has_bounded_position_error():
+    tracker = KalmanTracker(PARAMS)
+    errors = []
+    for index in range(60):
+        time_s = index / 90.0
+        truth = 0.5 * 600.0 * time_s * time_s
+        result = tracker.step(truth, index * 11111)
+        errors.append(abs(result["position_mm"] - truth))
+    assert max(errors[5:]) < 2.5

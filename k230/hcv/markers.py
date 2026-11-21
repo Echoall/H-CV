@@ -1,6 +1,6 @@
 """Reference-marker detector using narrow column-profile searches."""
 
-from .compat import arange, array, join_1d, shape_2d, np
+from .compat import array, join_1d, shape_2d, np
 
 
 class MarkerDetector:
@@ -51,26 +51,23 @@ class MarkerDetector:
             x1 = min(width, center + window + 1)
             if x1 - x0 < 3:
                 continue
-            profile = np.mean(image[y0:y1, x0:x1], axis=0)
+            profile = np.sum(image[y0:y1, x0:x1], axis=0) / float(y1 - y0)
             edge = min(3, max(1, int(profile.size // 4)))
-            baseline = float(np.median(join_1d(profile[:edge], profile[-edge:])))
+            baseline_values = join_1d(profile[:edge], profile[-edge:])
+            baseline = float(np.sum(baseline_values) / len(baseline_values))
             if self.polarity == "bright":
                 depth = np.maximum(0.0, profile - baseline)
             else:
-                depth = np.maximum(0.0, baseline - profile)
+                depth = baseline - profile
+            depth = np.where(depth > 0.0, depth, 0.0)
             peak = int(np.argmax(depth))
             peak_depth = float(depth[peak])
             if peak_depth < self.min_depth:
                 continue
             half = peak_depth * 0.5
             selected = [
-                int(value)
-                for value in np.where(
-                    depth >= half,
-                    arange(profile.size),
-                    -1,
-                )
-                if int(value) >= 0
+                index for index in range(int(profile.size))
+                if float(depth[index]) >= half
             ]
             if not selected:
                 continue

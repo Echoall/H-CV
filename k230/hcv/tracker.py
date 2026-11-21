@@ -22,6 +22,7 @@ class KalmanTracker:
         self.last_t = None
         self.coast = 0
         self.rejects = []
+        self.reject_times = []
         self.reacquire = False
 
     def _dt(self, timestamp_us):
@@ -77,6 +78,7 @@ class KalmanTracker:
             self.p11 = 100.0
             self.coast = 0
             self.rejects = []
+            self.reject_times = []
             return self._output(True, False, measurement)
 
         quality_norm = max(float(quality) / 255.0, 0.2)
@@ -100,18 +102,38 @@ class KalmanTracker:
             self.coast = 0
             self.lost = False
             self.rejects = []
+            self.reject_times = []
             return self._output(True, False, measurement)
 
         self.rejects.append(measurement)
+        self.reject_times.append(int(t_cap_us) & 0xFFFFFFFF)
         if len(self.rejects) > self.reacquire_frames:
             self.rejects.pop(0)
+            self.reject_times.pop(0)
         if (
             len(self.rejects) >= self.reacquire_frames
             and max(self.rejects) - min(self.rejects) <= self.gate_mm
         ):
-            previous = self.x
             self.x = measurement
-            self.v = (measurement - previous) / max(dt, 1e-5)
+            if len(self.rejects) < 2:
+                self.v = 0.0
+            else:
+                times = [
+                    (value - self.reject_times[0]) & 0xFFFFFFFF
+                    for value in self.reject_times
+                ]
+                mean_t = sum(times) / float(len(times))
+                mean_x = sum(self.rejects) / float(len(self.rejects))
+                denominator = sum(
+                    (value - mean_t) ** 2 for value in times
+                )
+                self.v = (
+                    sum(
+                        (time_value - mean_t) * (value - mean_x)
+                        for time_value, value in zip(times, self.rejects)
+                    ) / denominator
+                    if denominator > 0 else 0.0
+                ) * 1_000_000.0
             self.p00 = max(0.01, self.r_meas ** 2)
             self.p01 = 0.0
             self.p11 = 100.0
@@ -119,8 +141,9 @@ class KalmanTracker:
             self.lost = False
             self.reacquire = True
             self.rejects = []
+            self.reject_times = []
             return self._output(True, False, measurement)
 
         self.coast += 1
         self.lost = self.coast > self.coast_max
-        return self._output(False, True, measurement)
+        return self._output(not self.lost, True, measurement)

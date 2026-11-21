@@ -1,6 +1,7 @@
 """Small smoke test executed by the MicroPython + ulab CI job."""
 
 import ulab
+import json
 
 np = ulab.numpy
 
@@ -10,6 +11,7 @@ from hcv.markers import MarkerDetector
 
 
 def main():
+    golden = json.load(open("tools/upy/golden.json"))
     params = {
         "diameter_px": 8,
         "gate_px": 8,
@@ -24,8 +26,8 @@ def main():
     image[4:12, 28:36] = 40
     detector = ProfileDetector(background, params)
     detector.update_image(image)
-    assert detector.found
-    assert abs(detector.u - 31.5) < 1.0
+    assert detector.found == golden["profile"]["found"]
+    assert abs(detector.u - golden["profile"]["u"]) <= 0.05
 
     marker_image = np.ones((32, 96)) * 100
     marker_image[10:17, 15:22] = 30
@@ -42,11 +44,14 @@ def main():
     )
     marker_result = markers.update_image(marker_image).result()
     print(marker_result)
-    assert "positions" in marker_result and "valid" in marker_result
+    assert marker_result["count"] == golden["markers"]["count"]
+    assert marker_result["valid"] == golden["markers"]["valid"]
     mapped, mode, _ = compensate(45, (18, 48, 78), (20, 50, 80))
-    assert mode == "FULL"
-    assert abs(mapped - 47) < 0.01
-    assert compensate(45, (18, None, None), (20, 50, 80))[0] is None
+    assert mode == golden["geometry"]["mode"]
+    assert abs(mapped - golden["geometry"]["mapped"]) <= 0.05
+    assert (
+        compensate(45, (18, None, None), (20, 50, 80))[0] is None
+    ) == golden["geometry"]["missing_is_invalid"]
 
 
 main()

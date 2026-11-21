@@ -1,0 +1,15 @@
+{
+  "profile": {
+    "found": true,
+    "u": 31.5
+  },
+  "markers": {
+    "count": 3,
+    "valid": [true, true, true]
+  },
+  "geometry": {
+    "mapped": 47.0,
+    "mode": "FULL",
+    "missing_is_invalid": true
+  }
+}
