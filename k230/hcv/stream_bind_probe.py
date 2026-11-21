@@ -178,15 +178,19 @@ def run(stage):
                 sensor.stop()
         finally:
             try:
-                if link is not None:
-                    MediaManager._del_link(link)
+                if sensor is not None and hasattr(Sensor, "deinit"):
+                    Sensor.deinit()
             finally:
                 try:
-                    if created:
-                        encoder.Destroy(CHANNEL)
+                    if link is not None:
+                        MediaManager._del_link(link)
                 finally:
                     try:
-                        if media_started:
-                            MediaManager.deinit()
+                        if created:
+                            encoder.Destroy(CHANNEL)
                     finally:
-                        print("HCV_BIND_CLEANUP,stage=%s" % stage)
+                        try:
+                            if media_started:
+                                MediaManager.deinit()
+                        finally:
+                            print("HCV_BIND_CLEANUP,stage=%s" % stage)
