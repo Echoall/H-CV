@@ -175,11 +175,18 @@ def run(stage):
     finally:
         try:
             if sensor is not None:
-                sensor.stop()
+                sensor_ref = sensor
+                sensor = None
+                try:
+                    sensor_ref.stop()
+                finally:
+                    del sensor_ref
+                print("HCV_BIND_CLEANUP,sensor_stop")
         finally:
             try:
-                if sensor is not None and hasattr(Sensor, "deinit"):
+                if hasattr(Sensor, "deinit"):
                     Sensor.deinit()
+                    print("HCV_BIND_CLEANUP,sensor_deinit")
             finally:
                 try:
                     if link is not None:
