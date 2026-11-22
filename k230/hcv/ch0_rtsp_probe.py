@@ -20,6 +20,7 @@ from .guard import start, tick
 VENC_CHANNEL = 0
 STREAM_NAME = "hcv"
 STREAM_SECONDS = 3
+GUARD_MARGIN_SECONDS = 2
 
 
 def checked(result, action):
@@ -34,7 +35,7 @@ def release_link(link):
 
 
 def run():
-    start(5)
+    start(STREAM_SECONDS + GUARD_MARGIN_SECONDS)
     config = load_config("/sdcard/hcv")
     width = 1280
     height = 720
