@@ -16,6 +16,17 @@ def detect_long_ticks(strip, left_px, right_px, min_depth=0.10):
     so a missing tick cannot shift the numbering.
     """
     profile = np.mean(strip, axis=0)
+    ticks, pitch = _long_tick_candidates(profile, left_px, right_px, min_depth)
+    if len(ticks) < 20:
+        raise ValueError("need at least 20 readable long ticks for calibration")
+    for (mm0, u0), (mm1, u1) in zip(ticks, ticks[1:]):
+        spacing = (u1 - u0) / ((mm1 - mm0) / STEP_MM)
+        if not 0.65 * pitch <= spacing <= 1.35 * pitch:
+            raise ValueError("long tick spacing is inconsistent with the numbered ruler")
+    return ticks
+
+
+def _long_tick_candidates(profile, left_px, right_px, min_depth):
     width = len(profile)
     pitch = (right_px - left_px) / ((LAST_MM - FIRST_MM) // STEP_MM)
     if not 0 <= left_px < right_px < width or pitch < 6:
@@ -55,10 +66,4 @@ def detect_long_ticks(strip, left_px, right_px, min_depth=0.10):
             moment += col * weight
         ticks.append((mm, moment / mass))
 
-    if len(ticks) < 20:
-        raise ValueError("need at least 20 readable long ticks for calibration")
-    for (mm0, u0), (mm1, u1) in zip(ticks, ticks[1:]):
-        spacing = (u1 - u0) / ((mm1 - mm0) / STEP_MM)
-        if not 0.65 * pitch <= spacing <= 1.35 * pitch:
-            raise ValueError("long tick spacing is inconsistent with the numbered ruler")
-    return ticks
+    return ticks, pitch

@@ -1,0 +1,211 @@
+{
+  "scale_px_per_mm": 1.8375,
+  "max_gray": 237,
+  "pixels_at_or_above_250": 0,
+  "bands": [
+    {
+      "rows": [
+        190,
+        200
+      ],
+      "candidate_count": 3,
+      "candidate_columns": [
+        292.11,
+        384.21,
+        474.48
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        192,
+        201
+      ],
+      "candidate_count": 3,
+      "candidate_columns": [
+        292.18,
+        384.27,
+        474.53
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        194,
+        202
+      ],
+      "candidate_count": 3,
+      "candidate_columns": [
+        292.27,
+        384.22,
+        474.56
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        195,
+        202
+      ],
+      "candidate_count": 4,
+      "candidate_columns": [
+        256.91,
+        292.32,
+        384.25,
+        474.58
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        196,
+        202
+      ],
+      "candidate_count": 6,
+      "candidate_columns": [
+        182.79,
+        256.92,
+        275.32,
+        292.35,
+        384.28,
+        474.59
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        197,
+        202
+      ],
+      "candidate_count": 7,
+      "candidate_columns": [
+        107.78,
+        182.81,
+        256.94,
+        292.37,
+        347.77,
+        384.29,
+        474.61
+      ],
+      "result": "need at least 20 readable long ticks for calibration",
+      "visible_ticks": [
+        {
+          "column": 108,
+          "half_depth_width_px": 1.32,
+          "depth_gray": 20.7,
+          "relative_depth_pct": 11.43,
+          "flank_std_gray": 1.95
+        },
+        {
+          "column": 183,
+          "half_depth_width_px": 1.13,
+          "depth_gray": 23.8,
+          "relative_depth_pct": 12.26,
+          "flank_std_gray": 0.81
+        },
+        {
+          "column": 257,
+          "half_depth_width_px": 1.05,
+          "depth_gray": 26.2,
+          "relative_depth_pct": 12.51,
+          "flank_std_gray": 1.14
+        },
+        {
+          "column": 348,
+          "half_depth_width_px": 1.23,
+          "depth_gray": 24.4,
+          "relative_depth_pct": 10.74,
+          "flank_std_gray": 1.22
+        },
+        {
+          "column": 384,
+          "half_depth_width_px": 1.91,
+          "depth_gray": 31.9,
+          "relative_depth_pct": 14.57,
+          "flank_std_gray": 0.48
+        },
+        {
+          "column": 475,
+          "half_depth_width_px": 1.65,
+          "depth_gray": 36.7,
+          "relative_depth_pct": 17.27,
+          "flank_std_gray": 1.09
+        }
+      ]
+    },
+    {
+      "rows": [
+        198,
+        203
+      ],
+      "candidate_count": 5,
+      "candidate_columns": [
+        126.78,
+        292.38,
+        347.81,
+        384.28,
+        474.61
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        199,
+        203
+      ],
+      "candidate_count": 5,
+      "candidate_columns": [
+        126.83,
+        292.39,
+        347.84,
+        384.32,
+        474.64
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        200,
+        204
+      ],
+      "candidate_count": 1,
+      "candidate_columns": [
+        292.43
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        200,
+        206
+      ],
+      "candidate_count": 1,
+      "candidate_columns": [
+        292.43
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        201,
+        206
+      ],
+      "candidate_count": 1,
+      "candidate_columns": [
+        292.43
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    },
+    {
+      "rows": [
+        202,
+        208
+      ],
+      "candidate_count": 1,
+      "candidate_columns": [
+        292.37
+      ],
+      "result": "need at least 20 readable long ticks for calibration"
+    }
+  ]
+}
