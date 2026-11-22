@@ -1,0 +1,24 @@
+Network (rt-smart) is always active and cannot be disabled.
+HCV_WIFI_STEP,connect
+run connect failed.
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_STATUS,False
+HCV_WIFI_IFCONFIG,('0.0.0.0', '0.0.0.0', '0.0.0.0', '0.0.0.0')
+HCV_WIFI_DONE
