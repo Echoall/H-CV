@@ -15,8 +15,8 @@ STREAM_SECONDS = 10
 GUARD_MARGIN_SECONDS = 2
 
 
-def run():
-    start(STREAM_SECONDS + GUARD_MARGIN_SECONDS)
+def run(seconds=STREAM_SECONDS, announce_url=True):
+    start(seconds + GUARD_MARGIN_SECONDS)
     config = load_config("/sdcard/hcv")
     claim()
     sensor = None
@@ -26,6 +26,9 @@ def run():
         tick()
         mode = config["sensor"]
         sensor = Sensor(width=mode["width"], height=mode["height"], fps=mode["fps"])
+        sensor.reset()
+        print("HCV_CH0_CONFIG_STEP,sensor_reset")
+        tick()
         stream = H264Stream(config, sensor_channel=0)
         stream.bind(sensor)
         print("HCV_CH0_CONFIG_STEP,media_link")
@@ -38,16 +41,22 @@ def run():
         print("HCV_CH0_CONFIG_STEP,encoder_started")
         tick()
         url = stream.start_session()
-        print("HCV_CH0_CONFIG_READY,url=%s" % url)
         sensor.run()
+        if announce_url:
+            print("HCV_CH0_CONFIG_READY,url=%s" % url)
+        else:
+            print("HCV_CH0_CONFIG_READY")
         started = time.ticks_ms()
-        while time.ticks_diff(time.ticks_ms(), started) < STREAM_SECONDS * 1000:
+        while time.ticks_diff(time.ticks_ms(), started) < seconds * 1000:
             tick()
             stream.send_one(timeout_ms=100)
         print(
             "HCV_CH0_CONFIG_SUMMARY,packets=%d,bytes=%d"
             % (stream.packets, stream.bytes)
         )
+    except Exception as error:
+        print("HCV_CH0_CONFIG_EXCEPTION,%s" % type(error).__name__)
+        raise
     finally:
         try:
             if sensor is not None:

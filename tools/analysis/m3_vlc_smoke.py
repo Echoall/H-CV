@@ -29,14 +29,19 @@ def stop(child):
         child.wait(timeout=5)
 
 
-def record_with_libvlc(vlc, url, recording):
+def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True):
     """Use the CLI's demux and sout options in a headless VLC 3 player."""
     argv = vlc_command(str(vlc), url, recording)
     options = [
-        b"--ignore-config", b"--no-media-library", b"--verbose=2", b"--file-logging",
+        b"--ignore-config", b"--no-media-library", b"--quiet",
         b"--vout=dummy", b"--avcodec-hw=none", b"--rtsp-tcp", b"--network-caching=200",
-        ("--logfile=" + str(recording.parent / "client.log")).encode("utf-8"),
     ]
+    if diagnostic_log:
+        options.remove(b"--quiet")
+        options.extend([
+            b"--verbose=2", b"--file-logging",
+            ("--logfile=" + str(recording.parent / "client.log")).encode("utf-8"),
+        ])
     dll_dir = os.add_dll_directory(str(vlc.parent))
     try:
         library = ctypes.CDLL(str(vlc.with_name("libvlc.dll")))
@@ -60,7 +65,7 @@ def record_with_libvlc(vlc, url, recording):
                 instance, url.encode("ascii")
             )
             if not media:
-                raise RuntimeError("could not open localhost RTSP in LibVLC")
+                raise RuntimeError("could not open RTSP in LibVLC")
             resources.callback(api("media_release", None, instance_type), media)
             media_option = api(
                 "media_add_option_flag", None, instance_type, ctypes.c_char_p, ctypes.c_uint
@@ -80,7 +85,7 @@ def record_with_libvlc(vlc, url, recording):
                 if time.monotonic() >= deadline or state(player) in (6, 7):
                     raise RuntimeError("LibVLC did not enter playback")
                 time.sleep(0.1)
-            time.sleep(5)
+            time.sleep(seconds)
     finally:
         dll_dir.close()
     return version
