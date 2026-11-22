@@ -19,6 +19,16 @@ def checked(result, action):
         raise OSError("%s returned %s" % (action, result))
 
 
+def release_link(link):
+    if link is None:
+        return
+    unlink = getattr(MediaManager, "_del_link", None)
+    if unlink is not None:
+        unlink(link)
+    else:
+        del link
+
+
 def encoder_attributes(config):
     width = config["chn_stream"]["width"]
     height = config["chn_stream"]["height"]
@@ -189,7 +199,8 @@ def run(stage):
             finally:
                 try:
                     if link is not None:
-                        MediaManager._del_link(link)
+                        release_link(link)
+                        link = None
                 finally:
                     try:
                         if created:
