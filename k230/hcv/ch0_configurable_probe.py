@@ -16,7 +16,7 @@ STREAM_SECONDS = 10
 GUARD_MARGIN_SECONDS = 2
 
 
-def run(seconds=STREAM_SECONDS, announce_url=True):
+def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False):
     start(seconds + GUARD_MARGIN_SECONDS)
     config = load_config("/sdcard/hcv")
     claim()
@@ -30,7 +30,7 @@ def run(seconds=STREAM_SECONDS, announce_url=True):
         sensor.reset()
         print("HCV_CH0_CONFIG_STEP,sensor_reset")
         tick()
-        stream = H264Stream(config, sensor_channel=0)
+        stream = H264Stream(config, sensor_channel=0, copy_packets=copy_packets)
         stream.bind(sensor)
         print("HCV_CH0_CONFIG_STEP,media_link")
         tick()
@@ -45,6 +45,7 @@ def run(seconds=STREAM_SECONDS, announce_url=True):
         print("HCV_CH0_CONFIG_STEP,sensor_started")
         tick()
         url = stream.start_session()
+        print("HCV_CH0_SEND_PATH,%s" % ("bytes" if copy_packets else "physical"))
         if announce_url:
             print("HCV_CH0_CONFIG_READY,url=%s" % url)
         else:

@@ -1,0 +1,27 @@
+{
+  "tcp": {
+    "frames": 891,
+    "fps": 30.0,
+    "seconds": 29.7,
+    "width": 320,
+    "height": 192,
+    "bytes": 1726649
+  },
+  "udp": {
+    "frames": 899,
+    "fps": 30.0,
+    "seconds": 29.966666666666665,
+    "width": 320,
+    "height": 192,
+    "bytes": 1734503
+  },
+  "vlc": {
+    "frames": 896,
+    "fps": 29.995781843178303,
+    "seconds": 29.870866666666668,
+    "width": 320,
+    "height": 192,
+    "bytes": 1745821,
+    "version": "3.0.23 Vetinari"
+  }
+}

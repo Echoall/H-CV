@@ -11,12 +11,14 @@ def test_sta_log_redacts_credentials_without_losing_traceback():
     raw = (
         'Traceback (most recent call last):\n'
         '  File "probe.py", line 60, in run\n'
-        'OSError: test-hotspot dummy-test-password rtsp://192.0.2.1:8554/hcv'
+        'OSError: test-hotspot dummy-test-password rtsp://192.0.2.1:8554/hcv\n'
+        'Session: ABC123;timeout=10'
     )
     assert redact(raw, wifi) == (
         'Traceback (most recent call last):\n'
         '  File "probe.py", line 60, in run\n'
-        'OSError: <redacted> <redacted> rtsp://<ipv4>:8554/hcv'
+        'OSError: <redacted> <redacted> rtsp://<ipv4>:8554/hcv\n'
+        'Session: <session>;timeout=10'
     )
 
 
@@ -64,7 +66,10 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         rtspserver_createsession = operation("rtsp.create_session")
         rtspserver_start = operation("rtsp.start")
         rtspserver_getrtspurl = operation("rtsp.get_url", "rtsp://test/hcv")
-        rtspserver_sendvideodata = operation("rtsp.send")
+        def rtspserver_sendvideodata(self, path, payload, size, timestamp):
+            assert payload == b"abc" and size == 3
+            calls.append("rtsp.send")
+
         rtspserver_sendvideodata_byphyaddr = operation("rtsp.send")
         rtspserver_stop = operation("rtsp.stop")
         rtspserver_deinit = operation("rtsp.deinit")
@@ -90,6 +95,8 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         ),
         "mpp": SimpleNamespace(
             venc=venc,
+            sys=SimpleNamespace(kd_mpi_sys_mmap=operation("mmap", 123),
+                                kd_mpi_sys_munmap=operation("munmap", 0)),
             venc_def=SimpleNamespace(k_venc_pack_desc={}, k_venc_stream_desc={}),
             venc_struct=SimpleNamespace(
                 K_VENC_RC_MODE_CBR=1,
@@ -125,14 +132,14 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         "stream": {"port": 8554, "path": "hcv", "fps": 30, "bitrate_kbps": 2000, "gop": 30},
     }
     sequences = []
-    for probe in (baseline, configurable):
+    for probe, options in ((baseline, {}), (configurable, {}), (configurable, {"copy_packets": True})):
         ticks = iter((0, 1, 10_000))
         probe.time = SimpleNamespace(ticks_ms=lambda: next(ticks), ticks_diff=lambda a, b: a - b)
         probe.load_config = lambda path: config
         probe.start = lambda seconds: None
         probe.claim = lambda: None
         probe.tick = lambda: None
-        probe.run()
+        probe.run(**options)
         sequences.append(calls[:])
         calls.clear()
 
@@ -143,4 +150,5 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         "get_stream", "rtsp.send", "release_stream", "sensor.stop", "rtsp.stop",
         "rtsp.deinit", "release_link", "encoder.stop", "encoder.destroy", "media.deinit",
     ]
-    assert sequences == [expected, expected]
+    send = expected.index("rtsp.send")
+    assert sequences == [expected, expected, expected[:send] + ["mmap", "munmap"] + expected[send:]]

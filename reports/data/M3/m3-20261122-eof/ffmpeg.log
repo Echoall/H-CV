@@ -1,0 +1,300 @@
+Start: 2026-11-22T22:36:29.149+08:00
+Splitting the commandline.
+
+Reading option '-hide_banner' ... matched as option 'hide_banner' (do not show program banner) with argument '1'.
+
+Reading option '-nostdin' ... matched as option 'stdin' (enable or disable interaction on standard input) with argument 0.
+
+Reading option '-loglevel' ... matched as option 'loglevel' (set logging level) with argument 'debug'.
+
+Reading option '-rtsp_transport' ... matched as AVOption 'rtsp_transport' with argument 'tcp'.
+
+Reading option '-i' ... matched as input url with argument 'rtsp://<ipv4>:8554/hcv'.
+
+Reading option '-t' ... matched as option 't' (stop transcoding after specified duration) with argument '30'.
+
+Reading option '-map' ... matched as option 'map' (set input stream mapping) with argument '0:v:0'.
+
+Reading option '-c' ... matched as option 'c' (select encoder/decoder ('copy' to copy stream without reencoding)) with argument 'copy'.
+
+Reading option '<recording>.mp4' ... matched as output url.
+
+Finished splitting the commandline.
+
+Parsing a group of options: global .
+
+Applying option hide_banner (do not show program banner) with argument 1.
+
+Applying option nostdin (enable or disable interaction on standard input) with argument 0.
+
+Applying option loglevel (set logging level) with argument debug.
+
+Successfully parsed a group of options.
+
+Parsing a group of options: input url rtsp://<ipv4>:8554/hcv.
+
+Successfully parsed a group of options.
+
+Opening an input file: rtsp://<ipv4>:8554/hcv.
+
+[tcp @ 0000022d9a174dc0] No default whitelist set
+
+[tcp @ 0000022d9a174dc0] Original list of addresses:
+
+[tcp @ 0000022d9a174dc0] Address <ipv4> port 8554
+
+[tcp @ 0000022d9a174dc0] Interleaved list of addresses:
+
+[tcp @ 0000022d9a174dc0] Address <ipv4> port 8554
+
+[tcp @ 0000022d9a174dc0] Starting connection attempt to <ipv4> port 8554
+
+[tcp @ 0000022d9a174dc0] Successfully connected to <ipv4> port 8554
+
+[in#0 @ 0000022d9a172740] SDP:
+
+v=0
+
+
+o=- 1795358188690000 1 IN IP4 <ipv4>
+
+
+s=Session streamed by "KdRTSPServer"
+
+
+i=hcv
+
+
+t=0 0
+
+
+a=tool:LIVE555 Streaming Media v2023.01.19
+
+
+a=type:broadcast
+
+
+a=control:*
+
+
+a=range:npt=now-
+
+
+a=x-qt-text-nam:Session streamed by "KdRTSPServer"
+
+
+a=x-qt-text-inf:hcv
+
+
+m=video 0 RTP/AVP 96
+
+
+c=IN IP4 <ipv4>
+
+
+b=AS:2048
+
+
+a=rtpmap:96 H264/90000
+
+
+a=fmtp:96 profile-level-id=4d4033;sprop-parameter-sets=Z01AM0VoDwEX7hAACAAABaAACEA=,aErjyA==;
+
+
+a=control:track1
+
+
+
+
+[in#0 @ 0000022d9a172740] video codec set to: h264
+
+[in#0 @ 0000022d9a172740] RTP Profile IDC: 4d Profile IOP: 40 Level: 33
+
+[in#0 @ 0000022d9a172740] Extradata set to 0000022d9a177c40 (size: 32)
+
+[in#0 @ 0000022d9a172740] setting jitter buffer size to 0
+
+[in#0 @ 0000022d9a172740] hello state=0
+
+Failed to parse interval end specification ''
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 7(SPS), nal_ref_idc: 3
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 8(PPS), nal_ref_idc: 3
+
+[h264 @ 0000022d9a1777c0] Decoding VUI
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 7(SPS), nal_ref_idc: 3
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 8(PPS), nal_ref_idc: 3
+
+[h264 @ 0000022d9a1777c0] Decoding VUI
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+[h264 @ 0000022d9a1777c0] Format yuv420p chosen by get_format().
+
+[h264 @ 0000022d9a1777c0] Reinit context to 960x544, pix_fmt: yuv420p
+
+[h264 @ 0000022d9a1777c0] Frame num gap 9 7
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+[h264 @ 0000022d9a1777c0] Frame num gap 13 11
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+[h264 @ 0000022d9a1777c0] Frame num gap 16 14
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+    Last message repeated 5 times
+
+[h264 @ 0000022d9a1777c0] Frame num gap 25 23
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+[h264 @ 0000022d9a1777c0] Decoding VUI
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 7(SPS), nal_ref_idc: 3
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 8(PPS), nal_ref_idc: 3
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 5(IDR), nal_ref_idc: 3
+
+[h264 @ 0000022d9a1777c0] Decoding VUI
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+[h264 @ 0000022d9a1777c0] Frame num gap 6 4
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+[h264 @ 0000022d9a1777c0] Frame num gap 9 7
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+    Last message repeated 1 times
+
+[h264 @ 0000022d9a1777c0] Frame num gap 12 10
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+[h264 @ 0000022d9a1777c0] Frame num gap 14 12
+
+[h264 @ 0000022d9a1777c0] nal_unit_type: 1(Coded slice of a non-IDR picture), nal_ref_idc: 2
+
+[h264 @ 0000022d9a1777c0] Frame num gap 16 14
+
+[in#0/rtsp @ 0000022d9a172740] first_dts 38880 not matching first dts NOPTS (pts NOPTS, duration 1000) in the queue
+
+[h264 @ 0000022d9a1777c0] Decoding VUI
+
+[in#0/rtsp @ 0000022d9a172740] All info found
+
+Input #0, rtsp, from 'rtsp://<ipv4>:8554/hcv':
+
+  Metadata:
+
+    title           : Session streamed by "KdRTSPServer"
+
+    comment         : hcv
+
+  Duration: N/A, start: 0.041000, bitrate: N/A
+
+  Stream #0:0, 38, 1/90000: Video: h264 (Main), 1 reference frame, yuv420p(progressive, left), 960x540, 0/1, 90 fps, 180 tbr, 90k tbn, start 0.041000
+
+Successfully opened the file.
+
+Parsing a group of options: output url <recording>.mp4.
+
+Applying option t (stop transcoding after specified duration) with argument 30.
+
+Applying option map (set input stream mapping) with argument 0:v:0.
+
+Applying option c (select encoder/decoder ('copy' to copy stream without reencoding)) with argument copy.
+
+Successfully parsed a group of options.
+
+Opening an output file: <recording>.mp4.
+
+[out#0/mp4 @ 0000022d9ac17500] Adding streams from explicit maps...
+
+[vost#0:0/copy @ 0000022d9a177a80] Created video stream from input stream 0:0
+
+[file @ 0000022d9ae41e80] Setting default whitelist 'file,crypto,data'
+
+Successfully opened the file.
+
+Stream mapping:
+
+  Stream #0:0 -> #0:0 (copy)
+
+Output #0, mp4, to '<recording>.mp4':
+
+  Metadata:
+
+    title           : Session streamed by "KdRTSPServer"
+
+    comment         : hcv
+
+    encoder         : Lavf63.1.102
+
+  Stream #0:0, 0, 1/90000: Video: h264 (Main), 1 reference frame (avc1 / 0x31637661), yuv420p(progressive, left), 960x540, 0/1, q=2-31, 90 fps, 180 tbr, 90k tbn
+
+[out#0/mp4 @ 0000022d9ac17500] Starting thread...
+
+[in#0/rtsp @ 0000022d9a1721c0] Starting thread...
+
+frame=   45 fps=0.0 q=-1.0 size=       0KiB time=00:00:01.44 bitrate=   0.3kbits/s speed=2.79x elapsed=0:00:00.51
+[h264 @ 0000022d9ac17140] Decoding VUI
+
+frame=   61 fps= 59 q=-1.0 size=       0KiB time=00:00:02.00 bitrate=   0.2kbits/s speed=1.94x elapsed=0:00:01.03
+frame=   79 fps= 51 q=-1.0 size=     256KiB time=00:00:02.51 bitrate= 832.6kbits/s speed=1.62x elapsed=0:00:01.55
+[h264 @ 0000022d9ac17140] Decoding VUI
+
+frame=  101 fps= 49 q=-1.0 size=     256KiB time=00:00:03.05 bitrate= 687.2kbits/s speed=1.47x elapsed=0:00:02.07
+frame=  118 fps= 46 q=-1.0 size=     256KiB time=00:00:03.51 bitrate= 596.4kbits/s speed=1.36x elapsed=0:00:02.58
+[h264 @ 0000022d9ac17140] Decoding VUI
+
+frame=  135 fps= 43 q=-1.0 size=     256KiB time=00:00:04.06 bitrate= 516.1kbits/s speed=1.31x elapsed=0:00:03.10
+frame=  150 fps= 41 q=-1.0 size=     256KiB time=00:00:04.50 bitrate= 465.3kbits/s speed=1.25x elapsed=0:00:03.61
+[h264 @ 0000022d9ac17140] Decoding VUI
+
+[in#0/rtsp @ 0000022d9a172740] Failed reading RTSP data: End of file
+
+    Last message repeated 1 times
+
+[in#0/rtsp @ 0000022d9a1721c0] EOF while reading input
+
+[in#0/rtsp @ 0000022d9a1721c0] Terminating thread with return code 0 (success)
+
+[out#0/mp4 @ 0000022d9ac17500] All streams finished
+
+[out#0/mp4 @ 0000022d9ac17500] Terminating thread with return code 0 (success)
+
+[AVIOContext @ 0000022d9ac16fc0] Statistics: 541849 bytes written, 2 seeks, 6 writeouts
+
+[out#0/mp4 @ 0000022d9ac17500] Output file #0 (<recording>.mp4):
+
+[out#0/mp4 @ 0000022d9ac17500]   Output stream #0:0 (video): 162 packets muxed (539133 bytes);
+
+[out#0/mp4 @ 0000022d9ac17500]   Total: 162 packets (539133 bytes) muxed
+
+[out#0/mp4 @ 0000022d9ac17500] video:526KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.503030%
+
+frame=  162 fps= 41 q=-1.0 Lsize=     529KiB time=00:00:04.86 bitrate= 891.4kbits/s speed=1.24x elapsed=0:00:03.92
+
+[in#0/rtsp @ 0000022d9a1721c0] Input file #0 (rtsp://<ipv4>:8554/hcv):
+
+[in#0/rtsp @ 0000022d9a1721c0]   Input stream #0:0 (video): 172 packets read (562923 bytes);
+
+[in#0/rtsp @ 0000022d9a1721c0]   Total: 172 packets (562923 bytes) demuxed
+
+
+
+Exiting with exit code 0
+
+
+End: 2026-11-22T22:36:34.344+08:00
+Exit status 0

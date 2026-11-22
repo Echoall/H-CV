@@ -34,4 +34,5 @@ for name in ("hcv.ch0_configurable_probe", "hcv.media_session_guard", "hcv.strea
     sys.modules.pop(name, None)
 from hcv.ch0_configurable_probe import run
 
-run(seconds=60, announce_url=False)
+run(seconds=globals().pop("HCV_STREAM_SECONDS", 60), announce_url=False,
+    copy_packets=globals().pop("HCV_COPY_PACKETS", False))

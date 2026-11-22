@@ -25,11 +25,15 @@ def _release_link(link):
 
 
 class H264Stream:
-    def __init__(self, config, sensor_channel=1):
+    def __init__(self, config, sensor_channel=1, copy_packets=False):
         self.settings = config["stream"]
         self.camera = config["chn_stream"]
         self.source_fps = config["sensor"]["fps"]
         self.sensor_channel = sensor_channel
+        self.packet_mapping = None
+        if copy_packets:
+            from mpp import sys as packet_mapping
+            self.packet_mapping = packet_mapping
         self.encoder = None
         self.server = None
         self.link = None
@@ -107,9 +111,24 @@ class H264Stream:
         try:
             size = self.pack.len
             if self.serving:
-                self.last_send_result = self.server.rtspserver_sendvideodata_byphyaddr(
-                    self.settings["path"], self.pack.phys_addr, size, self.pack.pts // 1000
-                )
+                path = self.settings["path"]
+                timestamp = self.pack.pts // 1000
+                if self.packet_mapping is None:
+                    self.last_send_result = self.server.rtspserver_sendvideodata_byphyaddr(
+                        path, self.pack.phys_addr, size, timestamp
+                    )
+                else:
+                    address = self.packet_mapping.kd_mpi_sys_mmap(self.pack.phys_addr, size)
+                    if not address:
+                        raise OSError("could not map H.264 packet")
+                    try:
+                        payload = bytes(uctypes.bytearray_at(address, size))
+                    finally:
+                        _checked(self.packet_mapping.kd_mpi_sys_munmap(address, size),
+                                 "unmap H.264 packet")
+                    self.last_send_result = self.server.rtspserver_sendvideodata(
+                        path, payload, size, timestamp
+                    )
                 _checked(self.last_send_result, "send H.264 packet")
             self.packets += 1
             self.bytes += size

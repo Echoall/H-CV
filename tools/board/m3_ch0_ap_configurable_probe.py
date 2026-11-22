@@ -1,6 +1,7 @@
 """Configure the K230 AP and run the configuration-driven CHN0 stream."""
 
 import sys
+
 import network
 
 sys.path.insert(0, "/sdcard/hcv")
@@ -26,4 +27,13 @@ except TypeError:
     ap.config(ssid=wifi["ssid"], key=wifi["password"])
 
 print("HCV_AP_READY")
-run()
+if "HCV_STREAM_SECONDS" in globals():
+    address = ap.ifconfig()[0]
+    if address == "0.0.0.0":
+        raise RuntimeError("HCV_AP_NO_ADDRESS")
+    print("HCV_RTSP_PRIVATE,%s,%d,%s" % (
+        address, config["stream"]["port"], config["stream"]["path"]
+    ))
+    run(seconds=HCV_STREAM_SECONDS, announce_url=False)
+else:
+    run()

@@ -93,12 +93,12 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
 
 
 @contextmanager
-def localhost_source(ffmpeg, mediamtx, output):
+def localhost_source(ffmpeg, mediamtx, output, transports=("tcp",)):
     tcp = local_port()
     url = f"rtsp://127.0.0.1:{tcp}/hcv"
     config = output / "mediamtx.yml"
     config.write_text(
-        f"rtspAddress: 127.0.0.1:{tcp}\nrtspTransports: [tcp]\n"
+        f"rtspAddress: 127.0.0.1:{tcp}\nrtspTransports: [{', '.join(transports)}]\n"
         "rtmp: false\nhls: false\nwebrtc: false\nsrt: false\nmoq: false\n"
         "paths:\n  hcv:\n    source: publisher\n", encoding="ascii"
     )
