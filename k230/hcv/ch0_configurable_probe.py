@@ -1,5 +1,6 @@
 """Run a bounded, configuration-driven CHN0 hardware RTSP session."""
 
+import sys
 import time
 
 from media.media import MediaManager
@@ -40,8 +41,10 @@ def run(seconds=STREAM_SECONDS, announce_url=True):
         stream.start_encoder()
         print("HCV_CH0_CONFIG_STEP,encoder_started")
         tick()
-        url = stream.start_session()
         sensor.run()
+        print("HCV_CH0_CONFIG_STEP,sensor_started")
+        tick()
+        url = stream.start_session()
         if announce_url:
             print("HCV_CH0_CONFIG_READY,url=%s" % url)
         else:
@@ -55,7 +58,7 @@ def run(seconds=STREAM_SECONDS, announce_url=True):
             % (stream.packets, stream.bytes)
         )
     except Exception as error:
-        print("HCV_CH0_CONFIG_EXCEPTION,%s" % type(error).__name__)
+        sys.print_exception(error)
         raise
     finally:
         try:

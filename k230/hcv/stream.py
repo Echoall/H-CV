@@ -30,7 +30,7 @@ class H264Stream:
         self.camera = config["chn_stream"]
         self.source_fps = config["sensor"]["fps"]
         self.sensor_channel = sensor_channel
-        self.encoder = Encoder()
+        self.encoder = None
         self.server = None
         self.link = None
         self.created = False
@@ -54,12 +54,15 @@ class H264Stream:
         if self.sensor_channel == 0:
             sensor.set_framesize(width=width, height=height, alignment=12)
             sensor.set_pixformat(Sensor.YUV420SP)
-            source = sensor.bind_info()["src"]
         else:
             sensor.set_framesize(width=width, height=height, chn=self.sensor_channel)
             sensor.set_pixformat(Sensor.YUV420SP, chn=self.sensor_channel)
-            source = sensor.bind_info(chn=self.sensor_channel)["src"]
+        self.encoder = Encoder()
         self.encoder.SetOutBufs(CHANNEL, STREAM_BUFFERS, width, height)
+        if self.sensor_channel == 0:
+            source = sensor.bind_info()["src"]
+        else:
+            source = sensor.bind_info(chn=self.sensor_channel)["src"]
         self.link = MediaManager.link(
             source, (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL)
         )
@@ -122,13 +125,13 @@ class H264Stream:
                     self.server.rtspserver_deinit()
             finally:
                 try:
-                    if self.encoding:
-                        self.encoder.Stop(CHANNEL)
+                    if self.link is not None:
+                        _release_link(self.link)
+                        self.link = None
                 finally:
                     try:
-                        if self.link is not None:
-                            _release_link(self.link)
-                            self.link = None
+                        if self.encoding:
+                            self.encoder.Stop(CHANNEL)
                     finally:
                         if self.created:
                             self.encoder.Destroy(CHANNEL)
