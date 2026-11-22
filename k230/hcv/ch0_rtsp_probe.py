@@ -15,6 +15,7 @@ from media.vencoder import Encoder, ChnAttrStr, StreamData
 
 from .config import load_config
 from .guard import start, tick
+from .media_session_guard import claim
 
 
 VENC_CHANNEL = 0
@@ -37,6 +38,7 @@ def release_link(link):
 def run():
     start(STREAM_SECONDS + GUARD_MARGIN_SECONDS)
     config = load_config("/sdcard/hcv")
+    claim()
     width = 1280
     height = 720
     sensor = None

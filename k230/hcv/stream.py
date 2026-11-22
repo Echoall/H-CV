@@ -1,4 +1,4 @@
-"""Bind K230 camera CHN1 to hardware H.264 and publish an RTSP session."""
+"""Bind one K230 camera channel to hardware H.264 and publish RTSP."""
 
 import uctypes
 
@@ -25,10 +25,11 @@ def _release_link(link):
 
 
 class H264Stream:
-    def __init__(self, config):
+    def __init__(self, config, sensor_channel=1):
         self.settings = config["stream"]
         self.camera = config["chn_stream"]
         self.source_fps = config["sensor"]["fps"]
+        self.sensor_channel = sensor_channel
         self.encoder = Encoder()
         self.server = None
         self.link = None
@@ -50,11 +51,17 @@ class H264Stream:
 
     def bind(self, sensor):
         width, height = self.camera["width"], self.camera["height"]
-        sensor.set_framesize(width=width, height=height, chn=1)
-        sensor.set_pixformat(Sensor.YUV420SP, chn=1)
+        if self.sensor_channel == 0:
+            sensor.set_framesize(width=width, height=height, alignment=12)
+            sensor.set_pixformat(Sensor.YUV420SP)
+            source = sensor.bind_info()["src"]
+        else:
+            sensor.set_framesize(width=width, height=height, chn=self.sensor_channel)
+            sensor.set_pixformat(Sensor.YUV420SP, chn=self.sensor_channel)
+            source = sensor.bind_info(chn=self.sensor_channel)["src"]
         self.encoder.SetOutBufs(CHANNEL, STREAM_BUFFERS, width, height)
         self.link = MediaManager.link(
-            sensor.bind_info(chn=1)["src"], (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL)
+            source, (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL)
         )
 
     def start_encoder(self):

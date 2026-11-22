@@ -7,6 +7,7 @@ from mpp import venc, venc_def, venc_struct
 
 from .config import load_config
 from .guard import start, tick
+from .media_session_guard import claim
 from main_hcv import configure_detector_sensor
 
 
@@ -60,6 +61,7 @@ def run(stage):
 
     start(5)
     config = load_config("/sdcard/hcv")
+    claim()
     sensor = None
     encoder = None
     link = None
