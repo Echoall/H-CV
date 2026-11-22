@@ -1,0 +1,8 @@
+HCV_STA_ENDPOINT_AVAILABLE
+Traceback (most recent call last):
+  File "<stdin>", line 37, in <module>
+  File "/sdcard/hcv/hcv/ch0_configurable_probe.py", line 22, in run
+  File "/sdcard/hcv/hcv/media_session_guard.py", line 59, in claim
+RuntimeError: HCV_MEDIA_SESSION_ALREADY_USED
+board: script raised a board-side exception
+HCV_BOARD_EXIT,1

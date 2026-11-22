@@ -1,0 +1,6 @@
+            "codec_name": "h264",
+            "width": 320,
+            "height": 192,
+            "coded_width": 320,
+            "coded_height": 192,
+a=rtpmap:96 H264/90000

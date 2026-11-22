@@ -8,7 +8,7 @@ import socket
 import subprocess
 import sys
 import time
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
 import cv2
@@ -29,17 +29,18 @@ def stop(child):
         child.wait(timeout=5)
 
 
-def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True):
-    """Use the CLI's demux and sout options in a headless VLC 3 player."""
+def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, show_video=False):
+    """Use the CLI's demux and recording options in a VLC 3 player."""
     argv = vlc_command(str(vlc), url, recording)
     options = [
-        b"--ignore-config", b"--no-media-library", b"--quiet",
-        b"--vout=dummy", b"--avcodec-hw=none", b"--rtsp-tcp", b"--network-caching=200",
+        b"--ignore-config", b"--no-media-library", b"--verbose=2",
+        b"--avcodec-hw=none", b"--rtsp-tcp", b"--network-caching=200",
     ]
+    if not show_video:
+        options.append(b"--vout=dummy")
     if diagnostic_log:
-        options.remove(b"--quiet")
         options.extend([
-            b"--verbose=2", b"--file-logging",
+            b"--file-logging",
             ("--logfile=" + str(recording.parent / "client.log")).encode("utf-8"),
         ])
     dll_dir = os.add_dll_directory(str(vlc.parent))
@@ -81,9 +82,9 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True):
             resources.callback(api("media_player_stop", None, instance_type), player)
             state = api("media_player_get_state", ctypes.c_int, instance_type)
             deadline = time.monotonic() + 8
-            while state(player) != 3:
-                if time.monotonic() >= deadline or state(player) in (6, 7):
-                    raise RuntimeError("LibVLC did not enter playback")
+            while (current_state := state(player)) != 3:
+                if time.monotonic() >= deadline or current_state in (6, 7):
+                    raise RuntimeError(f"LibVLC did not enter playback (state={current_state})")
                 time.sleep(0.1)
             time.sleep(seconds)
     finally:
@@ -91,8 +92,8 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True):
     return version
 
 
-def smoke(vlc, ffmpeg, mediamtx, output):
-    output.mkdir()
+@contextmanager
+def localhost_source(ffmpeg, mediamtx, output):
     tcp = local_port()
     url = f"rtsp://127.0.0.1:{tcp}/hcv"
     config = output / "mediamtx.yml"
@@ -102,7 +103,6 @@ def smoke(vlc, ffmpeg, mediamtx, output):
         "paths:\n  hcv:\n    source: publisher\n", encoding="ascii"
     )
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-    recording = output / "received sample.mp4"
     server_log = output / "server.log"
     with ExitStack() as stack:
         stream = stack.enter_context(server_log.open("w", encoding="utf-8"))
@@ -128,6 +128,13 @@ def smoke(vlc, ffmpeg, mediamtx, output):
             if time.monotonic() >= deadline or server.poll() is not None or publisher.poll() is not None:
                 raise RuntimeError(f"MediaMTX never saw the localhost video. See {server_log}")
             time.sleep(0.15)
+        yield url
+
+
+def smoke(vlc, ffmpeg, mediamtx, output):
+    output.mkdir()
+    recording = output / "received sample.mp4"
+    with localhost_source(ffmpeg, mediamtx, output) as url:
         version = record_with_libvlc(vlc, url, recording)
     verify_recording(recording)
     video = cv2.VideoCapture(str(recording))
@@ -154,10 +161,22 @@ def smoke(vlc, ffmpeg, mediamtx, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--vlc", type=Path, required=True)
-    parser.add_argument("--ffmpeg", type=Path, required=True)
-    parser.add_argument("--mediamtx", type=Path, required=True)
+    parser.add_argument("--ffmpeg", type=Path)
+    parser.add_argument("--mediamtx", type=Path)
+    parser.add_argument("--record-url", help="record an existing source; send native logs to stderr")
+    parser.add_argument("--record-seconds", type=int, default=5)
+    parser.add_argument("--show-video", action="store_true")
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
+    if args.record_url:
+        version = record_with_libvlc(
+            args.vlc.resolve(), args.record_url, args.output.resolve(),
+            seconds=args.record_seconds, diagnostic_log=False, show_video=args.show_video,
+        )
+        print(f"HCV_VLC_VERSION {version}", flush=True)
+        return
+    if args.ffmpeg is None or args.mediamtx is None:
+        parser.error("synthetic mode requires --ffmpeg and --mediamtx")
     smoke(args.vlc.resolve(), args.ffmpeg.resolve(), args.mediamtx.resolve(), args.output.resolve())
 
 
