@@ -26,5 +26,5 @@ except TypeError:
     ap.config(ssid=wifi["ssid"], key=wifi["password"])
 
 print("HCV_AP_READY")
-ch0_rtsp_probe.STREAM_SECONDS = 60
+ch0_rtsp_probe.STREAM_SECONDS = 10
 ch0_rtsp_probe.run()
