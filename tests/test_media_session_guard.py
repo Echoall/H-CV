@@ -6,11 +6,32 @@ from k230.hcv import media_session_guard
 def test_claim_allows_one_session(monkeypatch, tmp_path):
     marker = tmp_path / "media-used"
     monkeypatch.setattr(media_session_guard, "_MARKER", str(marker))
+    monkeypatch.setattr(media_session_guard, "_now_ticks", lambda: 1000)
 
     media_session_guard.claim()
 
-    assert marker.read_text() == "1"
+    assert marker.read_text() == "1000"
     with pytest.raises(RuntimeError, match="HCV_MEDIA_SESSION_ALREADY_USED"):
+        media_session_guard.claim()
+
+
+def test_claim_replaces_marker_from_previous_boot(monkeypatch, tmp_path):
+    marker = tmp_path / "media-used"
+    marker.write_text("5000")
+    monkeypatch.setattr(media_session_guard, "_MARKER", str(marker))
+    monkeypatch.setattr(media_session_guard, "_now_ticks", lambda: 1000)
+
+    media_session_guard.claim()
+
+    assert marker.read_text() == "1000"
+
+
+def test_claim_rejects_corrupt_marker(monkeypatch, tmp_path):
+    marker = tmp_path / "media-used"
+    marker.write_text("not-a-tick")
+    monkeypatch.setattr(media_session_guard, "_MARKER", str(marker))
+
+    with pytest.raises(RuntimeError, match="HCV_MEDIA_SESSION_MARKER_INVALID"):
         media_session_guard.claim()
 
 
