@@ -21,11 +21,7 @@ def _checked(result, action):
 def _release_link(link):
     if link is None:
         return
-    unlink = getattr(MediaManager, "_del_link", None)
-    if unlink is not None:
-        unlink(link)
-    else:
-        del link
+    del link
 
 
 class H264Stream:
