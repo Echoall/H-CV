@@ -207,5 +207,180 @@
       ],
       "result": "need at least 20 readable long ticks for calibration"
     }
-  ]
+  ],
+  "diagnostic_valley_spacing": [
+    {
+      "crop_rows": [
+        0,
+        4
+      ],
+      "valley_count": 44,
+      "median_spacing_px": 4.0
+    },
+    {
+      "crop_rows": [
+        4,
+        9
+      ],
+      "valley_count": 24,
+      "median_spacing_px": 18.0
+    },
+    {
+      "crop_rows": [
+        5,
+        12
+      ],
+      "valley_count": 42,
+      "median_spacing_px": 9.0
+    }
+  ],
+  "fixed_row_198_count": 16,
+  "adaptive_strip": {
+    "baseline_rows": [
+      [
+        43.5,
+        203
+      ],
+      [
+        83.5,
+        202
+      ],
+      [
+        123.5,
+        202
+      ],
+      [
+        163.5,
+        202
+      ],
+      [
+        203.5,
+        202
+      ],
+      [
+        243.5,
+        202
+      ],
+      [
+        283.5,
+        202
+      ],
+      [
+        323.5,
+        203
+      ],
+      [
+        363.5,
+        203
+      ],
+      [
+        403.5,
+        202
+      ],
+      [
+        443.5,
+        202
+      ],
+      [
+        483.5,
+        201
+      ],
+      [
+        523.5,
+        201
+      ]
+    ],
+    "selected_segments": [
+      {
+        "aligned_rows": [
+          7,
+          8
+        ],
+        "amplitude_1cm_gray": 3.2,
+        "amplitude_05cm_gray": 2.85
+      },
+      {
+        "aligned_rows": [
+          7,
+          8
+        ],
+        "amplitude_1cm_gray": 7.42,
+        "amplitude_05cm_gray": 7.08
+      },
+      {
+        "aligned_rows": [
+          6,
+          7
+        ],
+        "amplitude_1cm_gray": 4.4,
+        "amplitude_05cm_gray": 3.69
+      }
+    ],
+    "raw_candidate_count": 16,
+    "numbered_non_seam_candidates": [
+      {
+        "relative_mm": -110,
+        "column": 88.88
+      },
+      {
+        "relative_mm": -100,
+        "column": 107.78
+      },
+      {
+        "relative_mm": -90,
+        "column": 126.75
+      },
+      {
+        "relative_mm": -60,
+        "column": 182.83
+      },
+      {
+        "relative_mm": -40,
+        "column": 219.78
+      },
+      {
+        "relative_mm": -30,
+        "column": 238.43
+      },
+      {
+        "relative_mm": -20,
+        "column": 256.78
+      },
+      {
+        "relative_mm": -10,
+        "column": 275.18
+      },
+      {
+        "relative_mm": 10,
+        "column": 311.61
+      },
+      {
+        "relative_mm": 20,
+        "column": 329.68
+      },
+      {
+        "relative_mm": 30,
+        "column": 347.79
+      },
+      {
+        "relative_mm": 40,
+        "column": 366.05
+      },
+      {
+        "relative_mm": 50,
+        "column": 384.15
+      },
+      {
+        "relative_mm": 100,
+        "column": 474.51
+      },
+      {
+        "relative_mm": 120,
+        "column": 510.49
+      }
+    ],
+    "excluded_seam_columns": [
+      292.31
+    ]
+  }
 }
