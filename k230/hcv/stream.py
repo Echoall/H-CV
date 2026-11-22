@@ -39,6 +39,7 @@ class H264Stream:
         self.packets = 0
         self.bytes = 0
         self.last_read_error = 0
+        self.last_send_result = None
         self.pack_storage = bytearray(uctypes.sizeof(venc_def.k_venc_pack_desc, uctypes.NATIVE))
         self.stream_storage = bytearray(uctypes.sizeof(venc_def.k_venc_stream_desc, uctypes.NATIVE))
         self.output = uctypes.struct(
@@ -106,9 +107,10 @@ class H264Stream:
         try:
             size = self.pack.len
             if self.serving:
-                _checked(self.server.rtspserver_sendvideodata_byphyaddr(
+                self.last_send_result = self.server.rtspserver_sendvideodata_byphyaddr(
                     self.settings["path"], self.pack.phys_addr, size, self.pack.pts // 1000
-                ), "send H.264 packet")
+                )
+                _checked(self.last_send_result, "send H.264 packet")
             self.packets += 1
             self.bytes += size
             return True

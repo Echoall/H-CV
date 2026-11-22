@@ -47,6 +47,7 @@ def decode(recording, preview):
 
 
 def client_command(arguments, timeout, logfile, wifi):
+    started = datetime.now().astimezone().isoformat(timespec="milliseconds")
     try:
         result = subprocess.run(
             arguments, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -54,13 +55,32 @@ def client_command(arguments, timeout, logfile, wifi):
         )
     except subprocess.TimeoutExpired as error:
         data = (error.output or b"").decode("utf-8", errors="replace")
-        logfile.write_text(redact(data, wifi) + f"\nTimeout after {timeout}s\n", encoding="utf-8")
+        result = None
+    else:
+        data = result.stdout.decode("utf-8", errors="replace")
+    ended = datetime.now().astimezone().isoformat(timespec="milliseconds")
+    outcome = f"Timeout after {timeout}s" if result is None else f"Exit status {result.returncode}"
+    logfile.write_text(
+        f"Start: {started}\n{redact(data, wifi)}\nEnd: {ended}\n{outcome}\n", encoding="utf-8",
+    )
+    if result is None:
         raise RuntimeError(f"{logfile.stem} timed out after {timeout}s") from None
-    data = result.stdout.decode("utf-8", errors="replace")
-    logfile.write_text(redact(data, wifi), encoding="utf-8")
     if result.returncode:
         raise RuntimeError(f"{logfile.stem} exited with status {result.returncode}")
     return data
+
+
+def record_ffmpeg(ffmpeg, endpoint, output, recording, wifi, *, debug=False):
+    client_command([
+        str(ffmpeg), "-hide_banner", "-nostdin", "-loglevel", "debug" if debug else "info",
+        "-rtsp_transport", "tcp", "-i", endpoint,
+        "-t", "30", "-map", "0:v:0", "-c", "copy", str(recording),
+    ], 42, output / "ffmpeg.log", wifi)
+    playback = decode(recording, output / "preview.png")
+    (output / "ffmpeg-playback.json").write_text(json.dumps(playback) + "\n", encoding="utf-8")
+    if playback["seconds"] < 29:
+        raise RuntimeError(f"FFmpeg recording decoded only {playback['seconds']:.2f}s")
+    return {"ffmpeg": playback}
 
 
 def check_clients(vlc, ffmpeg, ffprobe, endpoint, address, port, output, recording,
@@ -77,14 +97,7 @@ def check_clients(vlc, ffmpeg, ffprobe, endpoint, address, port, output, recordi
         "-analyzeduration", "2000000", "-probesize", "1500000", "-show_streams",
         "-of", "json", endpoint,
     ], 12, output / "ffprobe.log", wifi)
-    client_command([
-        str(ffmpeg), "-hide_banner", "-nostdin", "-rtsp_transport", "tcp", "-i", endpoint,
-        "-t", "30", "-map", "0:v:0", "-c", "copy", str(recording),
-    ], 42, output / "ffmpeg.log", wifi)
-    playback = decode(recording, output / "preview.png")
-    (output / "ffmpeg-playback.json").write_text(json.dumps(playback) + "\n", encoding="utf-8")
-    if playback["seconds"] < 29:
-        raise RuntimeError(f"FFmpeg recording decoded only {playback['seconds']:.2f}s")
+    playback = record_ffmpeg(ffmpeg, endpoint, output, recording, wifi)
 
     vlc_recording = recording.with_name(recording.stem + "-vlc.mp4")
     vlc_command = [
@@ -101,10 +114,11 @@ def check_clients(vlc, ffmpeg, ffprobe, endpoint, address, port, output, recordi
         if line.startswith("HCV_VLC_VERSION "):
             vlc_playback["version"] = line.removeprefix("HCV_VLC_VERSION ")
     (output / "vlc-playback.json").write_text(json.dumps(vlc_playback) + "\n", encoding="utf-8")
-    return {"ffmpeg": playback, "vlc": vlc_playback}
+    playback["vlc"] = vlc_playback
+    return playback
 
 
-def run(vlc, ffmpeg, ffprobe, port, show_vlc):
+def run(vlc, ffmpeg, ffprobe, port, show_vlc, single_ffmpeg):
     wifi = json.loads((REPO / "k230/config.local.json").read_text(encoding="utf-8"))["wifi"]
     name = "m3-hotspot-" + datetime.now().strftime("%Y%m%d-%H%M%S")
     output = REPO / "station/logs" / name
@@ -134,10 +148,18 @@ def run(vlc, ffmpeg, ffprobe, port, show_vlc):
                     continue
                 emit(line)
                 if line == "HCV_CH0_CONFIG_READY" and endpoint and recording_task is None:
-                    recording_task = worker.submit(
-                        check_clients, vlc, ffmpeg, ffprobe, endpoint, address, port_text,
-                        output, recording, wifi, vlc_seconds=10, show_vlc=show_vlc,
-                    )
+                    emit("HCV_READY_HOST_CLOCK," + datetime.now().astimezone().isoformat(
+                        timespec="milliseconds"
+                    ))
+                    if single_ffmpeg:
+                        recording_task = worker.submit(
+                            record_ffmpeg, ffmpeg, endpoint, output, recording, wifi, debug=True,
+                        )
+                    else:
+                        recording_task = worker.submit(
+                            check_clients, vlc, ffmpeg, ffprobe, endpoint, address, port_text,
+                            output, recording, wifi, vlc_seconds=10, show_vlc=show_vlc,
+                        )
             code = process.wait()
         emit(f"HCV_BOARD_EXIT,{code}")
         if code == 0:
@@ -158,16 +180,22 @@ def run(vlc, ffmpeg, ffprobe, port, show_vlc):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--vlc", required=True, type=Path)
+    parser.add_argument("--vlc", type=Path)
     parser.add_argument("--ffmpeg", required=True, type=Path)
-    parser.add_argument("--ffprobe", required=True, type=Path)
+    parser.add_argument("--ffprobe", type=Path)
     parser.add_argument("--port", default="auto")
     parser.add_argument("--show-vlc", action="store_true", help="show VLC video during the test")
+    parser.add_argument("--single-ffmpeg", action="store_true", help="use one FFmpeg client with debug logs")
     parser.add_argument("--localhost-mediamtx", type=Path, help="use a synthetic source instead of K230")
     parser.add_argument("--output", type=Path, help="new output directory for the synthetic test")
     args = parser.parse_args()
-    vlc, ffmpeg, ffprobe = args.vlc.resolve(), args.ffmpeg.resolve(), args.ffprobe.resolve()
-    for executable in (vlc, ffmpeg, ffprobe):
+    ffmpeg = args.ffmpeg.resolve()
+    vlc = ffprobe = None
+    if not args.single_ffmpeg:
+        if args.vlc is None or args.ffprobe is None:
+            parser.error("provide --vlc and --ffprobe, or select --single-ffmpeg")
+        vlc, ffprobe = args.vlc.resolve(), args.ffprobe.resolve()
+    for executable in (ffmpeg,) if args.single_ffmpeg else (ffmpeg, vlc, ffprobe):
         if not executable.is_file():
             parser.error(f"executable does not exist: {executable}")
     if args.localhost_mediamtx:
@@ -176,10 +204,15 @@ if __name__ == "__main__":
         output = args.output.resolve()
         output.mkdir(parents=True)
         with localhost_source(ffmpeg, args.localhost_mediamtx.resolve(), output) as endpoint:
-            port = endpoint.rsplit(":", 1)[1].split("/", 1)[0]
-            playback = check_clients(vlc, ffmpeg, ffprobe, endpoint, "127.0.0.1", port,
-                                     output, output / "received.mp4",
-                                     {"ssid": "", "password": ""}, vlc_seconds=30)
+            wifi = {"ssid": "", "password": ""}
+            if args.single_ffmpeg:
+                playback = record_ffmpeg(
+                    ffmpeg, endpoint, output, output / "received.mp4", wifi, debug=True,
+                )
+            else:
+                port = endpoint.rsplit(":", 1)[1].split("/", 1)[0]
+                playback = check_clients(vlc, ffmpeg, ffprobe, endpoint, "127.0.0.1", port,
+                                         output, output / "received.mp4", wifi, vlc_seconds=30)
         print(json.dumps(playback))
     else:
-        raise SystemExit(run(vlc, ffmpeg, ffprobe, args.port, args.show_vlc))
+        raise SystemExit(run(vlc, ffmpeg, ffprobe, args.port, args.show_vlc, args.single_ffmpeg))

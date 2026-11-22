@@ -50,9 +50,23 @@ def run(seconds=STREAM_SECONDS, announce_url=True):
         else:
             print("HCV_CH0_CONFIG_READY")
         started = time.ticks_ms()
-        while time.ticks_diff(time.ticks_ms(), started) < seconds * 1000:
+        next_status = 1000
+        previous_packets = 0
+        while True:
+            elapsed = time.ticks_diff(time.ticks_ms(), started)
+            if elapsed >= seconds * 1000:
+                break
             tick()
             stream.send_one(timeout_ms=100)
+            if elapsed >= next_status:
+                print(
+                    "HCV_CH0_CONFIG_STATUS,elapsed_ms=%d,registered_sessions=1,"
+                    "packets_since_status=%d,packets=%d,send_result=%s,last_read_error=%d"
+                    % (elapsed, stream.packets - previous_packets, stream.packets,
+                       stream.last_send_result, stream.last_read_error)
+                )
+                previous_packets = stream.packets
+                next_status = elapsed + 1000
         print(
             "HCV_CH0_CONFIG_SUMMARY,packets=%d,bytes=%d"
             % (stream.packets, stream.bytes)
