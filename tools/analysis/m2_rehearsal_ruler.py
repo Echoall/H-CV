@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from k230.hcv.ruler import _long_tick_candidates, detect_long_ticks
+from k230.hcv.ruler import MIN_TICKS, STEP_MM, _long_tick_candidates, measure_long_ticks
 
 
 CROP_X = 24
@@ -104,6 +104,22 @@ def adaptive_strip(crop, pitch):
             round(col + CROP_X, 2) for _, col in ticks
             if abs(col + CROP_X - SEAM_COLUMN) <= SEAM_MARGIN
         ],
+        "joint_fit": joint_fit_result(profile),
+    }
+
+
+def joint_fit_result(profile):
+    ticks = measure_long_ticks(profile, *ENDPOINTS)
+    narrowed = [
+        {"relative_mm": mm, "column": round(column + CROP_X, 3),
+         "snr": round(snr, 3), "residual_px": round(residual, 3)}
+        for mm, column, snr, residual in ticks
+    ]
+    return {
+        "count": len(ticks),
+        "rms_residual_px": round(float(np.sqrt(np.mean([r**2 for _, _, _, r in ticks]))), 4)
+        if ticks else None,
+        "ticks": narrowed,
     }
 
 
@@ -112,7 +128,7 @@ def valley_spacing(crop, top, bottom):
     radius = 4
     valleys = []
     for x in range(radius, len(profile) - radius):
-        if not profile[x] < profile[x - 1] or profile[x] > profile[x + 1]:
+        if profile[x] >= profile[x - 1] or profile[x] > profile[x + 1]:
             continue
         shoulder = min(max(profile[x - radius:x]), max(profile[x + 1:x + radius + 1]))
         if shoulder - profile[x] > 3:
@@ -132,10 +148,11 @@ def analyze(crop):
         strip = crop[top - CROP_Y:bottom - CROP_Y]
         profile = strip.mean(axis=0)
         ticks, pitch = _long_tick_candidates(profile, *ENDPOINTS, min_depth=0.10)
-        try:
-            detect_long_ticks(strip, *ENDPOINTS)
-        except ValueError as error:
-            result = str(error)
+        if len(ticks) < MIN_TICKS:
+            result = "need at least 20 readable long ticks for calibration"
+        elif any(not 0.65 * pitch <= (u1 - u0) / ((mm1 - mm0) / STEP_MM) <= 1.35 * pitch
+                 for (mm0, u0), (mm1, u1) in zip(ticks, ticks[1:])):
+            result = "long tick spacing is inconsistent with the numbered ruler"
         else:
             result = "accepted"
         band = {
@@ -164,6 +181,7 @@ def analyze(crop):
         ],
         "fixed_row_198_count": len(fixed),
         "adaptive_strip": adaptive_strip(crop, pitch),
+        "joint_fit_rows_194_199": joint_fit_result(crop[4:9].mean(axis=0)),
     }
 
 

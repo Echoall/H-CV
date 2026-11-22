@@ -381,6 +381,306 @@
     ],
     "excluded_seam_columns": [
       292.31
+    ],
+    "joint_fit": {
+      "count": 24,
+      "rms_residual_px": 0.2835,
+      "ticks": [
+        {
+          "relative_mm": -120,
+          "column": 69.776,
+          "snr": 14.0,
+          "residual_px": -0.372
+        },
+        {
+          "relative_mm": -110,
+          "column": 88.924,
+          "snr": 20.167,
+          "residual_px": -0.041
+        },
+        {
+          "relative_mm": -100,
+          "column": 107.814,
+          "snr": 26.0,
+          "residual_px": 0.075
+        },
+        {
+          "relative_mm": -90,
+          "column": 126.719,
+          "snr": 22.0,
+          "residual_px": 0.249
+        },
+        {
+          "relative_mm": -80,
+          "column": 145.584,
+          "snr": 11.202,
+          "residual_px": 0.426
+        },
+        {
+          "relative_mm": -70,
+          "column": 163.901,
+          "snr": 12.0,
+          "residual_px": 0.097
+        },
+        {
+          "relative_mm": -60,
+          "column": 182.814,
+          "snr": 30.0,
+          "residual_px": 0.406
+        },
+        {
+          "relative_mm": -50,
+          "column": 201.411,
+          "snr": 18.0,
+          "residual_px": 0.442
+        },
+        {
+          "relative_mm": -40,
+          "column": 219.753,
+          "snr": 31.0,
+          "residual_px": 0.265
+        },
+        {
+          "relative_mm": -30,
+          "column": 238.435,
+          "snr": 25.0,
+          "residual_px": 0.471
+        },
+        {
+          "relative_mm": -20,
+          "column": 256.764,
+          "snr": 30.0,
+          "residual_px": 0.367
+        },
+        {
+          "relative_mm": -10,
+          "column": 275.164,
+          "snr": 25.0,
+          "residual_px": 0.376
+        },
+        {
+          "relative_mm": 10,
+          "column": 311.605,
+          "snr": 23.255,
+          "residual_px": 0.162
+        },
+        {
+          "relative_mm": 20,
+          "column": 329.658,
+          "snr": 28.0,
+          "residual_px": -0.048
+        },
+        {
+          "relative_mm": 30,
+          "column": 347.776,
+          "snr": 27.161,
+          "residual_px": -0.151
+        },
+        {
+          "relative_mm": 40,
+          "column": 366.032,
+          "snr": 8.994,
+          "residual_px": -0.073
+        },
+        {
+          "relative_mm": 50,
+          "column": 384.135,
+          "snr": 40.0,
+          "residual_px": -0.106
+        },
+        {
+          "relative_mm": 60,
+          "column": 402.231,
+          "snr": 10.0,
+          "residual_px": -0.103
+        },
+        {
+          "relative_mm": 70,
+          "column": 420.168,
+          "snr": 4.0,
+          "residual_px": -0.217
+        },
+        {
+          "relative_mm": 80,
+          "column": 438.375,
+          "snr": 19.0,
+          "residual_px": -0.018
+        },
+        {
+          "relative_mm": 90,
+          "column": 456.725,
+          "snr": 16.501,
+          "residual_px": 0.366
+        },
+        {
+          "relative_mm": 100,
+          "column": 474.514,
+          "snr": 37.0,
+          "residual_px": 0.233
+        },
+        {
+          "relative_mm": 110,
+          "column": 492.291,
+          "snr": 8.0,
+          "residual_px": 0.129
+        },
+        {
+          "relative_mm": 120,
+          "column": 510.521,
+          "snr": 28.0,
+          "residual_px": 0.521
+        }
+      ]
+    }
+  },
+  "joint_fit_rows_194_199": {
+    "count": 24,
+    "rms_residual_px": 0.2641,
+    "ticks": [
+      {
+        "relative_mm": -120,
+        "column": 69.986,
+        "snr": 5.2,
+        "residual_px": -0.162
+      },
+      {
+        "relative_mm": -110,
+        "column": 89.016,
+        "snr": 8.6,
+        "residual_px": 0.052
+      },
+      {
+        "relative_mm": -100,
+        "column": 107.774,
+        "snr": 12.4,
+        "residual_px": 0.036
+      },
+      {
+        "relative_mm": -90,
+        "column": 126.722,
+        "snr": 11.2,
+        "residual_px": 0.253
+      },
+      {
+        "relative_mm": -80,
+        "column": 145.45,
+        "snr": 9.2,
+        "residual_px": 0.292
+      },
+      {
+        "relative_mm": -70,
+        "column": 163.915,
+        "snr": 8.6,
+        "residual_px": 0.11
+      },
+      {
+        "relative_mm": -60,
+        "column": 182.748,
+        "snr": 14.8,
+        "residual_px": 0.34
+      },
+      {
+        "relative_mm": -50,
+        "column": 201.423,
+        "snr": 11.6,
+        "residual_px": 0.453
+      },
+      {
+        "relative_mm": -40,
+        "column": 219.727,
+        "snr": 15.4,
+        "residual_px": 0.239
+      },
+      {
+        "relative_mm": -30,
+        "column": 238.452,
+        "snr": 11.4,
+        "residual_px": 0.488
+      },
+      {
+        "relative_mm": -20,
+        "column": 256.792,
+        "snr": 18.2,
+        "residual_px": 0.395
+      },
+      {
+        "relative_mm": -10,
+        "column": 275.269,
+        "snr": 15.6,
+        "residual_px": 0.481
+      },
+      {
+        "relative_mm": 10,
+        "column": 311.55,
+        "snr": 5.6,
+        "residual_px": 0.107
+      },
+      {
+        "relative_mm": 20,
+        "column": 329.599,
+        "snr": 6.6,
+        "residual_px": -0.107
+      },
+      {
+        "relative_mm": 30,
+        "column": 347.92,
+        "snr": 5.772,
+        "residual_px": -0.007
+      },
+      {
+        "relative_mm": 40,
+        "column": 366.012,
+        "snr": 12.6,
+        "residual_px": -0.093
+      },
+      {
+        "relative_mm": 50,
+        "column": 384.138,
+        "snr": 40.2,
+        "residual_px": -0.102
+      },
+      {
+        "relative_mm": 60,
+        "column": 402.392,
+        "snr": 7.2,
+        "residual_px": 0.058
+      },
+      {
+        "relative_mm": 70,
+        "column": 420.266,
+        "snr": 8.4,
+        "residual_px": -0.119
+      },
+      {
+        "relative_mm": 80,
+        "column": 438.206,
+        "snr": 8.6,
+        "residual_px": -0.186
+      },
+      {
+        "relative_mm": 90,
+        "column": 456.404,
+        "snr": 12.2,
+        "residual_px": 0.046
+      },
+      {
+        "relative_mm": 100,
+        "column": 474.512,
+        "snr": 36.0,
+        "residual_px": 0.23
+      },
+      {
+        "relative_mm": 110,
+        "column": 492.475,
+        "snr": 13.4,
+        "residual_px": 0.313
+      },
+      {
+        "relative_mm": 120,
+        "column": 510.481,
+        "snr": 16.6,
+        "residual_px": 0.481
+      }
     ]
   }
 }

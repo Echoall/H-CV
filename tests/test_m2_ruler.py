@@ -58,6 +58,46 @@ def test_mvp_ruler_accuracy(line_width_mm, obscured, center):
         assert abs(measured - mm) < 0.3
 
 
+@pytest.mark.parametrize("artifact, missing", [
+    ("seam", {0}),
+    ("glare", {-50, -40}),
+    ("half_centimeters", {-20, 10}),
+])
+def test_ruler_grid_does_not_number_artifacts(artifact, missing):
+    columns = np.arange(640)
+    expected = {mm: 320.25 + 1.71 * mm for mm in range(-120, 121, 10)}
+    rng = np.random.default_rng(43)
+    profile = np.full(640, 209.0)
+    for mm, center in expected.items():
+        if mm not in missing:
+            profile -= 19 * np.exp(-((columns - center) / 0.90) ** 2)
+    if artifact == "seam":
+        # Dark, narrow and close to the absent 0 tick.
+        profile -= 116 * np.exp(-((columns - (expected[0] + 1.25)) / 0.90) ** 2)
+    elif artifact == "glare":
+        profile += 80 * np.exp(-((columns - (expected[-50] + 8.55)) / 12) ** 2)
+    else:
+        for mm in (-75, -35, -25, -15, 5, 15, 55, 85):
+            profile -= 18 * np.exp(-((columns - (320.25 + 1.71 * mm)) / 0.90) ** 2)
+    strip = np.clip(profile + rng.normal(0, 1.8, (11, 640)), 0, 255).astype(np.uint8)
+    ticks = detect_long_ticks(strip, int(expected[-120]), int(expected[120]))
+    assert {mm for mm, _ in ticks} == set(expected) - missing
+    assert max(abs(x - expected[mm]) for mm, x in ticks) < 0.3
+
+
+@pytest.mark.parametrize("ambiguous", [False, True])
+def test_ruler_refuses_blank_or_ambiguous_half_centimeter_strip(ambiguous):
+    rng = np.random.default_rng(27)
+    columns = np.arange(640)
+    profile = 208.0 + 0.035 * columns
+    if ambiguous:
+        for mm in range(-120, 121, 5):
+            profile -= 19 * np.exp(-((columns - (320.25 + 1.71 * mm)) / 0.90) ** 2)
+    strip = (profile + rng.normal(0, 1.8, (11, 640))).astype(np.uint8)
+    with pytest.raises(ValueError, match="at least 20"):
+        detect_long_ticks(strip, 115, 525)
+
+
 def test_calibration_moves_full_image_anchors_into_roi_and_rejects_stale_profile():
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root / "reports/data/M1/m1-config.json").read_text())
