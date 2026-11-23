@@ -74,6 +74,73 @@
         "bytes": 9891516
       },
       "passed": true
+    },
+    {
+      "case": "lower-resolution",
+      "plan": "p3-ap-low",
+      "version": 1,
+      "started_at": "2026-11-23T17:29:21.943+08:00",
+      "record_target_seconds": 30,
+      "transport_requested": "tcp",
+      "media": {
+        "transport_observed": [
+          "tcp"
+        ],
+        "exit_code": 0,
+        "frames": 899,
+        "fps": 29.853334563232174,
+        "seconds": 30.11388888888889,
+        "width": 640,
+        "height": 360,
+        "bytes": 4952285
+      },
+      "board_stage": {
+        "started": "2026-11-23T17:29:22.236+08:00",
+        "ended": "2026-11-23T17:29:56.290+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "client_stage": {
+        "started": "2026-11-23T17:29:22.293+08:00",
+        "ended": "2026-11-23T17:29:53.310+08:00",
+        "exit_code": 0
+      },
+      "passed": true
+    },
+    {
+      "case": "publisher-stopped-at-8s",
+      "plan": "p1-ap-baseline",
+      "version": 1,
+      "started_at": "2026-11-23T17:30:36.402+08:00",
+      "record_target_seconds": 30,
+      "transport_requested": "tcp",
+      "media": {
+        "transport_observed": [
+          "tcp"
+        ],
+        "client_end_seconds": 17.756,
+        "client_end_at": "2026-11-23T17:30:55.390+08:00",
+        "client_end_reason": "eof",
+        "exit_code": 0,
+        "frames": 213,
+        "fps": 29.61807057660219,
+        "seconds": 7.1915555555555555,
+        "width": 960,
+        "height": 540,
+        "bytes": 2354419
+      },
+      "board_stage": {
+        "started": "2026-11-23T17:30:36.696+08:00",
+        "ended": "2026-11-23T17:31:10.751+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "client_stage": {
+        "started": "2026-11-23T17:30:36.773+08:00",
+        "ended": "2026-11-23T17:30:55.483+08:00",
+        "exit_code": 0
+      },
+      "passed": false
     }
   ]
 }

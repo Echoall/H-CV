@@ -102,6 +102,19 @@ def test_wlan_failure_gives_manual_instructions(capsys, monkeypatch, tmp_path):
     assert run.summary["network"]["automatic_switch"] is False
 
 
+def test_distinguishes_board_reply_from_unavailable_rtsp(monkeypatch, tmp_path):
+    run = bench.Run(tmp_path / "run", baseline(), False)
+
+    def closed(*args, **kwargs):
+        raise ConnectionRefusedError()
+
+    monkeypatch.setattr(bench.socket, "create_connection", closed)
+    monkeypatch.setattr(run, "command", lambda *args, **kwargs: (0, "Reply: time=1ms TTL=64", ""))
+    assert not bench.wait_for_board(run, "192.0.2.8", 8554, seconds=0)
+    assert run.summary["network"]["board_reachable"] is True
+    assert run.summary["network"]["rtsp_port_open"] is False
+
+
 def test_preflight_rejects_used_boot_before_writes(tmp_path, monkeypatch):
     run = bench.Run(tmp_path / "run", baseline(), False)
 

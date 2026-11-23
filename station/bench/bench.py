@@ -317,15 +317,25 @@ def wait_for_board(run, host, port, seconds):
     while True:
         try:
             with socket.create_connection((host, port), timeout=1):
-                reachable = True
+                port_open = True
         except OSError:
-            reachable = False
-        if reachable or time.monotonic() - started >= seconds:
+            port_open = False
+        if port_open or time.monotonic() - started >= seconds:
             break
         time.sleep(0.5)
-    run.summary["network"].update(board_reachable=reachable, rtsp_port_open=reachable,
+    reachable = port_open
+    if not port_open:
+        ping = ["ping", "-n", "1", "-w", "800"] if sys.platform == "win32" else [
+            "ping", "-c", "1", "-W", "1",
+        ]
+        try:
+            code, output, _ = run.command("board-ping", ping + [host], timeout=2)
+            reachable = code == 0 and "ttl=" in output.lower()
+        except OSError:
+            reachable = None
+    run.summary["network"].update(board_reachable=reachable, rtsp_port_open=port_open,
                                   reachability_checked_at=now())
-    return reachable
+    return port_open
 
 
 def show_board_network(wifi):
@@ -384,7 +394,10 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                     reachable = wait_for_board(run, host, int(port), seconds=20 if use_manual else 3)
                     if not reachable:
                         run.summary["network"]["connected"] = "未确认"
-                        run.summary["message"] = "电脑没有收到板子的画面连接，请确认连的是板子的网络。"
+                        if run.summary["network"]["board_reachable"]:
+                            run.summary["message"] = "板子有回应，但画面连接没有打开。"
+                        else:
+                            run.summary["message"] = "没收到板子的回应，请确认已经连到板子的网络。"
                         print(run.summary["message"], flush=True)
                         continue
                     run.summary["network"]["connected"] = "环回模拟" if simulation else "板子"
