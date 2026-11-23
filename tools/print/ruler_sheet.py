@@ -82,7 +82,8 @@ def strip(c, y_top, h, lw, numbers, style):
         col = black
         if style == "bands" and mm_pos % 10 != 0 and cell_fill(mm_pos // 10) is not BAND_LIGHT:
             col = white
-        line(c, x, y_top, x, y_top - tick_zone * frac, lw, col)
+        w = coded_width(mm_pos, lw) if style == "coded" else lw
+        line(c, x, y_top, x, y_top - tick_zone * frac, w, col)
     if numbers:
         size = max(1.2, num_zone * 0.85)  # mm
         c.setFont("Helvetica-Bold", size * 2.835)
@@ -98,13 +99,36 @@ def strip(c, y_top, h, lw, numbers, style):
             c.drawCentredString(x * mm, (y_bot + num_zone * 0.12) * mm, str(cm))
 
 
+VARIANTS_V2 = [
+    # id, title, h, base line, numbers, style ; width coding: 0 cm -> 3x base, +-5/+-10 cm -> 2x base
+    ("V1", "槽沿版 3.5mm 基础线0.3：0号=0.9mm最粗，±5/±10cm=0.6mm次粗（推荐先试）", 3.5, 0.30, False, "coded"),
+    ("V2", "槽沿版 3.5mm 基础线0.4：0号=1.2mm，±5/±10cm=0.8mm", 3.5, 0.40, False, "coded"),
+    ("V3", "槽沿版 3.5mm 基础线0.2：0号=0.6mm，±5/±10cm=0.4mm（细线对照）", 3.5, 0.20, False, "coded"),
+    ("V4", "5mm宽 基础线0.3 粗细编码", 5.0, 0.30, False, "coded"),
+    ("V5", "7mm宽 基础线0.3 粗细编码（沿边+外侧）", 7.0, 0.30, False, "coded"),
+    ("V1'", "V1 备份", 3.5, 0.30, False, "coded"),
+    ("V1''", "V1 备份", 3.5, 0.30, False, "coded"),
+    ("V5'", "V5 备份", 7.0, 0.30, False, "coded"),
+    ("R", "读数参考条（不贴摆杆，放旁边给人看：粗线位置对应的厘米数）", 7.0, 0.30, True, "coded"),
+]
+
+
+def coded_width(mm_pos, base):
+    if mm_pos == 0:
+        return base * 3.0
+    if mm_pos % 50 == 0:
+        return base * 2.0
+    return base
+
+
 def main(out):
     c = canvas.Canvas(out, pagesize=landscape(A4))
-    c.setTitle("H-CV rod scale strips v1")
+    ver = "v2" if "v2" in out else "v1"
+    c.setTitle("H-CV rod scale strips " + ver)
     top = PAGE_H / mm - 8
     c.setFillColor(black)
     c.setFont(CJK, 11)
-    c.drawString(X0 * mm, top * mm, "H题 摆杆刻度尺 打印版 v1（1:1）  H-CV rod scale strips v1")
+    c.drawString(X0 * mm, top * mm, "H题 摆杆刻度尺 打印版 %s（1:1）  H-CV rod scale strips %s" % (ver, ver))
     c.setFont(CJK, 8)
     c.drawString(X0 * mm, (top - 5) * mm,
                  "打印：选“实际大小/100%”，不要“适合页面”。打印后用直尺量下面的校验条，应为 100.0 mm（误差>0.5mm 请重新设置打印）。")
@@ -119,7 +143,8 @@ def main(out):
     c.drawString((X0 + 102) * mm, (yb - 0.8) * mm, "CHECK: this bar must measure 100.0 mm")
 
     y = yb - 9
-    for vid, title, h, lw, numbers, style in VARIANTS:
+    variants = VARIANTS_V2 if "v2" in out else VARIANTS
+    for vid, title, h, lw, numbers, style in variants:
         c.setFillColor(black)
         c.setFont(CJK, 7.5)
         c.drawString(X0 * mm, (y + 2.2) * mm, "%s  %s   [h=%.1fmm, line=%.2fmm]" % (vid, title, h, lw))
@@ -127,7 +152,13 @@ def main(out):
         y -= h + GAP
     c.setFont(CJK, 7)
     c.setFillColor(black)
-    c.drawString(X0 * mm, 6 * mm,
+    note = ("说明（v2 粗细编码，无数字）：每1mm短线、5mm中线、1cm长线（占满条宽）；0号长线最粗(3倍)，"
+            "±5cm、±10cm 长线次粗(2倍)，其余同粗。从最粗的0往两边数即可读数；程序也靠粗细确定编号，不会错格。") if ver == "v2" else None
+    if note:
+        c.setFont(CJK, 7)
+        c.drawString(X0 * mm, 6 * mm, note)
+    else:
+      c.drawString(X0 * mm, 6 * mm,
                  "说明：A–C 宽 3.5mm（= (20−13)/2 槽沿宽），长刻度占满条宽、半厘米 60%、毫米 40%，用于程序识别；"
                  "D–G 带数字供人读；H 为备用方案，未经负责人批准不要贴到比赛摆杆上。")
     c.showPage()
