@@ -141,6 +141,178 @@
         "exit_code": 0
       },
       "passed": false
+    },
+    {
+      "case": "latency-window-and-fullscreen-grabs",
+      "plan": "p4-ap-latency",
+      "version": 1,
+      "started_at": "2026-11-23T17:53:57.805+08:00",
+      "record_target_seconds": 35,
+      "transport_requested": "tcp",
+      "media": {
+        "transport_observed": [
+          "tcp"
+        ],
+        "exit_code": 0,
+        "frames": 1049,
+        "fps": 29.915083748609366,
+        "seconds": 35.06592222222222,
+        "width": 960,
+        "height": 540,
+        "bytes": 11542313,
+        "latency_screenshots": 7
+      },
+      "board_stage": {
+        "started": "2026-11-23T17:53:58.488+08:00",
+        "ended": "2026-11-23T17:54:37.544+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "client_stage": {
+        "started": "2026-11-23T17:53:58.546+08:00",
+        "ended": "2026-11-23T17:54:34.651+08:00",
+        "exit_code": 0
+      },
+      "recording_passed": true,
+      "latency_measurement": "not_measured_synthetic",
+      "local_capture_checks": [
+        {
+          "file": "latency-01.png",
+          "width": 2560,
+          "height": 1600,
+          "left_white_fraction": 0.965,
+          "right_saturated_fraction": 0.996
+        },
+        {
+          "file": "latency-02.png",
+          "width": 2560,
+          "height": 1600,
+          "left_white_fraction": 0.966,
+          "right_saturated_fraction": 0.996
+        },
+        {
+          "file": "latency-03.png",
+          "width": 2560,
+          "height": 1600,
+          "left_white_fraction": 0.966,
+          "right_saturated_fraction": 0.995
+        },
+        {
+          "file": "latency-04.png",
+          "width": 2560,
+          "height": 1600,
+          "left_white_fraction": 0.965,
+          "right_saturated_fraction": 0.996
+        },
+        {
+          "file": "latency-05.png",
+          "width": 2560,
+          "height": 1600,
+          "left_white_fraction": 0.965,
+          "right_saturated_fraction": 0.996
+        },
+        {
+          "file": "latency-06.png",
+          "width": 2560,
+          "height": 1600,
+          "left_white_fraction": 0.964,
+          "right_saturated_fraction": 0.995
+        },
+        {
+          "file": "latency-07.png",
+          "width": 2560,
+          "height": 1600,
+          "left_white_fraction": 0.965,
+          "right_saturated_fraction": 0.996
+        }
+      ]
+    },
+    {
+      "case": "headless-vlc-exception",
+      "plan": "p1-ap-baseline",
+      "version": 1,
+      "media": {
+        "transport_observed": [
+          "tcp"
+        ],
+        "exit_code": 3221225477,
+        "decodable": false
+      },
+      "client_stage": {
+        "started": "2026-11-23T17:48:01.332+08:00",
+        "ended": "2026-11-23T17:48:40.625+08:00",
+        "exit_code": 3221225477
+      },
+      "passed": false
+    },
+    {
+      "case": "headless-vlc-retest",
+      "plan": "p1-ap-baseline",
+      "version": 1,
+      "media": {
+        "transport_observed": [
+          "tcp"
+        ],
+        "exit_code": 0,
+        "frames": 891,
+        "fps": 30.00028058623818,
+        "seconds": 29.699722222222224,
+        "width": 960,
+        "height": 540,
+        "bytes": 9818736
+      },
+      "client_stage": {
+        "started": "2026-11-23T17:51:28.417+08:00",
+        "ended": "2026-11-23T17:51:59.105+08:00",
+        "exit_code": 0
+      },
+      "passed": true
+    },
+    {
+      "case": "visible-vlc-retest",
+      "plan": "p1-ap-baseline",
+      "version": 1,
+      "media": {
+        "transport_observed": [
+          "tcp"
+        ],
+        "exit_code": 0,
+        "frames": 891,
+        "fps": 30.019867244727244,
+        "seconds": 29.680344444444444,
+        "width": 960,
+        "height": 540,
+        "bytes": 9818800
+      },
+      "client_stage": {
+        "started": "2026-11-23T17:52:02.819+08:00",
+        "ended": "2026-11-23T17:52:33.634+08:00",
+        "exit_code": 0
+      },
+      "passed": true
     }
-  ]
+  ],
+  "real_board_readonly_preflight": {
+    "first_attempt": {
+      "board-inventory": {
+        "started": "2026-11-23T17:53:16.493+08:00",
+        "ended": "2026-11-23T17:53:17.095+08:00",
+        "exit_code": 1
+      }
+    },
+    "second_attempt": {
+      "board-inventory": {
+        "started": "2026-11-23T17:56:14.961+08:00",
+        "ended": "2026-11-23T17:56:15.698+08:00",
+        "exit_code": 0
+      },
+      "board-info": {
+        "started": "2026-11-23T17:56:15.700+08:00",
+        "ended": "2026-11-23T17:56:16.365+08:00",
+        "exit_code": 0
+      }
+    },
+    "media_used": 0,
+    "physical_capture": false
+  }
 }

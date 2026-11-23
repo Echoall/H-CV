@@ -12,8 +12,6 @@ import time
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
-import cv2
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from station.record_rtsp import verify_recording, vlc_command
 
@@ -31,16 +29,16 @@ def stop(child):
 
 
 def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, show_video=False,
-                       transport="tcp", cache_ms=200, observation=None):
+                       transport="tcp", cache_ms=200, observation=None, window=None):
     """Use the CLI's demux and recording options in a VLC 3 player."""
-    argv = vlc_command(str(vlc), url, recording)
+    argv = vlc_command(str(vlc), url, recording, display=show_video)
     options = [
         b"--ignore-config", b"--no-media-library", b"--verbose=2",
         b"--avcodec-hw=none", f"--network-caching={cache_ms}".encode("ascii"),
     ]
     options.append(b"--rtsp-tcp" if transport == "tcp" else b"--no-rtsp-tcp")
-    if not show_video:
-        options.append(b"--vout=dummy")
+    if show_video:
+        options.append(b"--vout=wingdi")
     if diagnostic_log:
         options.extend([
             b"--file-logging",
@@ -80,6 +78,8 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
             if not player:
                 raise RuntimeError("could not start LibVLC player")
             resources.callback(api("media_player_release", None, instance_type), player)
+            if window is not None:
+                api("media_player_set_hwnd", None, instance_type, ctypes.c_void_p)(player, window.hwnd)
             if api("media_player_play", ctypes.c_int, instance_type)(player):
                 raise RuntimeError("LibVLC could not start playback")
             resources.callback(api("media_player_stop", None, instance_type), player)
@@ -88,7 +88,9 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
             while (current_state := state(player)) != 3:
                 if time.monotonic() >= deadline or current_state in (6, 7):
                     raise RuntimeError(f"LibVLC did not enter playback (state={current_state})")
-                time.sleep(0.1)
+                if window is not None:
+                    window.tick()
+                time.sleep(0.02 if window is not None else 0.1)
             started = time.monotonic()
             elapsed = 0
             while elapsed < seconds:
@@ -96,7 +98,9 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
                     if observation is not None:
                         observation(elapsed, state(player))
                     break
-                time.sleep(min(0.1, seconds - elapsed))
+                if window is not None:
+                    window.tick(elapsed)
+                time.sleep(min(0.01 if window is not None else 0.1, seconds - elapsed))
                 elapsed = time.monotonic() - started
     finally:
         dll_dir.close()
@@ -158,6 +162,8 @@ def localhost_source(ffmpeg, mediamtx, output, transports=("tcp",), *,
 
 
 def smoke(vlc, ffmpeg, mediamtx, output):
+    import cv2
+
     output.mkdir()
     recording = output / "received sample.mp4"
     with localhost_source(ffmpeg, mediamtx, output) as url:

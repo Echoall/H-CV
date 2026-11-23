@@ -21,14 +21,15 @@ def find_vlc():
     raise FileNotFoundError("VLC was not found. Pass --vlc with the path to vlc.exe.")
 
 
-def vlc_command(executable, url, output):
+def vlc_command(executable, url, output, *, display=True):
     source = urlsplit(url)
     if source.scheme != "rtsp" or not source.hostname:
         raise ValueError("source must be an RTSP URL printed by the K230")
     path = output.resolve().as_posix()
     if any(character in path for character in ('"', "\\", "\r", "\n")):
         raise ValueError("recording path cannot be quoted for VLC")
-    sout = '#duplicate{dst=display,dst=std{access=file,mux=mp4,dst="' + path + '"}}'
+    file_output = 'std{access=file,mux=mp4,dst="' + path + '"}'
+    sout = "#duplicate{dst=display,dst=" + file_output + "}" if display else "#" + file_output
     return [
         executable, "--no-one-instance", "--rtsp-tcp", "--network-caching=200",
         "--sout", sout, "--play-and-exit", url,

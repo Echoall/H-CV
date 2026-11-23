@@ -1,0 +1,20 @@
+{
+  "id": "p4-ap-latency",
+  "version": 1,
+  "title": "测画面慢了多少（延迟）",
+  "steps": [
+    "把板子拿到电脑旁。确认你方便把镜头对准电脑屏幕左半边。",
+    "本次会自动截取电脑整屏。请先关掉不想被截到的窗口，截图只在这台电脑上保存。",
+    "看到大号数字后，用前 10 秒让镜头拍清左边的数字。右边会显示板子看到的画面，随后等程序自动截图。"
+  ],
+  "width": 960,
+  "height": 540,
+  "fps": 30,
+  "bitrate_kbps": 1500,
+  "gop": 30,
+  "transport": "tcp",
+  "caching_ms": 200,
+  "seconds": 35,
+  "latency": true,
+  "criteria": {"min_duration_ratio": 0.96, "min_frame_ratio": 0.96}
+}

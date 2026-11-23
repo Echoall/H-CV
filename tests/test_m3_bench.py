@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from station.bench import bench, wlan
+from station.bench import bench, latency, wlan
 
 
 def baseline():
@@ -125,6 +125,52 @@ def test_preflight_rejects_used_boot_before_writes(tmp_path, monkeypatch):
     monkeypatch.setattr(run, "command", inventory)
     with pytest.raises(RuntimeError, match="全灭 10 秒"):
         bench.preflight(run)
+
+
+def test_preflight_reads_marker_then_checks_board_info(tmp_path, monkeypatch):
+    run = bench.Run(tmp_path / "run", baseline(), False)
+    phases = []
+
+    def responses(name, *args, **kwargs):
+        phases.append(name)
+        if name == "board-inventory":
+            return 0, 'HCV_BENCH_USED 0\nHCV_BENCH_HASHES {"stream.py":"expect"}\n', ""
+        return 0, "board info", ""
+
+    monkeypatch.setattr(run, "command", responses)
+    assert bench.preflight(run) == {"stream.py": "expect"}
+    assert phases == ["board-inventory", "board-info"]
+
+
+def test_startup_fails_before_plan_if_environment_missing(tmp_path, monkeypatch):
+    def missing(*args):
+        raise RuntimeError("缺少播放器")
+
+    def no_plan(*args):
+        pytest.fail("the menu opened before the software check")
+
+    monkeypatch.setattr(bench, "tools", missing)
+    args = SimpleNamespace(runs=tmp_path, simulate=None)
+    assert bench.main(args, no_plan) == 1
+    summary = json.loads(next(tmp_path.glob("*/summary.json")).read_text(encoding="utf-8"))
+    assert summary["plan"]["id"] == "preflight"
+    assert summary["message"] == "缺少播放器"
+
+
+def test_latency_needs_at_least_five_pairs_and_checks_maximum(tmp_path, monkeypatch):
+    if sys.platform == "win32":
+        monkeypatch.setattr(latency.os, "startfile", lambda path: None)
+    for i in range(1, 7):
+        (tmp_path / f"latency-{i:02d}.png").touch()
+    answers = iter(["1", "99 122", "1000 870", "2000 1850", "3000 2760", "",
+                    "5000 4730", "6000 5699"])
+    measurements = latency.read_samples(tmp_path, lambda _: next(answers))
+    assert measurements["sample_count"] == 5
+    assert measurements["median_ms"] == 240
+    assert measurements["max_ms"] == 301
+    assert not measurements["passed"]
+    assert not latency.result(measurements["readings"][:4])["passed"]
+    assert latency.result(measurements["readings"][:4] + [{"delay_ms": 300}])["passed"]
 
 
 def test_runtime_plan_reaches_board_probe_without_saving_credentials(monkeypatch):

@@ -12,9 +12,6 @@ import subprocess
 import sys
 import time
 
-import cv2
-
-
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 from tools.analysis.m3_vlc_smoke import localhost_source
@@ -29,6 +26,8 @@ def redact(line, wifi):
 
 
 def decode(recording, preview):
+    import cv2
+
     clip = cv2.VideoCapture(str(recording))
     frames = 0
     fps = clip.get(cv2.CAP_PROP_FPS)

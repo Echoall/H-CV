@@ -3,6 +3,7 @@
 import argparse
 from contextlib import contextmanager, nullcontext
 from datetime import datetime
+from importlib import import_module
 from ipaddress import ip_address, IPv4Address
 import json
 from pathlib import Path
@@ -16,7 +17,7 @@ import time
 from urllib.parse import quote
 from xml.sax.saxutils import escape
 
-from station.bench import wlan
+from station.bench import latency, wlan
 from station.record_rtsp import find_vlc
 from tools.analysis.m3_sta_record import decode, redact as redact_rtsp
 from tools.analysis.m3_vlc_smoke import localhost_source, record_with_libvlc
@@ -48,7 +49,7 @@ def write_json(path, value):
 
 def validate_plan(plan):
     fields = {"id", "version", "title", "steps", "width", "height", "transport", "criteria", *LIMITS}
-    if type(plan) is not dict or set(plan) != fields:
+    if type(plan) is not dict or (set(plan) - {"latency"}) != fields:
         raise ValueError("方案字段不齐或多出了字段")
     if not isinstance(plan["id"], str) or not re.fullmatch(r"[a-z0-9-]{1,32}", plan["id"]):
         raise ValueError("方案编号无效")
@@ -67,6 +68,8 @@ def validate_plan(plan):
     for key, (low, high) in LIMITS.items():
         if type(plan[key]) is not int or not low <= plan[key] <= high:
             raise ValueError(f"方案数值超出范围 {key}（{low}–{high}）")
+    if "latency" in plan and (plan["latency"] is not True or plan["seconds"] <= latency.SAMPLE_SECONDS[-1]):
+        raise ValueError("延迟方案需要留足截图时间")
     if plan["transport"] not in ("tcp", "udp"):
         raise ValueError("传输方式只支持 TCP 或 UDP")
     criteria = plan["criteria"]
@@ -164,6 +167,19 @@ class Run:
         write_json(self.directory / "summary.json", safe)
         capture = safe["capture"]
         state = "达到方案门槛" if safe.get("passed") else "未达到方案门槛"
+        if safe["plan"]["id"] == "preflight":
+            state = "自检通过，未运行方案" if safe.get("preflight_passed") else "自检未通过"
+        delayed = safe.get("latency")
+        delay_line = ""
+        if delayed:
+            count = delayed["sample_count"]
+            if count < latency.MIN_SAMPLES:
+                delay_line = f"- 延迟待读，已有 {count} 组可用读数。\n"
+                if safe.get("recording_passed"):
+                    state = "录像达到门槛，延迟待读"
+            else:
+                delay_line = (f"- 延迟取 {count} 组，中位数 {delayed['median_ms']} ms，"
+                              f"最大值 {delayed['max_ms']} ms。\n")
         sample = "电脑模拟" if safe["simulation"] else "板子实拍"
         observations = "\n".join(f"- {name}：{value}" for name, value in safe["observations"].items())
         restored = {True: "是", False: "否"}.get(safe["network"].get("restored"), "无需切换")
@@ -174,6 +190,7 @@ class Run:
             f"- 结果：{state}\n- 录到 {capture.get('frames', 0)} 帧，"
             f"共 {capture.get('seconds', 0):.2f} 秒。\n"
             f"- 原来的网络已恢复：{restored}\n"
+            f"{delay_line}"
             f"- 说明：{safe.get('message', '录制与清理已结束。')}\n{observations}\n",
             encoding="utf-8",
         )
@@ -181,13 +198,16 @@ class Run:
 
 def config_wifi():
     path = HERE / "config.local.json"
-    if not path.exists():
-        prior = ROOT / "k230/ap/config.local.json"
-        if not prior.is_file():
-            raise RuntimeError("缺少板子网络的本地配置，请联系我补齐后再测。")
-        write_json(path, {"wifi": json.loads(prior.read_text(encoding="utf-8"))["wifi"]})
-    wifi = json.loads(path.read_text(encoding="utf-8"))["wifi"]
-    if (wifi.get("mode") != "ap" or not isinstance(wifi.get("ssid"), str)
+    try:
+        if not path.exists():
+            prior = ROOT / "k230/ap/config.local.json"
+            if not prior.is_file():
+                raise RuntimeError("缺少板子网络的本地配置，请联系我补齐后再测。")
+            write_json(path, {"wifi": json.loads(prior.read_text(encoding="utf-8"))["wifi"]})
+        wifi = json.loads(path.read_text(encoding="utf-8"))["wifi"]
+    except (OSError, KeyError, ValueError, TypeError):
+        raise RuntimeError("板子网络的本地配置有误，请联系我检查。") from None
+    if (type(wifi) is not dict or wifi.get("mode") != "ap" or not isinstance(wifi.get("ssid"), str)
             or not 1 <= len(wifi["ssid"].encode("utf-8")) <= 32
             or not isinstance(wifi.get("password"), str) or not 8 <= len(wifi["password"]) <= 63
             or not wifi["password"].isascii() or not wifi["password"].isprintable()
@@ -198,7 +218,6 @@ def config_wifi():
 
 
 def preflight(run):
-    # Inspect the original boot marker before any media operation or board upload.
     source = (
         'import sys, os, time, hashlib, binascii, json\nsys.path.insert(0, "/sdcard/hcv")\n'
         'from hcv.media_session_guard import _marker_path, _read_marker, _ticks_diff\n'
@@ -225,10 +244,19 @@ def preflight(run):
         if "HCV_BENCH_FALLBACK 1" in text:
             message += "若完全断电后仍遇到本提示，请联系我检查板子的运行标志。"
         raise RuntimeError(message)
+    hash_line = next((line for line in text.splitlines()
+                      if line.startswith("HCV_BENCH_HASHES ")), None)
+    if "HCV_BENCH_USED 0" not in text or hash_line is None:
+        raise RuntimeError("未能确认板子的相机状态。请关闭调试台并把自检记录留给我。")
+    code, _, _ = run.command("board-info", BOARD + ["info"], timeout=15)
+    if code != 0:
+        raise RuntimeError("读取板子信息失败。请关闭 CanMV，确认数据线插好后再打开调试台。")
+    return json.loads(hash_line.split(" ", 1)[1])
+
+
+def prepare_board_files(run, previous):
     from hashlib import sha256
 
-    hashes = next(line for line in text.splitlines() if line.startswith("HCV_BENCH_HASHES "))
-    previous = json.loads(hashes.split(" ", 1)[1])
     for name in MODULES:
         source = ROOT / "k230/hcv" / name
         if previous.get(name) != sha256(source.read_bytes()).hexdigest():
@@ -265,14 +293,34 @@ def simulated_board(url, seconds):
 
 
 def tools(local_ffmpeg=None, local_mediamtx=None):
+    if sys.version_info < (3, 10):
+        raise RuntimeError("电脑上的 Python 版本太旧。请联系我准备 Python 3.10 或更新版本。")
+    dependencies = {
+        "cv2": "录像读取", "serial": "USB 连接", "mpremote": "板子通信",
+        "tkinter": "显示窗口", "PIL.ImageGrab": "屏幕截图",
+    }
+    for module, task in dependencies.items():
+        try:
+            import_module(module)
+        except (ImportError, OSError) as error:
+            raise RuntimeError(f"电脑缺少{task}组件。请联系我补齐项目依赖，再重新打开调试台。") from error
     override = HERE / "config.local.json"
-    settings = json.loads(override.read_text(encoding="utf-8")) if override.is_file() else {}
+    try:
+        settings = json.loads(override.read_text(encoding="utf-8")) if override.is_file() else {}
+        if type(settings) is not dict:
+            raise ValueError("local config must be a JSON object")
+    except (OSError, ValueError):
+        raise RuntimeError("调试台的本地配置读不开。请联系我检查板子的网络设置。") from None
     vlc = settings.get("vlc") or HERE / "runtime/vlc/vlc.exe"
     if not Path(vlc).is_file():
         try:
             vlc = find_vlc()
         except FileNotFoundError:
             raise RuntimeError("这台电脑找不到播放器。请联系我补齐调试台的播放器。") from None
+    if not all(Path(vlc).with_name(name).is_file() for name in ("libvlc.dll", "libvlccore.dll")):
+        raise RuntimeError("播放器的文件不齐。请联系我补齐 VLC 后重新打开。")
+    if local_ffmpeg is not None and not all(p.is_file() for p in (local_ffmpeg, local_mediamtx)):
+        raise RuntimeError("没有找到回环模拟用的 FFmpeg 或 MediaMTX 文件。")
     return str(Path(vlc).resolve()), local_ffmpeg, local_mediamtx
 
 
@@ -281,7 +329,7 @@ def receive(run, executable, endpoint, plan, simulated):
     code, stdout, stderr = run.command("vlc", [
         sys.executable, "-m", "station.bench.bench", "--player",
         executable, endpoint, str(path), str(plan["seconds"]), plan["transport"],
-        str(plan["caching_ms"]), "0" if simulated else "1",
+        str(plan["caching_ms"]), "2" if plan.get("latency") else ("0" if simulated else "1"),
     ], timeout=plan["seconds"] + 16)
     media = run.summary["capture"]
     transports = set()
@@ -298,6 +346,8 @@ def receive(run, executable, endpoint, plan, simulated):
             media.update(decode(path, run.directory / "preview.png"))
         except RuntimeError:
             media["decodable"] = False
+    if plan.get("latency"):
+        media["latency_screenshots"] = len(list(run.directory.glob("latency-*.png")))
     return media
 
 
@@ -453,12 +503,41 @@ def choose(ask):
 
 def main(args, ask=input):
     original = None
-    plan = choose(ask)
-    if plan is None:
-        return 0
     simulated = args.simulate is not None
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    run = Run(args.runs / (stamp + "-" + plan["id"]), plan, simulated)
+    output_root = args.runs.resolve()
+    run = Run(output_root / (stamp + "-preflight"), {"id": "preflight", "title": "开跑前自检"},
+              simulated)
+    print("图传调试台正在自检。请先接好板子，并关闭 CanMV。" if not simulated
+          else "图传调试台正在检查电脑上的模拟工具。", flush=True)
+    try:
+        vlc, ffmpeg, mediamtx = tools(*(args.simulate or ()))
+        wifi = {} if simulated else config_wifi()
+        if not simulated:
+            run.private.update((wifi["ssid"], wifi["password"]))
+            previous = preflight(run)
+    except (Exception, KeyboardInterrupt) as error:
+        message = (run.clean(str(error)) if isinstance(error, RuntimeError)
+                   else "开跑前自检未通过。请把自检记录留给我检查。")
+        run.summary["message"] = message
+        run.line("wizard.log", f"{now()} {type(error).__name__}: {error}")
+        run.finish()
+        print(message)
+        print(f"自检记录保存在 {run.directory}")
+        return 1
+    print("自检通过，可以选方案。")
+    run.summary["preflight_passed"] = True
+    plan = choose(ask)
+    if plan is None:
+        run.summary["message"] = "已退出，未启动录像。"
+        run.finish()
+        return 0
+    destination = output_root / (stamp + "-" + plan["id"])
+    if run.directory.resolve().parent != output_root or destination.resolve().parent != output_root:
+        raise RuntimeError("记录文件夹位置不对。请联系我检查。")
+    run.directory.rename(destination)
+    run.directory = destination
+    run.summary["plan"] = plan
     clean_board = False
     try:
         for step in plan["steps"]:
@@ -468,10 +547,7 @@ def main(args, ask=input):
         if ask("准备好并同意继续，请输入 1；输入其他内容结束 > ").strip() != "1":
             run.summary["message"] = "已取消。"
             return 0
-        vlc, ffmpeg, mediamtx = tools(*(args.simulate or ()))
         if not simulated:
-            wifi = config_wifi()
-            run.private.update((wifi["ssid"], wifi["password"]))
             try:
                 original = wlan.snapshot()
             except (OSError, subprocess.TimeoutExpired):
@@ -489,7 +565,7 @@ def main(args, ask=input):
                 run.summary["network"]["before"] = (
                     "原 Wi-Fi 已连接" if original[1] else "原来未连接 Wi-Fi"
                 )
-            preflight(run)
+            prepare_board_files(run, previous)
             print("开始板子测试。请留意接下来的连接和画面提示。", flush=True)
         else:
             wifi = {}
@@ -528,8 +604,16 @@ def main(args, ask=input):
         elif run.summary["network"].get("manual"):
             print("录制已结束，请从右下角网络图标切回原来的 Wi-Fi。")
         run.summary["passed"] = passed(run, plan, clean_board)
+        if plan.get("latency"):
+            run.summary["recording_passed"] = run.summary["passed"]
+            run.summary["passed"] = False
+            run.summary["latency"] = latency.result([])
         run.finish()
     try:
+        if plan.get("latency"):
+            run.summary["latency"] = latency.read_samples(run.directory, ask)
+            run.summary["passed"] = (run.summary["recording_passed"]
+                                     and run.summary["latency"]["passed"])
         print("最后请记一下你看到的情况。看不到或不确定也可以直接按回车。")
         for name, prompt in (
             ("画面", "看到画面了吗？"),
@@ -553,10 +637,16 @@ def player(arguments):
                  "client_end_reason": "eof" if state == 6 else "player_error"}
         print("HCV_CLIENT_ENDED " + json.dumps(event), flush=True)
 
-    version = record_with_libvlc(
-        Path(executable), url, Path(recording), seconds=int(seconds), diagnostic_log=False,
-        show_video=show_video == "1", transport=transport, cache_ms=int(cache_ms), observation=ended,
-    )
+    window = latency.ClockWindow(Path(recording).parent) if show_video == "2" else None
+    try:
+        version = record_with_libvlc(
+            Path(executable), url, Path(recording), seconds=int(seconds), diagnostic_log=False,
+            show_video=show_video != "0", transport=transport, cache_ms=int(cache_ms),
+            observation=ended, window=window,
+        )
+    finally:
+        if window is not None:
+            window.close()
     print("HCV_VLC_VERSION " + version, flush=True)
 
 
