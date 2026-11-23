@@ -5,7 +5,7 @@ import pytest
 
 from k230.hcv.config import calibration_fingerprint
 from k230.hcv.geometry import interpolate_lut
-from tools.analysis.m2_ball_calibration import synthetic_ball_calibration
+from tools.analysis.m2_ball_calibration import coordinate_bias, synthetic_ball_calibration
 from tools.calib import m2_field
 from tools.calib.m2_field import static_result, transition_result
 from tools.calib.ruler_lut import BALL_POSITIONS_MM, build_ball_calibration
@@ -111,7 +111,26 @@ def test_ball_lut_from_seven_sets_of_camera_images():
     assert [a["x_mm"] for a in evidence["anchors"]] == list(BALL_POSITIONS_MM)
     assert {a["n"] for a in evidence["anchors"]} == {60}
     assert len(evidence["per_mm_errors"]) == 241
+    training_first, training_last = evidence["training_seeds_inclusive"]
+    validation_seeds = {point["seed"] for point in evidence["per_mm_errors"]}
+    assert len(validation_seeds) == 241
+    assert validation_seeds.isdisjoint(range(training_first, training_last + 1))
     assert all(abs(point["error_mm"]) < 0.5 for point in evidence["per_mm_errors"])
+
+
+def test_ball_and_ruler_pixel_origins_agree_without_glare():
+    evidence = coordinate_bias()
+    cases = {(row["polarity"], row["highlight"]): row for row in evidence["ball_cases"]}
+    for case in cases.values():
+        assert case["frames"] == 49
+        assert case["max_roi_difference_px"] < 0.05
+    for polarity in ("dark", "bright"):
+        assert all(abs(bias) < 0.10 for bias in cases[polarity, False]["mean_bias_px"])
+    assert all(bias > 0.3 for bias in cases["dark", True]["mean_bias_px"])
+    assert all(bias < -0.2 for bias in cases["bright", True]["mean_bias_px"])
+    for case in evidence["ruler_phase"]:
+        assert case["ticks"] == 25
+        assert case["max_abs_error_px"] < 0.1
 
 
 @pytest.mark.parametrize("case, error", [
