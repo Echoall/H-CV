@@ -12,12 +12,31 @@ for name in list(sys.modules):
         del sys.modules[name]
 
 from hcv.config import calibration_fingerprint, load_config
+from hcv.detect_profile import ProfileDetector
 from hcv.guard import start, tick
 from main_hcv import _write_column_profile, configure_detector_sensor
 
 
-def capture(preview_only=False, rehearsal_roi=None, cue=False):
-    start(8)
+def sample_ball(sensor, bounds, pixels, profile, detector, fingerprint):
+    from ulab import numpy as np
+
+    count = 120
+    positions = [None] * count
+    columns = np.frombuffer(profile, dtype=np.uint8)
+    print("HCV_M2_CAPTURE_CUE")
+    for index in range(count):
+        tick()
+        frame = sensor.snapshot(chn=0, timeout=1000)
+        _write_column_profile(frame, bounds, pixels, profile)
+        detector.update(columns, roi_pixels=pixels)
+        if detector.found:
+            positions[index] = float(detector.u) + bounds[0]
+    with open("/sdcard/hcv/m2-ball-pixels.json", "w") as stream:
+        json.dump({"fingerprint": fingerprint, "u_px": positions}, stream)
+
+
+def capture(preview_only=False, rehearsal_roi=None, cue=False, ball_samples=False):
+    start(15 if ball_samples else 8)
     config = load_config("/sdcard/hcv")
     rehearsal = preview_only or rehearsal_roi is not None
     if rehearsal:
@@ -31,6 +50,14 @@ def capture(preview_only=False, rehearsal_roi=None, cue=False):
     if not preview_only:
         pixels = bytearray(width * height)
         profile = bytearray(width)
+    if ball_samples:
+        fingerprint = calibration_fingerprint(config)
+        with open("/sdcard/hcv/m2-reference.json", "r") as stream:
+            reference = json.load(stream)
+        if reference["fingerprint"] != fingerprint or reference["samples"] < 60:
+            raise ValueError("ball sampling needs a fresh empty-slot reference")
+        detector = ProfileDetector(reference["bg_profile"], config["detector"]["params"], width=width)
+    elif not preview_only:
         totals = [0] * width
     count = 60
     sensor = None
@@ -45,6 +72,10 @@ def capture(preview_only=False, rehearsal_roi=None, cue=False):
         for _ in range(8):
             tick()
             frame = sensor.snapshot(chn=0, timeout=1000)
+        if ball_samples:
+            frame = None
+            sample_ball(sensor, bounds, pixels, profile, detector, fingerprint)
+            return
         if cue:
             print("HCV_M2_CAPTURE_CUE")
             tick()
@@ -99,4 +130,5 @@ capture(
     globals().pop("HCV_PREVIEW_ONLY", False),
     globals().pop("HCV_REHEARSAL_ROI", None),
     globals().pop("HCV_CAPTURE_CUE", False),
+    globals().pop("HCV_BALL_SAMPLES", False),
 )
