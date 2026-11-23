@@ -10,6 +10,8 @@ __pycache__/
 datasets/raw/
 station/recordings/
 station/logs/
+station/bench/runs/
+station/bench/runtime/
 *.mp4
 !reports/data/**/*.mp4
 reports/data/P0-EXP00/board-backup/

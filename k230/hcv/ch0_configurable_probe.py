@@ -16,9 +16,10 @@ STREAM_SECONDS = 10
 GUARD_MARGIN_SECONDS = 2
 
 
-def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False):
+def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=None):
     start(seconds + GUARD_MARGIN_SECONDS)
-    config = load_config("/sdcard/hcv")
+    if config is None:
+        config = load_config("/sdcard/hcv")
     claim()
     sensor = None
     stream = None

@@ -1,0 +1,19 @@
+{
+  "id": "p2-ap-udp",
+  "version": 1,
+  "title": "标准清晰度，低等待传输",
+  "steps": [
+    "接上板子。指示灯亮后，关闭可能正在使用板子的 CanMV 软件。",
+    "让镜头朝向要看的地方。进入下一步后，电脑会临时连到板子的 Wi-Fi。",
+    "画面窗口打开后观察是否有卡顿。录制和板端清理结束后会回到原来的网络。"
+  ],
+  "width": 960,
+  "height": 540,
+  "fps": 30,
+  "bitrate_kbps": 1500,
+  "gop": 30,
+  "transport": "udp",
+  "caching_ms": 200,
+  "seconds": 30,
+  "criteria": {"min_duration_ratio": 0.9666666667, "min_frame_ratio": 0.96}
+}

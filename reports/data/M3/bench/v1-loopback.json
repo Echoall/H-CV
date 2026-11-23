@@ -1,0 +1,79 @@
+{
+  "kind": "computer_only",
+  "source": "MediaMTX v1.21.4, FFmpeg 9.0.2 synthetic video",
+  "player": "VLC 3.0.23",
+  "runs": [
+    {
+      "plan": "p1-ap-baseline",
+      "version": 1,
+      "started_at": "2026-11-23T17:24:13.260+08:00",
+      "record_target_seconds": 30,
+      "transport_requested": "tcp",
+      "transport_headers": [
+        "Transport: RTP/AVP/TCP;unicast;interleaved=0-1",
+        "Transport: RTP/AVP/TCP;unicast;interleaved=0-1"
+      ],
+      "media_guard_observed": true,
+      "board_stage": {
+        "started": "2026-11-23T17:24:13.562+08:00",
+        "ended": "2026-11-23T17:24:47.618+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "client_stage": {
+        "started": "2026-11-23T17:24:13.620+08:00",
+        "ended": "2026-11-23T17:24:44.630+08:00",
+        "exit_code": 0
+      },
+      "media": {
+        "transport_observed": [
+          "tcp"
+        ],
+        "exit_code": 0,
+        "frames": 899,
+        "fps": 29.893427768633515,
+        "seconds": 30.0735,
+        "width": 960,
+        "height": 540,
+        "bytes": 9901683
+      },
+      "passed": true
+    },
+    {
+      "plan": "p2-ap-udp",
+      "version": 1,
+      "started_at": "2026-11-23T17:22:15.991+08:00",
+      "record_target_seconds": 30,
+      "transport_requested": "udp",
+      "transport_headers": [
+        "Transport: RTP/AVP;unicast;client_port=49258-49259",
+        "Transport: RTP/AVP;unicast;client_port=49258-49259;server_port=8000-8001"
+      ],
+      "media_guard_observed": true,
+      "board_stage": {
+        "started": "2026-11-23T17:22:16.282+08:00",
+        "ended": "2026-11-23T17:22:50.335+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "client_stage": {
+        "started": "2026-11-23T17:22:16.337+08:00",
+        "ended": "2026-11-23T17:22:47.317+08:00",
+        "exit_code": 0
+      },
+      "media": {
+        "transport_observed": [
+          "udp"
+        ],
+        "exit_code": 0,
+        "frames": 898,
+        "fps": 29.864114951346103,
+        "seconds": 30.069533333333332,
+        "width": 960,
+        "height": 540,
+        "bytes": 9891516
+      },
+      "passed": true
+    }
+  ]
+}

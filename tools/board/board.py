@@ -362,7 +362,8 @@ def run_command(board, args):
             pending.clear()
 
         try:
-            run_script(board, args.script.read_bytes(), args.timeout, emit)
+            source = sys.stdin.buffer.read() if args.script == Path("-") else args.script.read_bytes()
+            run_script(board, source, args.timeout, emit)
         finally:
             flush()
 
@@ -391,7 +392,7 @@ def arguments():
     get.add_argument("remote")
     get.add_argument("local", type=Path)
     run = commands.add_parser("run")
-    run.add_argument("script", type=Path)
+    run.add_argument("script", type=Path, help="script path, or - to read script bytes from stdin")
     run.add_argument("--timeout", type=positive_timeout, default=30.0)
     run.add_argument("--stream", action="store_true")
     run.add_argument("--log", type=Path)
@@ -432,7 +433,7 @@ def main():
                 require_backup()
                 upload(board, args.local, args.remote)
             elif args.command == "run":
-                if not args.script.is_file():
+                if args.script != Path("-") and not args.script.is_file():
                     raise FileNotFoundError(str(args.script))
                 require_backup()
                 run_command(board, args)

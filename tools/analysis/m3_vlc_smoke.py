@@ -7,6 +7,7 @@ import os
 import socket
 import subprocess
 import sys
+from threading import Thread
 import time
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
@@ -29,13 +30,15 @@ def stop(child):
         child.wait(timeout=5)
 
 
-def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, show_video=False):
+def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, show_video=False,
+                       transport="tcp", cache_ms=200, observation=None):
     """Use the CLI's demux and recording options in a VLC 3 player."""
     argv = vlc_command(str(vlc), url, recording)
     options = [
         b"--ignore-config", b"--no-media-library", b"--verbose=2",
-        b"--avcodec-hw=none", b"--rtsp-tcp", b"--network-caching=200",
+        b"--avcodec-hw=none", f"--network-caching={cache_ms}".encode("ascii"),
     ]
+    options.append(b"--rtsp-tcp" if transport == "tcp" else b"--no-rtsp-tcp")
     if not show_video:
         options.append(b"--vout=dummy")
     if diagnostic_log:
@@ -86,14 +89,41 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
                 if time.monotonic() >= deadline or current_state in (6, 7):
                     raise RuntimeError(f"LibVLC did not enter playback (state={current_state})")
                 time.sleep(0.1)
-            time.sleep(seconds)
+            started = time.monotonic()
+            elapsed = 0
+            while elapsed < seconds:
+                if state(player) in (6, 7):
+                    if observation is not None:
+                        observation(elapsed, state(player))
+                    break
+                time.sleep(min(0.1, seconds - elapsed))
+                elapsed = time.monotonic() - started
     finally:
         dll_dir.close()
     return version
 
 
+def logged_child(stack, command, output, redact, **options):
+    log = stack.enter_context(output.open("w", encoding="utf-8"))
+    child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             text=True, encoding="utf-8", errors="replace", **options)
+
+    def collect():
+        with child.stdout:
+            for line in child.stdout:
+                log.write(redact(line))
+                log.flush()
+
+    worker = Thread(target=collect)
+    worker.start()
+    stack.callback(worker.join)
+    stack.callback(stop, child)
+    return child
+
+
 @contextmanager
-def localhost_source(ffmpeg, mediamtx, output, transports=("tcp",)):
+def localhost_source(ffmpeg, mediamtx, output, transports=("tcp",), *,
+                     size="320x192", fps=30, redact=lambda line: line):
     tcp = local_port()
     url = f"rtsp://127.0.0.1:{tcp}/hcv"
     config = output / "mediamtx.yml"
@@ -105,24 +135,20 @@ def localhost_source(ffmpeg, mediamtx, output, transports=("tcp",)):
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     server_log = output / "server.log"
     with ExitStack() as stack:
-        stream = stack.enter_context(server_log.open("w", encoding="utf-8"))
-        server = subprocess.Popen(
-            [str(mediamtx), str(config)], cwd=output, stdout=stream, stderr=subprocess.STDOUT,
+        server = logged_child(
+            stack, [str(mediamtx), str(config)], server_log, redact, cwd=output,
             creationflags=flags,
         )
-        stack.callback(stop, server)
         deadline = time.monotonic() + 5
         while "started with listeners" not in server_log.read_text(errors="replace"):
             if time.monotonic() >= deadline or server.poll() is not None:
                 raise RuntimeError(f"MediaMTX did not start. See {server_log}")
             time.sleep(0.1)
-        publisher_log = stack.enter_context((output / "publisher.log").open("wb"))
-        publisher = subprocess.Popen([
+        publisher = logged_child(stack, [
             str(ffmpeg), "-nostdin", "-hide_banner", "-re", "-f", "lavfi", "-i",
-            "testsrc2=size=320x192:rate=30", "-an", "-c:v", "libx264", "-tune", "zerolatency",
+            f"testsrc2=size={size}:rate={fps}", "-an", "-c:v", "libx264", "-tune", "zerolatency",
             "-g", "15", "-pix_fmt", "yuv420p", "-f", "rtsp", "-rtsp_transport", "tcp", url,
-        ], stdout=publisher_log, stderr=subprocess.STDOUT, creationflags=flags)
-        stack.callback(stop, publisher)
+        ], output / "publisher.log", redact, creationflags=flags)
         deadline = time.monotonic() + 10
         while "stream is available and online" not in server_log.read_text(errors="replace"):
             if time.monotonic() >= deadline or server.poll() is not None or publisher.poll() is not None:
