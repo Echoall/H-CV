@@ -72,9 +72,10 @@ def test_wrong_tick_numbering_never_replaces_active_calibration(tmp_path, monkey
     monkeypatch.setattr(m2_field.subprocess, "run",
                         lambda command, check: uploads.append(command[-1]))
 
-    def record_zero(_port, directory, *, calibration_path):
+    def record_zero(_port, directory, *, calibration_path, seconds):
         assert directory.name == "normal_+0mm"
         assert calibration_path.endswith("/calib.pending.json")
+        assert seconds == 2
         pending = json.loads((output / "calib.pending.json").read_text())
         pixels = [anchor["u_px"] for anchor in pending["anchors"]]
         positions = [anchor["x_mm"] for anchor in pending["anchors"]]
@@ -154,10 +155,15 @@ def test_ball_mode_retries_only_the_unstable_point(tmp_path, monkeypatch):
     assert attempts == ["-120mm-1", "-120mm-2"] + [f"{mm:+d}mm-1" for mm in BALL_POSITIONS_MM[1:]]
 
 
-@pytest.mark.parametrize("zero_mm, succeeds", [(2.9, True), (3.0, False)])
+@pytest.mark.parametrize("zero_mm, succeeds, fps, expected_seconds", [
+    (2.9, True, 90, 2), (3.0, False, 90, 2), (2.9, True, 30, 4),
+])
 def test_ball_field_mode_has_independent_zero_and_compares_fresh_samples(
-        tmp_path, monkeypatch, zero_mm, succeeds):
+        tmp_path, monkeypatch, zero_mm, succeeds, fps, expected_seconds):
     config, reference, points = ball_fixture()
+    if fps == 30:
+        config["sensor"].update(width=1920, height=1080, fps=30)
+    reference["fingerprint"] = calibration_fingerprint(config)
     ruler_points = {mm: [value + 1.7 for value in values] for mm, values in points.items()}
     ruler = build_ball_calibration(ruler_points, reference, config, 0)
     ruler["method"] = "ruler"
@@ -175,8 +181,9 @@ def test_ball_field_mode_has_independent_zero_and_compares_fresh_samples(
         captures.append(directory.name)
         return fresh_points if directory.name == "comparison-points" else points
 
-    def check_zero(_port, _directory, *, calibration_path):
+    def check_zero(_port, _directory, *, calibration_path, seconds):
         assert calibration_path.endswith("/calib.pending.json")
+        assert seconds == expected_seconds
         assert uploads == ["/sdcard/hcv/calib.pending.json"]
         assert not (output / "calib.json").exists()
         return [{"status": 5, "pos_filt": round(zero_mm * 10)}] * 100, {}

@@ -4,6 +4,7 @@ import argparse
 import csv
 from itertools import count
 import json
+from math import ceil
 import statistics
 import subprocess
 import sys
@@ -146,9 +147,9 @@ def run_cued_capture(port, directory, source, params, cue, timeout):
                 raise RuntimeError(f"capture did not finish with a cue; see {directory / 'board.log'}")
 
 
-def record(port, directory, transition=False, calibration_path=None):
+def record(port, directory, transition=False, calibration_path=None, seconds=2):
     params = "CAPTURE_SECONDS = %d\nSIGNAL_FRAME = %d\n" % (
-        8 if transition else 2, 90 if transition else 1,
+        8 if transition else seconds, 90 if transition else 1,
     )
     if calibration_path is not None:
         params += "CALIBRATION_PATH = %r\n" % calibration_path
@@ -246,6 +247,7 @@ def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=N
     input("相机和纸尺固定，横尺调平，台灯正常，清空检测区。准备后按回车。")
     image, reference = capture_reference(port, output)
     config = reference["config"]
+    static_seconds = max(2, ceil(120 / config["sensor"]["fps"]))
     if compare_with is not None:
         runtime_calibration(compare_with, config)
         other_mode = "ball" if calib_mode == "ruler" else "ruler"
@@ -263,7 +265,8 @@ def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=N
     remote_pending = REMOTE + "calib.pending.json"
     subprocess.run(board_command(port, "put", pending, remote_pending), check=True)
     input("把钢球球心对准尺子上实际印刷的 0 刻度。放稳后按回车。")
-    zero_rows, _ = record(port, output / "normal_+0mm", calibration_path=remote_pending)
+    zero_rows, _ = record(port, output / "normal_+0mm", calibration_path=remote_pending,
+                         seconds=static_seconds)
     zero = static_result(zero_rows, 0)
     zero["zero_check_passed"] = zero["valid"] >= 100 and abs(zero["mean_mm"]) < 3
     results = {"normal_+0mm": zero}
@@ -283,7 +286,7 @@ def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=N
 
     def measure(label, prompt, target_mm):
         input(prompt + "，放稳后按回车。")
-        rows, _ = record(port, output / label)
+        rows, _ = record(port, output / label, seconds=static_seconds)
         results[label] = static_result(rows, target_mm)
         save_results(output, results)
         print(label, results[label], flush=True)
