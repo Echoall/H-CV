@@ -27,6 +27,7 @@ def test_all_plans_validate_and_required_fields():
 @pytest.mark.parametrize("field,value", [
     ("fps", 31), ("bitrate_kbps", 499), ("height", 541), ("gop", 61),
     ("transport", "other"), ("caching_ms", 99), ("seconds", 61), ("version", True),
+    ("sensor_mode", [1280, 720, 30]), ("sensor_mode", [1920, 1080, 30.0]),
 ])
 def test_invalid_boundaries(field, value):
     with pytest.raises(ValueError):
@@ -191,7 +192,7 @@ def test_runtime_plan_reaches_board_probe_without_saving_credentials(monkeypatch
     ))
     monkeypatch.setattr(sys, "path", sys.path.copy())
     plan = bench.validate_plan({**baseline(), "width": 640, "height": 360, "fps": 20,
-                                "gop": 20, "bitrate_kbps": 850})
+                                "gop": 20, "bitrate_kbps": 850, "sensor_mode": [1920, 1080, 30]})
     wifi = {"mode": "ap", "ssid": "example-board", "password": "example-key", "channel": 6}
     exec(bench.board_entry(plan, wifi), {})
     assert received[0] == {"ssid": wifi["ssid"], "key": wifi["password"], "channel": 6}
@@ -200,3 +201,6 @@ def test_runtime_plan_reaches_board_probe_without_saving_credentials(monkeypatch
     assert params["stream"]["gop"] == 20
     assert params["stream"]["fps"] == 20
     assert params["stream"]["bitrate_kbps"] == 850
+    assert (params["sensor"]["width"], params["sensor"]["height"], params["sensor"]["fps"]) == (
+        1920, 1080, 30,
+    )

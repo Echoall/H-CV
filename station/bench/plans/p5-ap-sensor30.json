@@ -1,0 +1,20 @@
+{
+  "id": "p5-ap-sensor30",
+  "version": 1,
+  "title": "排查断流，相机切到每秒 30 帧",
+  "steps": [
+    "完全断电至少 10 秒后接上板子。指示灯亮后，关闭可能正在使用板子的 CanMV 软件。",
+    "让镜头朝向要看的地方，尽量沿用方案 1 的位置和灯光。确认后，电脑会临时连接板子的 Wi-Fi。",
+    "看到画面后先保持几秒，再做一次与方案 1 类似的移动。记下画面是否停住，移动时有没有明显色块。窗口结束后先等网络恢复。"
+  ],
+  "sensor_mode": [1920, 1080, 30],
+  "width": 960,
+  "height": 540,
+  "fps": 30,
+  "bitrate_kbps": 1500,
+  "gop": 30,
+  "transport": "tcp",
+  "caching_ms": 200,
+  "seconds": 30,
+  "criteria": {"min_duration_ratio": 0.9666666667, "min_frame_ratio": 0.9}
+}

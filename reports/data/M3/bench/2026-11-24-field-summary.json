@@ -1,0 +1,380 @@
+{
+  "date": "20261124",
+  "runs": [
+    {
+      "run": "20261124-231152-260779-p1-ap-baseline",
+      "plan": "p1-ap-baseline",
+      "version": 1,
+      "rtsp_request_methods": [
+        "OPTIONS",
+        "DESCRIBE",
+        "SETUP",
+        "PLAY",
+        "TEARDOWN"
+      ],
+      "vlc_10s_no_data": false,
+      "board_telemetry": {
+        "sensor_mode": [
+          1280,
+          720,
+          90
+        ],
+        "sampled_status_rows": 94,
+        "cleanup": true,
+        "raw_repl_recovery_failed": false,
+        "last_status_at": "2026-11-24T23:14:06.655+08:00",
+        "last_elapsed_ms": 94423,
+        "last_packets": 8501,
+        "sampled_error_status_rows": 0,
+        "packets": 8553,
+        "bytes": 17824185
+      },
+      "board_stage": {
+        "started": "2026-11-24T23:12:29.572+08:00",
+        "ended": "2026-11-24T23:14:08.203+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "client_stage": {
+        "started": "2026-11-24T23:12:34.519+08:00",
+        "ended": "2026-11-24T23:13:15.100+08:00",
+        "exit_code": 0
+      },
+      "post_info_exit_code": 0,
+      "network_restored": true,
+      "capture": {
+        "frames": 1243,
+        "seconds": 29.34603435238095,
+        "transport_observed": [
+          "tcp"
+        ]
+      },
+      "video_track": {
+        "has_video_stream": true,
+        "width": 960,
+        "height": 540,
+        "r_frame_rate": "90/1",
+        "avg_frame_rate": "105000000/2478949",
+        "duration": "29.747388",
+        "nb_frames": "1260",
+        "container_seconds": "29.747388"
+      },
+      "passed_by_wizard_v1": true
+    },
+    {
+      "run": "20261124-231531-993953-p2-ap-udp",
+      "plan": "p2-ap-udp",
+      "version": 1,
+      "rtsp_request_methods": [
+        "OPTIONS",
+        "DESCRIBE",
+        "SETUP",
+        "PLAY",
+        "OPTIONS",
+        "TEARDOWN"
+      ],
+      "vlc_10s_no_data": true,
+      "board_telemetry": {
+        "sensor_mode": [
+          1280,
+          720,
+          90
+        ],
+        "sampled_status_rows": 7,
+        "cleanup": false,
+        "raw_repl_recovery_failed": true,
+        "last_status_at": "2026-11-24T23:15:51.113+08:00",
+        "last_elapsed_ms": 7027,
+        "last_packets": 634,
+        "sampled_error_status_rows": 0
+      },
+      "board_stage": {
+        "started": "2026-11-24T23:15:41.476+08:00",
+        "ended": "2026-11-24T23:17:32.994+08:00",
+        "exit_code": 3,
+        "cleanup": false
+      },
+      "client_stage": {
+        "started": "2026-11-24T23:15:46.147+08:00",
+        "ended": "2026-11-24T23:16:03.041+08:00",
+        "exit_code": 0
+      },
+      "post_info_exit_code": null,
+      "network_restored": true,
+      "capture": {
+        "frames": 243,
+        "seconds": 2.725937,
+        "transport_observed": [
+          "udp"
+        ],
+        "client_end_at": "2026-11-24T23:16:02.893+08:00",
+        "client_end_seconds": 13.344,
+        "client_end_reason": "eof"
+      },
+      "video_track": {
+        "has_video_stream": true,
+        "width": 960,
+        "height": 540,
+        "r_frame_rate": "90/1",
+        "avg_frame_rate": "243000000/2725937",
+        "duration": "2.724937",
+        "nb_frames": "243",
+        "container_seconds": "2.724937"
+      },
+      "passed_by_wizard_v1": false
+    },
+    {
+      "run": "20261124-231828-049921-p3-ap-low",
+      "plan": "p3-ap-low",
+      "version": 1,
+      "rtsp_request_methods": [
+        "OPTIONS",
+        "DESCRIBE",
+        "SETUP",
+        "PLAY"
+      ],
+      "vlc_10s_no_data": true,
+      "board_telemetry": {
+        "sensor_mode": [
+          1280,
+          720,
+          90
+        ],
+        "sampled_status_rows": 4,
+        "cleanup": false,
+        "raw_repl_recovery_failed": true,
+        "last_status_at": "2026-11-24T23:18:38.404+08:00",
+        "last_elapsed_ms": 4012,
+        "last_packets": 363,
+        "sampled_error_status_rows": 0
+      },
+      "board_stage": {
+        "started": "2026-11-24T23:18:31.689+08:00",
+        "ended": "2026-11-24T23:18:48.368+08:00",
+        "exit_code": 3,
+        "cleanup": false
+      },
+      "client_stage": {
+        "started": "2026-11-24T23:18:36.600+08:00",
+        "ended": "2026-11-24T23:18:48.319+08:00",
+        "exit_code": 0
+      },
+      "post_info_exit_code": null,
+      "network_restored": true,
+      "capture": {
+        "frames": 19,
+        "seconds": 0.34950000000000003,
+        "transport_observed": [
+          "tcp"
+        ],
+        "client_end_at": "2026-11-24T23:18:48.124+08:00",
+        "client_end_seconds": 10.933,
+        "client_end_reason": "eof"
+      },
+      "video_track": {
+        "has_video_stream": true,
+        "width": 640,
+        "height": 360,
+        "r_frame_rate": "90/1",
+        "avg_frame_rate": "38000/699",
+        "duration": "0.349500",
+        "nb_frames": "19",
+        "container_seconds": "0.349500"
+      },
+      "passed_by_wizard_v1": false
+    },
+    {
+      "run": "20261124-231908-055956-p3-ap-low",
+      "plan": "p3-ap-low",
+      "version": 1,
+      "rtsp_request_methods": [
+        "OPTIONS",
+        "DESCRIBE"
+      ],
+      "vlc_10s_no_data": false,
+      "board_telemetry": {
+        "sensor_mode": [
+          1280,
+          720,
+          90
+        ],
+        "sampled_status_rows": 94,
+        "cleanup": true,
+        "raw_repl_recovery_failed": false,
+        "last_status_at": "2026-11-24T23:20:52.066+08:00",
+        "last_elapsed_ms": 94452,
+        "last_packets": 8504,
+        "sampled_error_status_rows": 0,
+        "packets": 8553,
+        "bytes": 11886172
+      },
+      "board_stage": {
+        "started": "2026-11-24T23:19:14.925+08:00",
+        "ended": "2026-11-24T23:20:53.579+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "client_stage": {
+        "started": "2026-11-24T23:19:19.815+08:00",
+        "ended": "2026-11-24T23:19:25.866+08:00",
+        "exit_code": 1
+      },
+      "post_info_exit_code": 0,
+      "network_restored": true,
+      "capture": {
+        "transport_observed": []
+      },
+      "video_track": {
+        "has_video_stream": false
+      },
+      "passed_by_wizard_v1": false
+    },
+    {
+      "run": "20261124-232202-674678-p4-ap-latency",
+      "plan": "p4-ap-latency",
+      "version": 1,
+      "rtsp_request_methods": [
+        "OPTIONS",
+        "DESCRIBE",
+        "SETUP",
+        "PLAY",
+        "TEARDOWN"
+      ],
+      "vlc_10s_no_data": true,
+      "board_telemetry": {
+        "sensor_mode": [
+          1280,
+          720,
+          90
+        ],
+        "sampled_status_rows": 4,
+        "cleanup": false,
+        "raw_repl_recovery_failed": true,
+        "last_status_at": "2026-11-24T23:22:27.076+08:00",
+        "last_elapsed_ms": 4025,
+        "last_packets": 364,
+        "sampled_error_status_rows": 0
+      },
+      "board_stage": {
+        "started": "2026-11-24T23:22:20.394+08:00",
+        "ended": "2026-11-24T23:22:51.757+08:00",
+        "exit_code": 3,
+        "cleanup": false
+      },
+      "client_stage": {
+        "started": "2026-11-24T23:22:25.304+08:00",
+        "ended": "2026-11-24T23:22:51.305+08:00",
+        "exit_code": 0
+      },
+      "post_info_exit_code": null,
+      "network_restored": true,
+      "capture": {
+        "frames": 270,
+        "seconds": 7.022971714285714,
+        "transport_observed": [
+          "tcp"
+        ],
+        "client_end_at": "2026-11-24T23:22:51.062+08:00",
+        "client_end_seconds": 20.716,
+        "client_end_reason": "eof",
+        "latency_screenshots": 3
+      },
+      "video_track": {
+        "has_video_stream": true,
+        "width": 960,
+        "height": 540,
+        "r_frame_rate": "90/1",
+        "avg_frame_rate": "315000000/8193467",
+        "duration": "8.193467",
+        "nb_frames": "315",
+        "container_seconds": "8.193467"
+      },
+      "passed_by_wizard_v1": false,
+      "screen_check": {
+        "screenshot_count": 3,
+        "unique_right_center_images": 2,
+        "clock_pairs_ms": []
+      }
+    },
+    {
+      "run": "20261124-232317-980306-p4-ap-latency",
+      "plan": "p4-ap-latency",
+      "version": 1,
+      "rtsp_request_methods": [
+        "OPTIONS",
+        "DESCRIBE",
+        "SETUP",
+        "PLAY",
+        "TEARDOWN"
+      ],
+      "vlc_10s_no_data": true,
+      "board_telemetry": {
+        "sensor_mode": [
+          1280,
+          720,
+          90
+        ],
+        "sampled_status_rows": 25,
+        "cleanup": false,
+        "raw_repl_recovery_failed": true,
+        "last_status_at": "2026-11-24T23:23:55.515+08:00",
+        "last_elapsed_ms": 25111,
+        "last_packets": 2262,
+        "sampled_error_status_rows": 0
+      },
+      "board_stage": {
+        "started": "2026-11-24T23:23:27.724+08:00",
+        "ended": "2026-11-24T23:25:34.367+08:00",
+        "exit_code": 3,
+        "cleanup": false
+      },
+      "client_stage": {
+        "started": "2026-11-24T23:23:32.027+08:00",
+        "ended": "2026-11-24T23:23:56.261+08:00",
+        "exit_code": 0
+      },
+      "post_info_exit_code": null,
+      "network_restored": false,
+      "capture": {
+        "frames": 418,
+        "seconds": 9.372795,
+        "transport_observed": [
+          "tcp"
+        ],
+        "client_end_at": "2026-11-24T23:23:56.030+08:00",
+        "client_end_seconds": 19.961,
+        "client_end_reason": "eof",
+        "latency_screenshots": 3
+      },
+      "video_track": {
+        "has_video_stream": true,
+        "width": 960,
+        "height": 540,
+        "r_frame_rate": "90/1",
+        "avg_frame_rate": "4400000/98661",
+        "duration": "9.372795",
+        "nb_frames": "418",
+        "container_seconds": "9.372795"
+      },
+      "passed_by_wizard_v1": false,
+      "screen_check": {
+        "screenshot_count": 3,
+        "unique_right_center_images": 1,
+        "clock_pairs_ms": [
+          [
+            13578,
+            12599
+          ],
+          [
+            17574,
+            12599
+          ],
+          [
+            21576,
+            12599
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -49,7 +49,7 @@ def write_json(path, value):
 
 def validate_plan(plan):
     fields = {"id", "version", "title", "steps", "width", "height", "transport", "criteria", *LIMITS}
-    if type(plan) is not dict or (set(plan) - {"latency"}) != fields:
+    if type(plan) is not dict or (set(plan) - {"latency", "sensor_mode"}) != fields:
         raise ValueError("方案字段不齐或多出了字段")
     if not isinstance(plan["id"], str) or not re.fullmatch(r"[a-z0-9-]{1,32}", plan["id"]):
         raise ValueError("方案编号无效")
@@ -70,6 +70,11 @@ def validate_plan(plan):
             raise ValueError(f"方案数值超出范围 {key}（{low}–{high}）")
     if "latency" in plan and (plan["latency"] is not True or plan["seconds"] <= latency.SAMPLE_SECONDS[-1]):
         raise ValueError("延迟方案需要留足截图时间")
+    if "sensor_mode" in plan:
+        mode = plan["sensor_mode"]
+        if (type(mode) is not list or any(type(value) is not int for value in mode)
+                or mode != [1920, 1080, 30]):
+            raise ValueError("相机原生模式只支持板上验证过的 1920×1080、30 帧")
     if plan["transport"] not in ("tcp", "udp"):
         raise ValueError("传输方式只支持 TCP 或 UDP")
     criteria = plan["criteria"]
@@ -274,6 +279,8 @@ def board_entry(plan, wifi):
         "stream": {"enabled": True, "port": 8554, "path": "hcv",
                    **{key: plan[key] for key in ("fps", "bitrate_kbps", "gop")}},
     }
+    if "sensor_mode" in plan:
+        override["sensor"] = dict(zip(("width", "height", "fps"), plan["sensor_mode"]))
     source = ROOT / "tools/board/m3_ch0_ap_configurable_probe.py"
     return (f"HCV_STREAM_SECONDS = {plan['seconds'] + 65}\nHCV_CONFIG_OVERRIDE = {override!r}\n"
             + source.read_text(encoding="utf-8")).encode("utf-8")
