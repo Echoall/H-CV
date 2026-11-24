@@ -4,7 +4,7 @@ import uctypes
 
 from media.media import MediaManager, VENC_DEV_ID, VIDEO_ENCODE_MOD_ID
 from media.sensor import Sensor
-from media.vencoder import Encoder
+from media.vencoder import ChnAttrStr, Encoder
 from mpp import venc, venc_def, venc_struct
 from multimedia import multi_media_type, rtsp_server
 
@@ -72,8 +72,29 @@ class H264Stream:
             source, (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, CHANNEL)
         )
 
-    def start_encoder(self):
+    def start_encoder(self, use_firmware_encoder=False):
         width, height = self.camera["width"], self.camera["height"]
+        if use_firmware_encoder:
+            attrs = ChnAttrStr(Encoder.PAYLOAD_TYPE_H264, Encoder.H264_PROFILE_MAIN, width, height)
+            attrs.src_frame_rate = self.source_fps
+            attrs.dst_frame_rate = self.settings["fps"]
+            attrs.bit_rate = self.settings["bitrate_kbps"]
+            attrs.gop_len = self.settings["gop"]
+            try:
+                self.encoder.Create(CHANNEL, attrs)
+            except OSError as error:
+                # This firmware can create the channel, then fail while enabling IDR.
+                if str(error) == "mpi venc enable idr failed.":
+                    self.created = True
+                raise
+            self.created = True
+            print("HCV_VENC_FIRMWARE_RATES,%d,%d" % (attrs.src_frame_rate, attrs.dst_frame_rate))
+        else:
+            self._create_encoder(width, height)
+        self.encoder.Start(CHANNEL)
+        self.encoding = True
+
+    def _create_encoder(self, width, height):
         attrs = venc_struct.k_venc_chn_attr()
         attrs.venc_attr.type = Encoder.PAYLOAD_TYPE_H264
         attrs.venc_attr.stream_buf_size = (width * height * 3 // 4 + 4095) & ~4095
@@ -88,8 +109,6 @@ class H264Stream:
         attrs.rc_attr.cbr.bit_rate = self.settings["bitrate_kbps"]
         _checked(venc.kd_mpi_venc_create_chn(CHANNEL, attrs), "create H.264 encoder")
         self.created = True
-        self.encoder.Start(CHANNEL)
-        self.encoding = True
 
     def start_session(self):
         self.server = rtsp_server()

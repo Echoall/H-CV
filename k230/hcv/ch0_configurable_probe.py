@@ -16,7 +16,8 @@ STREAM_SECONDS = 10
 GUARD_MARGIN_SECONDS = 2
 
 
-def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=None):
+def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=None,
+        use_firmware_encoder=False):
     start(seconds + GUARD_MARGIN_SECONDS)
     if config is None:
         config = load_config("/sdcard/hcv")
@@ -39,7 +40,7 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
         media_started = True
         print("HCV_CH0_CONFIG_STEP,media_init")
         tick()
-        stream.start_encoder()
+        stream.start_encoder(use_firmware_encoder=use_firmware_encoder)
         print("HCV_CH0_CONFIG_STEP,encoder_started")
         tick()
         sensor.run()

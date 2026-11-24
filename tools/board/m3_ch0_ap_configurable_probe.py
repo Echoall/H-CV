@@ -37,7 +37,8 @@ if "HCV_STREAM_SECONDS" in globals():
     print("HCV_RTSP_PRIVATE,%s,%d,%s" % (
         address, config["stream"]["port"], config["stream"]["path"]
     ))
-    run(seconds=HCV_STREAM_SECONDS, announce_url=False, config=config)
+    run(seconds=HCV_STREAM_SECONDS, announce_url=False, config=config,
+        use_firmware_encoder=globals().get("HCV_USE_FIRMWARE_ENCODER", False))
 else:
     print("HCV_AP_READY")
     run()

@@ -75,14 +75,21 @@ def connect(original, ssid, password, *, wait=12, command=netsh):
                     seconds=wait, command=command)
 
 
-def restore(original, *, wait=15, command=netsh):
+def restore(original, *, wait=15, command=netsh, diagnostics=None):
+    if diagnostics is None:
+        diagnostics = {}
     if snapshot(command) == original:
+        diagnostics["restore_reason"] = "already_on_original_network"
         return True
     interface = f"interface={original[0]}"
     if original[2] is None:
         result = command("disconnect", interface)
     else:
         result = command("connect", f"name={original[2]}", f"ssid={original[1]}", interface)
-    return not result.returncode and wait_for(
-        lambda current: current == original, seconds=wait, command=command,
-    )
+    diagnostics["restore_command_exit"] = result.returncode
+    if result.returncode:
+        diagnostics["restore_reason"] = "windows_rejected_network_command"
+        return False
+    restored = wait_for(lambda current: current == original, seconds=wait, command=command)
+    diagnostics["restore_reason"] = "verified" if restored else "original_network_not_confirmed_in_time"
+    return restored

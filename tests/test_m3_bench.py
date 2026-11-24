@@ -103,6 +103,40 @@ def test_wlan_failure_gives_manual_instructions(capsys, monkeypatch, tmp_path):
     assert run.summary["network"]["automatic_switch"] is False
 
 
+def test_restore_failure_records_reason_and_displays_manual_prompt(capsys, tmp_path, monkeypatch):
+    original = ("Wi-Fi", "Original Synthetic", "Saved Synthetic")
+    failure = lambda *args: CompletedProcess(args, 1, "")
+    monkeypatch.setattr(bench, "tools", lambda: ("vlc.exe", None, None))
+    monkeypatch.setattr(bench, "config_wifi", lambda: {"ssid": "Board Synthetic",
+                                                     "password": "dummy-pass"})
+    monkeypatch.setattr(wlan, "snapshot", lambda command=None: original if command is None else None)
+    restore = wlan.restore
+    monkeypatch.setattr(wlan, "restore", lambda state, **kw: restore(state, command=failure, **kw))
+    monkeypatch.setattr(bench, "preflight", lambda run: {})
+    monkeypatch.setattr(bench, "prepare_board_files", lambda *args: None)
+    monkeypatch.setattr(bench, "stream", lambda *args: False)
+    answers = iter(["1", "1", "", "", "", ""])
+    args = SimpleNamespace(runs=tmp_path, simulate=None)
+    assert bench.main(args, lambda _: next(answers)) == 1
+    result = json.loads(next(tmp_path.glob("*/summary.json")).read_text(encoding="utf-8"))
+    assert not result["network"]["restored"]
+    assert result["network"]["restore_reason"] == "windows_rejected_network_command"
+    assert result["network"]["manual_restore_prompt_shown"]
+    assert wlan.MANUAL_RESTORE in capsys.readouterr().out
+
+
+def test_encoder_plan_does_not_accept_90_fps_recording(tmp_path):
+    plan = json.loads((bench.HERE / "plans/p6-ap-venc30.json").read_text(encoding="utf-8"))
+    run = bench.Run(tmp_path / "run", plan, False)
+    run.summary["capture"] = dict(
+        width=960, height=540, seconds=59, frames=1770, transport_observed=["tcp"],
+        exit_code=0, r_frame_rate="90/1", fps=30, motion_snapshot=True,
+    )
+    assert not bench.passed(run, plan, True)
+    run.summary["capture"]["r_frame_rate"] = "30/1"
+    assert bench.passed(run, plan, True)
+
+
 def test_distinguishes_board_reply_from_unavailable_rtsp(monkeypatch, tmp_path):
     run = bench.Run(tmp_path / "run", baseline(), False)
 

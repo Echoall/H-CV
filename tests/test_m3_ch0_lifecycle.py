@@ -24,6 +24,7 @@ def test_sta_log_redacts_credentials_without_losing_traceback():
 
 def test_configurable_chn0_matches_verified_probe(monkeypatch):
     calls = []
+    firmware_attributes = []
 
     def operation(name, result=None):
         def record(*args, **kwargs):
@@ -46,7 +47,10 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         H264_PROFILE_MAIN = 2
         __init__ = operation("Encoder")
         SetOutBufs = operation("SetOutBufs")
-        Create = operation("encoder.create")
+        def Create(self, channel, attributes):
+            calls.append("encoder.create")
+            firmware_attributes.append(vars(attributes).copy())
+
         Start = operation("encoder.start")
         GetStream = operation("get_stream")
         ReleaseStream = operation("release_stream")
@@ -87,7 +91,7 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         "media.sensor": SimpleNamespace(Sensor=Sensor),
         "media.vencoder": SimpleNamespace(
             Encoder=Encoder,
-            ChnAttrStr=lambda *args: object(),
+            ChnAttrStr=lambda *args: SimpleNamespace(),
             StreamData=lambda: SimpleNamespace(pack_cnt=1, data=[0], data_size=[3]),
         ),
         "multimedia": SimpleNamespace(
@@ -132,7 +136,8 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         "stream": {"port": 8554, "path": "hcv", "fps": 30, "bitrate_kbps": 2000, "gop": 30},
     }
     sequences = []
-    for probe, options in ((baseline, {}), (configurable, {}), (configurable, {"copy_packets": True})):
+    for probe, options in ((baseline, {}), (configurable, {}), (configurable, {"copy_packets": True}),
+                           (configurable, {"use_firmware_encoder": True})):
         ticks = iter((0, 1, 10_000))
         probe.time = SimpleNamespace(ticks_ms=lambda: next(ticks), ticks_diff=lambda a, b: a - b)
         probe.load_config = lambda path: config
@@ -151,4 +156,8 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         "rtsp.deinit", "release_link", "encoder.stop", "encoder.destroy", "media.deinit",
     ]
     send = expected.index("rtsp.send")
-    assert sequences == [expected, expected, expected[:send] + ["mmap", "munmap"] + expected[send:]]
+    assert sequences == [
+        expected, expected, expected[:send] + ["mmap", "munmap"] + expected[send:], expected,
+    ]
+    assert firmware_attributes[-1] == dict(src_frame_rate=90, dst_frame_rate=30,
+                                           bit_rate=2000, gop_len=30)

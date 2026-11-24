@@ -3,12 +3,14 @@
 import argparse
 from contextlib import contextmanager, nullcontext
 from datetime import datetime
+from fractions import Fraction
 from importlib import import_module
 from ipaddress import ip_address, IPv4Address
 import json
 from pathlib import Path
 from queue import Empty, Queue
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -49,7 +51,7 @@ def write_json(path, value):
 
 def validate_plan(plan):
     fields = {"id", "version", "title", "steps", "width", "height", "transport", "criteria", *LIMITS}
-    if type(plan) is not dict or (set(plan) - {"latency", "sensor_mode"}) != fields:
+    if type(plan) is not dict or (set(plan) - {"latency", "sensor_mode", "firmware_encoder"}) != fields:
         raise ValueError("方案字段不齐或多出了字段")
     if not isinstance(plan["id"], str) or not re.fullmatch(r"[a-z0-9-]{1,32}", plan["id"]):
         raise ValueError("方案编号无效")
@@ -73,8 +75,13 @@ def validate_plan(plan):
     if "sensor_mode" in plan:
         mode = plan["sensor_mode"]
         if (type(mode) is not list or any(type(value) is not int for value in mode)
-                or mode != [1920, 1080, 30]):
-            raise ValueError("相机原生模式只支持板上验证过的 1920×1080、30 帧")
+                or mode not in ([1920, 1080, 30], [1280, 720, 90])):
+            raise ValueError("相机原生模式不在调试台支持的范围内")
+    if "firmware_encoder" in plan and (
+        plan["firmware_encoder"] is not True or plan.get("sensor_mode") != [1280, 720, 90]
+        or plan["fps"] != 30
+    ):
+        raise ValueError("编码降帧方案要求相机每秒 90 帧、输出每秒 30 帧")
     if plan["transport"] not in ("tcp", "udp"):
         raise ValueError("传输方式只支持 TCP 或 UDP")
     criteria = plan["criteria"]
@@ -187,14 +194,27 @@ class Run:
                               f"最大值 {delayed['max_ms']} ms。\n")
         sample = "电脑模拟" if safe["simulation"] else "板子实拍"
         observations = "\n".join(f"- {name}：{value}" for name, value in safe["observations"].items())
+        if "motion_quality" in safe and safe["motion_quality"] is None and safe.get("recording_passed"):
+            state = "录像达到门槛，画质待判"
+        elif safe.get("motion_quality") is not None:
+            observations = f"- 移动画质：{safe['motion_quality']}/5\n{observations}"
         restored = {True: "是", False: "否"}.get(safe["network"].get("restored"), "无需切换")
         if safe["network"].get("manual") and "restored" not in safe["network"]:
             restored = "请手动切回"
+        network_reason = {
+            "windows_rejected_network_command": "Windows 拒绝了切回原网络的指令。",
+            "original_network_not_confirmed_in_time": "发出了切回指令，但没能在时限内确认原网络。",
+            "windows_command_timeout": "Windows 检查或切网指令超时。",
+            "windows_command_unavailable": "无法调用 Windows 的切网功能。",
+        }.get(safe["network"].get("restore_reason"), "")
+        if network_reason:
+            network_reason = f"- {network_reason}\n"
         (self.directory / "summary.md").write_text(
             f"# {safe['plan']['title']}（{sample}）\n\n"
             f"- 结果：{state}\n- 录到 {capture.get('frames', 0)} 帧，"
             f"共 {capture.get('seconds', 0):.2f} 秒。\n"
             f"- 原来的网络已恢复：{restored}\n"
+            f"{network_reason}"
             f"{delay_line}"
             f"- 说明：{safe.get('message', '录制与清理已结束。')}\n{observations}\n",
             encoding="utf-8",
@@ -283,6 +303,7 @@ def board_entry(plan, wifi):
         override["sensor"] = dict(zip(("width", "height", "fps"), plan["sensor_mode"]))
     source = ROOT / "tools/board/m3_ch0_ap_configurable_probe.py"
     return (f"HCV_STREAM_SECONDS = {plan['seconds'] + 65}\nHCV_CONFIG_OVERRIDE = {override!r}\n"
+            f"HCV_USE_FIRMWARE_ENCODER = {plan.get('firmware_encoder', False)!r}\n"
             + source.read_text(encoding="utf-8")).encode("utf-8")
 
 
@@ -331,6 +352,33 @@ def tools(local_ffmpeg=None, local_mediamtx=None):
     return str(Path(vlc).resolve()), local_ffmpeg, local_mediamtx
 
 
+def find_ffprobe():
+    portable = HERE / "runtime/ffprobe.exe"
+    return str(portable) if portable.is_file() else shutil.which("ffprobe")
+
+
+def inspect_frame_rate(run, recording, ffprobe):
+    code, stdout, _ = run.command("ffprobe-recording", [
+        ffprobe, "-v", "error", "-select_streams", "v:0", "-show_entries",
+        "stream=r_frame_rate", "-of", "default=noprint_wrappers=1:nokey=1", str(recording),
+    ], timeout=8)
+    value = stdout.strip()
+    if code == 0 and re.fullmatch(r"[1-9]\d*/[1-9]\d*", value):
+        run.summary["capture"]["r_frame_rate"] = value
+
+
+def motion_snapshot(recording, output, seconds):
+    import cv2
+
+    source = cv2.VideoCapture(str(recording))
+    try:
+        source.set(cv2.CAP_PROP_POS_MSEC, seconds * 1000)
+        ok, frame = source.read()
+        return bool(ok and cv2.imwrite(str(output), frame))
+    finally:
+        source.release()
+
+
 def receive(run, executable, endpoint, plan, simulated):
     path = run.directory / "recording.mp4"
     code, stdout, stderr = run.command("vlc", [
@@ -355,6 +403,11 @@ def receive(run, executable, endpoint, plan, simulated):
             media["decodable"] = False
     if plan.get("latency"):
         media["latency_screenshots"] = len(list(run.directory.glob("latency-*.png")))
+    if plan.get("firmware_encoder") and media.get("frames"):
+        inspect_frame_rate(run, path, find_ffprobe())
+        if not plan.get("latency"):
+            sample_at = min(plan["seconds"] / 2, media["seconds"] / 2)
+            media["motion_snapshot"] = motion_snapshot(path, run.directory / "motion-preview.png", sample_at)
     return media
 
 
@@ -487,6 +540,11 @@ def passed(run, plan, clean_board):
         and (capture.get("width"), capture.get("height")) == (plan["width"], plan["height"])
         and capture.get("seconds", 0) >= criteria["min_duration_ratio"] * plan["seconds"]
         and capture.get("frames", 0) >= criteria["min_frame_ratio"] * plan["fps"] * plan["seconds"]
+        and (not plan.get("firmware_encoder") or (
+            Fraction(capture.get("r_frame_rate", "0")) == plan["fps"]
+            and capture.get("fps", 0) <= 31.5
+            and (plan.get("latency") or capture.get("motion_snapshot"))
+        ))
     )
 
 
@@ -547,6 +605,8 @@ def main(args, ask=input):
     run.summary["plan"] = plan
     clean_board = False
     try:
+        if plan.get("firmware_encoder") and not find_ffprobe():
+            raise RuntimeError("电脑缺少核对录像帧率的组件。请联系我补齐后再跑这个方案。")
         for step in plan["steps"]:
             print(step)
         if simulated:
@@ -601,26 +661,42 @@ def main(args, ask=input):
         if original is not None:
             run.summary["network"]["restore_started"] = now()
             try:
-                restored = wlan.restore(original)
-            except (OSError, subprocess.TimeoutExpired):
+                restored = wlan.restore(original, diagnostics=run.summary["network"])
+            except subprocess.TimeoutExpired:
                 restored = False
+                run.summary["network"]["restore_reason"] = "windows_command_timeout"
+            except OSError:
+                restored = False
+                run.summary["network"]["restore_reason"] = "windows_command_unavailable"
             run.summary["network"]["restored"] = restored
             run.summary["network"]["restore_ended"] = now()
             if not restored:
-                print(wlan.MANUAL_RESTORE)
+                print(wlan.MANUAL_RESTORE, flush=True)
+                run.summary["network"]["manual_restore_prompt_shown"] = True
         elif run.summary["network"].get("manual"):
-            print("录制已结束，请从右下角网络图标切回原来的 Wi-Fi。")
+            print("录制已结束，请从右下角网络图标切回原来的 Wi-Fi。", flush=True)
+            run.summary["network"]["manual_restore_prompt_shown"] = True
         run.summary["passed"] = passed(run, plan, clean_board)
         if plan.get("latency"):
             run.summary["recording_passed"] = run.summary["passed"]
             run.summary["passed"] = False
             run.summary["latency"] = latency.result([])
+        if plan.get("firmware_encoder") and not plan.get("latency"):
+            run.summary["recording_passed"] = run.summary["passed"]
+            run.summary["passed"] = False
+            run.summary["motion_quality"] = None
         run.finish()
     try:
         if plan.get("latency"):
             run.summary["latency"] = latency.read_samples(run.directory, ask)
             run.summary["passed"] = (run.summary["recording_passed"]
                                      and run.summary["latency"]["passed"])
+        if plan.get("firmware_encoder") and not plan.get("latency"):
+            rating = ask("移动时的画质请评 1–5 分，5 分是没有明显色块，1 分是很严重。回车跳过 > ").strip()
+            if rating in ("1", "2", "3", "4", "5"):
+                quality = int(rating)
+                run.summary["motion_quality"] = quality
+                run.summary["passed"] = run.summary["recording_passed"] and quality >= 4
         print("最后请记一下你看到的情况。看不到或不确定也可以直接按回车。")
         for name, prompt in (
             ("画面", "看到画面了吗？"),
