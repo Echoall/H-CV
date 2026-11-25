@@ -1,12 +1,15 @@
 import json
 from pathlib import Path
+import socket
 from subprocess import CompletedProcess
 import sys
+from threading import Thread
 from types import SimpleNamespace
 
 import pytest
 
-from station.bench import bench, latency, wlan
+from k230.hcv import tcp_control
+from station.bench import bench, latency, rtp_trace, wlan
 
 
 def baseline():
@@ -135,6 +138,71 @@ def test_encoder_plan_does_not_accept_90_fps_recording(tmp_path):
     assert not bench.passed(run, plan, True)
     run.summary["capture"]["r_frame_rate"] = "30/1"
     assert bench.passed(run, plan, True)
+
+
+def test_vicap_gate_needs_detector_network_control_and_rtp(tmp_path):
+    plan = json.loads((bench.HERE / "plans/p7-ap-vicap30.json").read_text(encoding="utf-8"))
+    run = bench.Run(tmp_path / "run", plan, False)
+    run.summary["capture"] = dict(
+        width=960, height=540, seconds=59, frames=1770, transport_observed=["tcp"],
+        exit_code=0, r_frame_rate="30/1", fps=30, motion_snapshot=True,
+    )
+    assert not bench.passed(run, plan, True)
+    run.summary["detector_during_rtp"] = {"fps": 90, "elapsed_ms": 56_000}
+    run.summary["tcp_control"] = {"complete": True}
+    assert not bench.passed(run, plan, True)
+    run.summary["rtp_arrival"] = {"packets": 1800}
+    assert bench.passed(run, plan, True)
+    run.summary["detector_during_rtp"]["fps"] = 30
+    assert not bench.passed(run, plan, True)
+
+
+def test_detector_rate_uses_only_samples_while_receiving_rtp(tmp_path):
+    run = bench.Run(tmp_path / "run", baseline(), False)
+    run.summary["rtp_arrival"] = {"first_at_ms": 2002, "last_at_ms": 5000}
+    bench.capture_detector_rate(run, [
+        (1000, 1000, 40, 0), (2000, 2000, 90, 0), (3000, 3000, 180, 0),
+        (4000, 4000, 270, 0), (5000, 5000, 360, 0), (6000, 6000, 390, 0),
+    ])
+    assert run.summary["detector_during_rtp"] == {
+        "channel": 1, "elapsed_ms": 2000, "frames": 180, "errors": 0, "fps": 90,
+    }
+
+
+def test_rtp_trace_reassembles_rtsp_body_and_interleaved_frames():
+    header = b"RTSP/1.0 200 OK\r\nContent-Length: 5\r\n\r\n"
+    frame = b"$\x00\x00\x0c" + bytes(range(12))
+    buffer = bytearray(header + b"$\x00")
+    assert list(rtp_trace.messages(buffer)) == []
+    buffer.extend(b"SDP" + frame[:3])
+    assert list(rtp_trace.messages(buffer)) == [(header, b"$\x00SDP")]
+    buffer.extend(frame[3:])
+    assert list(rtp_trace.messages(buffer)) == [(frame, b"")]
+    assert not buffer
+
+
+def test_tcp_control_delivers_verified_bytes_and_releases_port(monkeypatch, tmp_path):
+    monkeypatch.setattr(tcp_control, "start", lambda _: None)
+    monkeypatch.setattr(tcp_control, "tick", lambda: None)
+    monkeypatch.setattr(tcp_control, "time", SimpleNamespace(
+        ticks_ms=lambda: 0, ticks_add=lambda a, b: a + b,
+        ticks_diff=lambda a, b: a - b, sleep_ms=lambda _: None,
+    ))
+    host = "127.0.0.1"
+    with socket.socket() as probe:
+        probe.bind((host, 0))
+        port = probe.getsockname()[1]
+    sender = Thread(target=tcp_control.send_control, args=(host, port), daemon=True)
+    sender.start()
+    run = bench.Run(tmp_path / "run", baseline(), True)
+    bench.receive_control(run, host, port, connect_seconds=3)
+    sender.join(5)
+    assert not sender.is_alive()
+    assert run.summary["tcp_control"]["complete"]
+    assert run.summary["tcp_control"]["bytes"] == 11_400_000
+    with socket.socket() as media_listener:
+        media_listener.bind((host, port))
+        media_listener.listen(1)
 
 
 def test_distinguishes_board_reply_from_unavailable_rtsp(monkeypatch, tmp_path):

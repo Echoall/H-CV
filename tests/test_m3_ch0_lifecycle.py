@@ -34,6 +34,7 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
 
     class Sensor:
         YUV420SP = 1
+        GRAYSCALE = 2
         __init__ = operation("Sensor")
         reset = operation("reset")
         set_framesize = operation("set_framesize")
@@ -41,6 +42,12 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         bind_info = operation("bind_info", {"src": "sensor"})
         run = operation("sensor.run")
         stop = operation("sensor.stop")
+
+        def _set_chn_fps(self, *, chn, fps):
+            calls.append(("sensor.limit", chn, fps))
+
+        def snapshot(self, *, chn, timeout):
+            calls.append(("snapshot", chn))
 
     class Encoder:
         PAYLOAD_TYPE_H264 = 1
@@ -132,6 +139,7 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
     configurable = load("ch0_configurable_probe")
     config = {
         "sensor": {"width": 1280, "height": 720, "fps": 90},
+        "chn_detect": {"width": 640, "height": 360, "crop": None},
         "chn_stream": {"width": 960, "height": 540},
         "stream": {"port": 8554, "path": "hcv", "fps": 30, "bitrate_kbps": 2000, "gop": 30},
     }
@@ -161,3 +169,11 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
     ]
     assert firmware_attributes[-1] == dict(src_frame_rate=90, dst_frame_rate=30,
                                            bit_rate=2000, gop_len=30)
+
+    ticks = iter((0, 1001, 10_003))
+    configurable.run(vicap_stream_limit=True, use_firmware_encoder=True)
+    assert calls.count(("sensor.limit", 0, 30)) == 1
+    assert calls.index(("sensor.limit", 0, 30)) < calls.index("sensor.run")
+    assert calls.index("sensor.run") < calls.index(("snapshot", 1)) < calls.index("get_stream")
+    assert firmware_attributes[-1]["src_frame_rate"] == 30
+    assert firmware_attributes[-1]["dst_frame_rate"] == 30

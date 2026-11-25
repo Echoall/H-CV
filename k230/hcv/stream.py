@@ -42,6 +42,7 @@ class H264Stream:
         self.serving = False
         self.packets = 0
         self.bytes = 0
+        self.last_packet_pts_ms = 0
         self.last_read_error = 0
         self.last_send_result = None
         self.pack_storage = bytearray(uctypes.sizeof(venc_def.k_venc_pack_desc, uctypes.NATIVE))
@@ -54,7 +55,7 @@ class H264Stream:
             uctypes.addressof(self.pack_storage), venc_def.k_venc_pack_desc, uctypes.NATIVE
         )
 
-    def bind(self, sensor):
+    def bind(self, sensor, source_fps=None):
         width, height = self.camera["width"], self.camera["height"]
         if self.sensor_channel == 0:
             sensor.set_framesize(width=width, height=height, alignment=12)
@@ -62,6 +63,9 @@ class H264Stream:
         else:
             sensor.set_framesize(width=width, height=height, chn=self.sensor_channel)
             sensor.set_pixformat(Sensor.YUV420SP, chn=self.sensor_channel)
+        if source_fps is not None:
+            sensor._set_chn_fps(chn=self.sensor_channel, fps=source_fps)
+            self.source_fps = source_fps
         self.encoder = Encoder()
         self.encoder.SetOutBufs(CHANNEL, STREAM_BUFFERS, width, height)
         if self.sensor_channel == 0:
@@ -149,6 +153,7 @@ class H264Stream:
                         path, payload, size, timestamp
                     )
                 _checked(self.last_send_result, "send H.264 packet")
+                self.last_packet_pts_ms = timestamp
             self.packets += 1
             self.bytes += size
             return True

@@ -19,7 +19,7 @@ import time
 from urllib.parse import quote
 from xml.sax.saxutils import escape
 
-from station.bench import latency, wlan
+from station.bench import latency, rtp_trace, wlan
 from station.record_rtsp import find_vlc
 from tools.analysis.m3_sta_record import decode, redact as redact_rtsp
 from tools.analysis.m3_vlc_smoke import localhost_source, record_with_libvlc
@@ -29,7 +29,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 BOARD = [sys.executable, str(ROOT / "tools/board/board.py")]
 MODULES = ("config.py", "guard.py", "media_session_guard.py", "stream.py",
-           "ch0_configurable_probe.py")
+           "ch0_configurable_probe.py", "tcp_control.py")
 LIMITS = {
     "fps": (15, 30), "bitrate_kbps": (500, 2000), "gop": (10, 60),
     "caching_ms": (100, 1500), "seconds": (5, 60),
@@ -51,7 +51,8 @@ def write_json(path, value):
 
 def validate_plan(plan):
     fields = {"id", "version", "title", "steps", "width", "height", "transport", "criteria", *LIMITS}
-    if type(plan) is not dict or (set(plan) - {"latency", "sensor_mode", "firmware_encoder"}) != fields:
+    optional = {"latency", "sensor_mode", "firmware_encoder", "vicap_stream_limit"}
+    if type(plan) is not dict or (set(plan) - optional) != fields:
         raise ValueError("方案字段不齐或多出了字段")
     if not isinstance(plan["id"], str) or not re.fullmatch(r"[a-z0-9-]{1,32}", plan["id"]):
         raise ValueError("方案编号无效")
@@ -84,6 +85,11 @@ def validate_plan(plan):
         raise ValueError("编码降帧方案要求相机每秒 90 帧、输出每秒 30 帧")
     if plan["transport"] not in ("tcp", "udp"):
         raise ValueError("传输方式只支持 TCP 或 UDP")
+    if "vicap_stream_limit" in plan and (
+        plan["vicap_stream_limit"] is not True or not plan.get("firmware_encoder")
+        or plan["transport"] != "tcp" or plan["seconds"] != 60
+    ):
+        raise ValueError("VICAP 诊断需要 60 秒 TCP 录像及固件编码器")
     criteria = plan["criteria"]
     if type(criteria) is not dict or set(criteria) != {"min_duration_ratio", "min_frame_ratio"}:
         raise ValueError("方案缺少判断标准")
@@ -304,6 +310,7 @@ def board_entry(plan, wifi):
     source = ROOT / "tools/board/m3_ch0_ap_configurable_probe.py"
     return (f"HCV_STREAM_SECONDS = {plan['seconds'] + 65}\nHCV_CONFIG_OVERRIDE = {override!r}\n"
             f"HCV_USE_FIRMWARE_ENCODER = {plan.get('firmware_encoder', False)!r}\n"
+            f"HCV_VICAP_STREAM_LIMIT = {plan.get('vicap_stream_limit', False)!r}\n"
             + source.read_text(encoding="utf-8")).encode("utf-8")
 
 
@@ -454,18 +461,75 @@ def show_board_network(wifi):
     print("请在 20 秒内连好。电脑可能显示无互联网，这是正常的。", flush=True)
 
 
+def receive_control(run, host, port, connect_seconds):
+    expected = 190_000 * 60
+    received = bad_bytes = 0
+    retry_until = time.monotonic() + connect_seconds
+    results = run.summary["tcp_control"] = {"expected_bytes": expected, "complete": False}
+    while True:
+        try:
+            conn = socket.create_connection((host, port), timeout=1)
+            break
+        except OSError:
+            if time.monotonic() >= retry_until:
+                results["error"] = "connect"
+                return
+            time.sleep(0.25)
+    started = time.monotonic()
+    results["started"] = now()
+    try:
+        with conn:
+            conn.settimeout(4)
+            while received < expected and time.monotonic() - started < 68:
+                data = conn.recv(min(65536, expected - received))
+                if not data:
+                    break
+                received += len(data)
+                bad_bytes += len(data) - data.count(b"K")
+            if received == expected:
+                conn.shutdown(socket.SHUT_WR)
+                results["complete"] = not conn.recv(1) and bad_bytes == 0
+    except OSError as error:
+        results["error"] = type(error).__name__
+    finally:
+        results.update(ended=now(), bytes=received, bad_bytes=bad_bytes,
+                       seconds=round(time.monotonic() - started, 3))
+
+
+def capture_detector_rate(run, samples):
+    arrival = run.summary.get("rtp_arrival", {})
+    if "first_at_ms" not in arrival:
+        return
+    overlap = [sample for sample in samples
+               if arrival["first_at_ms"] <= sample[0] <= arrival["last_at_ms"]]
+    if len(overlap) < 2:
+        return
+    _, start_ms, start_frames, start_errors = overlap[0]
+    _, end_ms, end_frames, end_errors = overlap[-1]
+    elapsed = end_ms - start_ms
+    if elapsed > 0:
+        frames = end_frames - start_frames
+        run.summary["detector_during_rtp"] = {
+            "channel": 1, "elapsed_ms": elapsed, "frames": frames,
+            "errors": end_errors - start_errors, "fps": frames * 1000 / elapsed,
+        }
+
+
 def stream(run, command, source, plan, wifi, original, vlc, simulation):
     staging = run.summary["stages"]["board-session"] = {"started": now()}
     events = Queue()
     state = {"cleanup": False}
+    detector_samples = []
 
     def collect(pipe):
         for line in pipe:
             clean = line.strip()
-            run.line("board.serial.log", f"{now()} {line}")
+            received_at = now()
+            run.line("board.serial.log", f"{received_at} {line}")
             if clean.startswith(("HCV_RTSP_PRIVATE,", "HCV_CH0_CONFIG_READY", "HCV_AP_READY",
-                                 "HCV_MEDIA_SESSION_", "HCV_CH0_CONFIG_CLEANUP")):
-                events.put(clean)
+                                 "HCV_MEDIA_SESSION_", "HCV_CH0_CONFIG_CLEANUP",
+                                 "HCV_TCP_CONTROL_READY", "HCV_VICAP_DETECT,")):
+                events.put((clean, received_at))
         events.put(None)
 
     with subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -479,14 +543,17 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
             endpoint = None
             use_manual = False
             deadline = time.monotonic() + plan["seconds"] + 90
+            if plan.get("vicap_stream_limit") and not simulation:
+                deadline += 120
             while True:
                 remaining = deadline - time.monotonic()
                 try:
-                    event = events.get(timeout=max(0, remaining))
+                    item = events.get(timeout=max(0, remaining))
                 except Empty:
                     raise RuntimeError("板子在规定时间内没有完成，请保存日志后联系我。") from None
-                if event is None:
+                if item is None:
                     break
+                event, received_at = item
                 if event == "HCV_AP_READY":
                     run.summary["network"]["switch_started"] = now()
                     use_manual = not simulation and (
@@ -498,6 +565,21 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                 elif event.startswith("HCV_RTSP_PRIVATE,"):
                     _, address, port, path = event.split(",", 3)
                     endpoint = f"rtsp://{IPv4Address(address)}:{int(port)}/{path}"
+                elif event == "HCV_TCP_CONTROL_READY" and endpoint:
+                    print("正在做 60 秒纯网络对照，这一段没有画面。", flush=True)
+                    receive_control(run, str(IPv4Address(address)), int(port),
+                                    connect_seconds=20 if use_manual else 3)
+                elif event.startswith("HCV_VICAP_DETECT,"):
+                    _, elapsed, frames, errors = event.split(",")
+                    duration = int(elapsed.split("=")[1])
+                    count = int(frames.split("=")[1])
+                    failures = int(errors.split("=")[1])
+                    run.summary["detector_sample"] = {
+                        "channel": 1, "elapsed_ms": duration, "frames": count,
+                        "errors": failures, "fps": count * 1000 / duration,
+                    }
+                    stamp = round(datetime.fromisoformat(received_at).timestamp() * 1000)
+                    detector_samples.append((stamp, duration, count, failures))
                 elif event == "HCV_CH0_CONFIG_READY" and endpoint:
                     host = str(IPv4Address(address))
                     # A plain connection checks the listening port without making another RTSP request.
@@ -512,8 +594,13 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                         continue
                     run.summary["network"]["connected"] = "环回模拟" if simulation else "板子"
                     print("正在录制。画面窗口可能需要几秒才打开。", flush=True)
-                    receive(run, vlc, endpoint, plan, simulation)
-                    print("录制已结束。请等板子完成清理，最多约一分钟，期间先别拔线。", flush=True)
+                    trace = nullcontext(endpoint)
+                    if plan.get("vicap_stream_limit"):
+                        run.summary["rtp_arrival"] = {}
+                        trace = rtp_trace.trace(endpoint, run.summary["rtp_arrival"])
+                    with trace as player_endpoint:
+                        receive(run, vlc, player_endpoint, plan, simulation)
+                    print("录制已结束。请等板子完成清理，期间先别拔线。", flush=True)
                 elif event == "HCV_CH0_CONFIG_CLEANUP":
                     state["cleanup"] = True
                 elif event == "HCV_MEDIA_SESSION_ALREADY_USED":
@@ -527,6 +614,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
             code = process.wait(timeout=5)
             worker.join(timeout=5)
             staging.update(ended=now(), exit_code=code, cleanup=state["cleanup"])
+            capture_detector_rate(run, detector_samples)
     return code == 0 and state["cleanup"]
 
 
@@ -544,6 +632,12 @@ def passed(run, plan, clean_board):
             Fraction(capture.get("r_frame_rate", "0")) == plan["fps"]
             and capture.get("fps", 0) <= 31.5
             and (plan.get("latency") or capture.get("motion_snapshot"))
+        ))
+        and (not plan.get("vicap_stream_limit") or (
+            run.summary.get("tcp_control", {}).get("complete") is True
+            and run.summary.get("detector_during_rtp", {}).get("elapsed_ms", 0) >= 55_000
+            and 85.5 <= run.summary.get("detector_during_rtp", {}).get("fps", 0) <= 94.5
+            and run.summary.get("rtp_arrival", {}).get("packets", 0) > 0
         ))
     )
 
@@ -646,7 +740,8 @@ def main(args, ask=input):
             if simulated:
                 command, source = simulated_board(endpoint, plan["seconds"]), None
             else:
-                command = BOARD + ["run", "-", "--stream", "--timeout", str(plan["seconds"] + 77)]
+                timeout = plan["seconds"] + (197 if plan.get("vicap_stream_limit") else 77)
+                command = BOARD + ["run", "-", "--stream", "--timeout", str(timeout)]
                 source = board_entry(plan, wifi)
             clean_board = stream(run, command, source, plan, wifi, original, vlc, simulated)
             if clean_board and not simulated:

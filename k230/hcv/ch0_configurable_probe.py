@@ -17,7 +17,7 @@ GUARD_MARGIN_SECONDS = 2
 
 
 def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=None,
-        use_firmware_encoder=False):
+        use_firmware_encoder=False, vicap_stream_limit=False):
     start(seconds + GUARD_MARGIN_SECONDS)
     if config is None:
         config = load_config("/sdcard/hcv")
@@ -32,8 +32,15 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
         sensor.reset()
         print("HCV_CH0_CONFIG_STEP,sensor_reset")
         tick()
+        if vicap_stream_limit:
+            detector = config["chn_detect"]
+            sensor.set_framesize(width=detector["width"], height=detector["height"],
+                                 crop=detector["crop"], chn=1)
+            sensor.set_pixformat(Sensor.GRAYSCALE, chn=1)
         stream = H264Stream(config, sensor_channel=0, copy_packets=copy_packets)
-        stream.bind(sensor)
+        stream.bind(sensor, source_fps=config["stream"]["fps"] if vicap_stream_limit else None)
+        if vicap_stream_limit:
+            print("HCV_VICAP_LIMIT,stream_chn=0,fps=%d,detector_sample_chn=1" % stream.source_fps)
         print("HCV_CH0_CONFIG_STEP,media_link")
         tick()
         MediaManager.init()
@@ -54,21 +61,40 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
             print("HCV_CH0_CONFIG_READY")
         started = time.ticks_ms()
         next_status = 1000
-        previous_packets = 0
+        previous_packets = previous_bytes = previous_elapsed = 0
+        detector_frames = detector_errors = 0
         while True:
             elapsed = time.ticks_diff(time.ticks_ms(), started)
             if elapsed >= seconds * 1000:
                 break
             tick()
-            stream.send_one(timeout_ms=100)
+            if vicap_stream_limit:
+                # Blocking for each encoded frame would pace this sampler at the stream FPS.
+                try:
+                    sensor.snapshot(chn=1, timeout=25)
+                    detector_frames += 1
+                except RuntimeError:
+                    detector_errors += 1
+                stream.send_one(timeout_ms=0)
+            else:
+                stream.send_one(timeout_ms=100)
             if elapsed >= next_status:
                 print(
                     "HCV_CH0_CONFIG_STATUS,elapsed_ms=%d,registered_sessions=1,"
-                    "packets_since_status=%d,packets=%d,send_result=%s,last_read_error=%d"
+                    "packets_since_status=%d,packets=%d,send_result=%s,last_read_error=%d,"
+                    "bytes_since_status=%d,bytes=%d,interval_ms=%d,last_packet_pts_ms=%d"
                     % (elapsed, stream.packets - previous_packets, stream.packets,
-                       stream.last_send_result, stream.last_read_error)
+                       stream.last_send_result, stream.last_read_error,
+                       stream.bytes - previous_bytes, stream.bytes, elapsed - previous_elapsed,
+                       stream.last_packet_pts_ms)
                 )
+                if vicap_stream_limit:
+                    print("HCV_VICAP_DETECT,elapsed_ms=%d,frames=%d,errors=%d" % (
+                        elapsed, detector_frames, detector_errors,
+                    ))
                 previous_packets = stream.packets
+                previous_bytes = stream.bytes
+                previous_elapsed = elapsed
                 next_status = elapsed + 1000
         print(
             "HCV_CH0_CONFIG_SUMMARY,packets=%d,bytes=%d"
