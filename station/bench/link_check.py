@@ -72,7 +72,7 @@ def summarize_trial(row):
     expected_bytes = row["target_kBps"] * row["seconds"] * 1000
     goodput = received_bytes / elapsed_ms if elapsed_ms else None
     row["receive_kBps"] = round(goodput, 2) if goodput is not None else None
-    if any(endpoint.get("error") in (104, 10054) for endpoint in (sent, received)):
+    if row["protocol"] == "tcp" and any(endpoint.get("error") in (104, 10054) for endpoint in (sent, received)):
         row["rst_origin"] = "unknown"
     if row["protocol"] == "udp" and sent.get("bytes") == expected_bytes and "bytes" in received:
         row["udp_loss_pct"] = round(100 * (expected_bytes - received_bytes) / expected_bytes, 3)

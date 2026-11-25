@@ -48,15 +48,18 @@ def no_data(error):
     return bool(error.args and error.args[0] in WOULD_BLOCK)
 
 
-def wait_call(action, limit_ms):
+def wait_call(action, limit_ms, accept=None):
     started = ticks_ms()
     while ticks_diff(ticks_ms(), started) < limit_ms:
         tick()
         try:
-            return action()
+            result = action()
         except OSError as error:
             if not no_data(error):
                 raise
+        else:
+            if accept is None or accept(result):
+                return result
         sleep_ms(10)
     raise OSError("no activity before timeout")
 
@@ -149,9 +152,9 @@ def serve(address, index, trial):
         print("HCV_LINK_READY,%d" % index)
         limit = 45_000 if index == 0 else 18_000
         if protocol == "udp":
-            greeting, peer = wait_call(lambda: listener.recvfrom(64), limit)
-            if greeting != banner(index):
-                raise OSError("unexpected UDP control message")
+            expected = banner(index)
+            # CanMV returns an empty datagram with port 0 when a nonblocking socket is idle.
+            _, peer = wait_call(lambda: listener.recvfrom(64), limit, lambda item: item[0] == expected)
             return transfer(listener, True, rate, seconds, peer)
         client, _ = wait_call(listener.accept, limit)
         try:

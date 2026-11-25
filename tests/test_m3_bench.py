@@ -304,6 +304,40 @@ def test_link_trial_exchanges_full_payload_in_each_direction(monkeypatch, capsys
         assert receipt["missing_datagrams"] == 0
 
 
+def test_link_udp_handshake_ignores_idle_canmv_and_wrong_trial(monkeypatch):
+    expected_peer = ("192.0.2.10", 51000)
+    datagrams = iter([
+        (b"", ("0.0.0.0", 0)),
+        (m3_link_check.banner(5), ("192.0.2.11", 51001)),
+        (m3_link_check.banner(6), expected_peer),
+    ])
+
+    class Listener:
+        def setsockopt(self, *_):
+            pass
+
+        def setblocking(self, _):
+            pass
+
+        def bind(self, _):
+            pass
+
+        def recvfrom(self, _):
+            return next(datagrams)
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(m3_link_check.socket, "socket", lambda *_: Listener())
+    monkeypatch.setattr(
+        m3_link_check, "transfer",
+        lambda listener, sending, rate, seconds, peer: (sending, rate, seconds, peer),
+    )
+    assert m3_link_check.serve("192.0.2.1", 6, ("udp", "board_to_pc", 200, 30)) == (
+        True, 200, 30, expected_peer,
+    )
+
+
 def test_board_tcp_control_retries_eagain_before_accept(monkeypatch):
     clock = [0]
     attempts = []
