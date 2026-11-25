@@ -14,7 +14,7 @@ import shutil
 import socket
 import subprocess
 import sys
-from threading import Thread
+from threading import Event, Thread
 import time
 from urllib.parse import quote
 from xml.sax.saxutils import escape
@@ -461,12 +461,16 @@ def show_board_network(wifi):
     print("请在 20 秒内连好。电脑可能显示无互联网，这是正常的。", flush=True)
 
 
-def receive_control(run, host, port, connect_seconds):
+def receive_control(run, host, port, connect_seconds, board_closed=None):
     expected = 190_000 * 60
+    banner = b"HCVTCP1\n"
     received = bad_bytes = 0
     retry_until = time.monotonic() + connect_seconds
     results = run.summary["tcp_control"] = {"expected_bytes": expected, "complete": False}
     while True:
+        if board_closed is not None and board_closed.is_set():
+            results["error"] = "board_control_closed"
+            return
         try:
             conn = socket.create_connection((host, port), timeout=1)
             break
@@ -480,6 +484,15 @@ def receive_control(run, host, port, connect_seconds):
     try:
         with conn:
             conn.settimeout(4)
+            greeting = bytearray()
+            while len(greeting) < len(banner):
+                data = conn.recv(len(banner) - len(greeting))
+                if not data:
+                    break
+                greeting.extend(data)
+            if greeting != banner:
+                results["error"] = "control_banner_missing"
+                return
             while received < expected and time.monotonic() - started < 68:
                 data = conn.recv(min(65536, expected - received))
                 if not data:
@@ -518,6 +531,7 @@ def capture_detector_rate(run, samples):
 def stream(run, command, source, plan, wifi, original, vlc, simulation):
     staging = run.summary["stages"]["board-session"] = {"started": now()}
     events = Queue()
+    control_closed = Event()
     state = {"cleanup": False}
     detector_samples = []
 
@@ -526,6 +540,8 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
             clean = line.strip()
             received_at = now()
             run.line("board.serial.log", f"{received_at} {line}")
+            if clean == "HCV_TCP_CONTROL_CLOSED":
+                control_closed.set()
             if clean.startswith(("HCV_RTSP_PRIVATE,", "HCV_CH0_CONFIG_READY", "HCV_AP_READY",
                                  "HCV_MEDIA_SESSION_", "HCV_CH0_CONFIG_CLEANUP",
                                  "HCV_TCP_CONTROL_READY", "HCV_VICAP_DETECT,")):
@@ -568,7 +584,10 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                 elif event == "HCV_TCP_CONTROL_READY" and endpoint:
                     print("正在做 60 秒纯网络对照，这一段没有画面。", flush=True)
                     receive_control(run, str(IPv4Address(address)), int(port),
-                                    connect_seconds=20 if use_manual else 3)
+                                    connect_seconds=20 if use_manual else 3,
+                                    board_closed=control_closed)
+                    if not run.summary["tcp_control"]["complete"]:
+                        print("纯网络对照未完成。调试台会继续检查能否打开画面。", flush=True)
                 elif event.startswith("HCV_VICAP_DETECT,"):
                     _, elapsed, frames, errors = event.split(",")
                     duration = int(elapsed.split("=")[1])
@@ -581,10 +600,10 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                     stamp = round(datetime.fromisoformat(received_at).timestamp() * 1000)
                     detector_samples.append((stamp, duration, count, failures))
                 elif event == "HCV_CH0_CONFIG_READY" and endpoint:
-                    host = str(IPv4Address(address))
-                    # A plain connection checks the listening port without making another RTSP request.
-                    reachable = wait_for_board(run, host, int(port), seconds=20 if use_manual else 3)
-                    if not reachable:
+                    vicap = plan.get("vicap_stream_limit")
+                    if not vicap and not wait_for_board(
+                        run, str(IPv4Address(address)), int(port), seconds=20 if use_manual else 3
+                    ):
                         run.summary["network"]["connected"] = "未确认"
                         if run.summary["network"]["board_reachable"]:
                             run.summary["message"] = "板子有回应，但画面连接没有打开。"
@@ -592,14 +611,26 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                             run.summary["message"] = "没收到板子的回应，请确认已经连到板子的网络。"
                         print(run.summary["message"], flush=True)
                         continue
-                    run.summary["network"]["connected"] = "环回模拟" if simulation else "板子"
                     print("正在录制。画面窗口可能需要几秒才打开。", flush=True)
                     trace = nullcontext(endpoint)
-                    if plan.get("vicap_stream_limit"):
+                    if vicap:
                         run.summary["rtp_arrival"] = {}
                         trace = rtp_trace.trace(endpoint, run.summary["rtp_arrival"])
                     with trace as player_endpoint:
                         receive(run, vlc, player_endpoint, plan, simulation)
+                    network = run.summary["network"]
+                    if vicap:
+                        port_open = run.summary["rtp_arrival"].get("upstream_connected", False)
+                        network.update(rtsp_port_open=port_open, reachability_checked_at=now())
+                        network["board_reachable"] = port_open or run.summary.get(
+                            "tcp_control", {}
+                        ).get("complete", False)
+                    network["connected"] = (
+                        ("环回模拟" if simulation else "板子") if network.get("rtsp_port_open") else "未确认"
+                    )
+                    if not run.summary["capture"].get("frames"):
+                        run.summary["message"] = "本轮没收到可播放的画面，失败位置已写入日志。"
+                        print(run.summary["message"], flush=True)
                     print("录制已结束。请等板子完成清理，期间先别拔线。", flush=True)
                 elif event == "HCV_CH0_CONFIG_CLEANUP":
                     state["cleanup"] = True
@@ -786,7 +817,7 @@ def main(args, ask=input):
             run.summary["latency"] = latency.read_samples(run.directory, ask)
             run.summary["passed"] = (run.summary["recording_passed"]
                                      and run.summary["latency"]["passed"])
-        if plan.get("firmware_encoder") and not plan.get("latency"):
+        if plan.get("firmware_encoder") and not plan.get("latency") and run.summary["capture"].get("frames"):
             rating = ask("移动时的画质请评 1–5 分，5 分是没有明显色块，1 分是很严重。回车跳过 > ").strip()
             if rating in ("1", "2", "3", "4", "5"):
                 quality = int(rating)

@@ -1,9 +1,27 @@
 """Send a bounded synthetic TCP load before the media session."""
 
+import errno
 import socket
 import time
 
 from .guard import start, tick
+
+
+CONTROL_BANNER = b"HCVTCP1\n"
+WOULD_BLOCK = (errno.EAGAIN, getattr(errno, "EWOULDBLOCK", errno.EAGAIN))
+
+
+def accept_control(listener):
+    deadline = time.ticks_add(time.ticks_ms(), 45_000)
+    while time.ticks_diff(deadline, time.ticks_ms()) > 0:
+        tick()
+        try:
+            return listener.accept()[0]
+        except OSError as error:
+            if not error.args or error.args[0] not in WOULD_BLOCK:
+                raise
+        time.sleep_ms(25)
+    raise OSError("TCP control accept deadline")
 
 
 def send_control(address, port):
@@ -11,13 +29,14 @@ def send_control(address, port):
     block = b"K" * 19000
     listener = socket.socket()
     try:
-        listener.settimeout(45)
+        listener.settimeout(0)
         listener.bind((address, port))
         listener.listen(1)
         print("HCV_TCP_CONTROL_READY")
-        client, _ = listener.accept()
+        client = accept_control(listener)
         try:
             client.settimeout(3)
+            client.sendall(CONTROL_BANNER)
             began = time.ticks_ms()
             for index in range(600):
                 tick()

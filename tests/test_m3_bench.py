@@ -205,6 +205,47 @@ def test_tcp_control_delivers_verified_bytes_and_releases_port(monkeypatch, tmp_
         media_listener.listen(1)
 
 
+def test_board_tcp_control_retries_eagain_before_accept(monkeypatch):
+    clock = [0]
+    attempts = []
+
+    def accept():
+        attempts.append(clock[0])
+        if clock[0] < 750:
+            raise OSError(11)
+        return "accepted", None
+
+    monkeypatch.setattr(tcp_control, "tick", lambda: None)
+    monkeypatch.setattr(tcp_control, "time", SimpleNamespace(
+        ticks_ms=lambda: clock[0], ticks_add=lambda a, b: a + b,
+        ticks_diff=lambda a, b: a - b, sleep_ms=lambda ms: clock.__setitem__(0, clock[0] + ms),
+    ))
+    assert tcp_control.accept_control(SimpleNamespace(accept=accept)) == "accepted"
+    assert attempts[0] == 0 and attempts[-1] == 750
+
+
+def test_tcp_control_rejects_a_different_service_on_the_same_port(monkeypatch, tmp_path):
+    run = bench.Run(tmp_path / "run", baseline(), False)
+    with socket.socket() as server:
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+
+        def connect(address, timeout):
+            client = socket.socket()
+            client.connect(address)
+            peer, _ = server.accept()
+            with peer:
+                peer.sendall(b"RTSP/1.0 200 OK\r\n\r\n")
+            return client
+
+        monkeypatch.setattr(bench.socket, "create_connection", connect)
+        bench.receive_control(run, *server.getsockname(), connect_seconds=1)
+    result = run.summary["tcp_control"]
+    assert not result["complete"]
+    assert result["error"] == "control_banner_missing"
+    assert result["bytes"] == 0
+
+
 def test_distinguishes_board_reply_from_unavailable_rtsp(monkeypatch, tmp_path):
     run = bench.Run(tmp_path / "run", baseline(), False)
 

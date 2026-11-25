@@ -45,6 +45,8 @@ if "HCV_STREAM_SECONDS" in globals():
             send_control(address, config["stream"]["port"])
         except OSError as error:
             print("HCV_TCP_CONTROL_ERROR", error)
+        finally:
+            print("HCV_TCP_CONTROL_CLOSED")
     run(seconds=HCV_STREAM_SECONDS, announce_url=False, config=config,
         use_firmware_encoder=globals().get("HCV_USE_FIRMWARE_ENCODER", False),
         vicap_stream_limit=vicap_limit)

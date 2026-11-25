@@ -1,0 +1,93 @@
+{
+  "date": "20261125",
+  "runs": [
+    {
+      "run": "20261125-135853-012656-p7-ap-vicap30",
+      "plan": "p7-ap-vicap30",
+      "version": 1,
+      "rtsp_request_methods": [
+        "OPTIONS",
+        "DESCRIBE"
+      ],
+      "vlc_10s_no_data": false,
+      "board_telemetry": {
+        "sensor_mode": [
+          1280,
+          720,
+          90
+        ],
+        "sampled_status_rows": 124,
+        "cleanup": true,
+        "raw_repl_recovery_failed": false,
+        "last_status_at": "2026-11-25T14:01:16.123+08:00",
+        "last_elapsed_ms": 124634,
+        "last_packets": 3837,
+        "sampled_error_status_rows": 124,
+        "packets": 3848,
+        "bytes": 23312786
+      },
+      "board_stage": {
+        "started": "2026-11-25T13:59:08.268+08:00",
+        "ended": "2026-11-25T14:01:17.943+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "client_stage": {
+        "started": "2026-11-25T13:59:13.382+08:00",
+        "ended": "2026-11-25T13:59:21.919+08:00",
+        "exit_code": 1
+      },
+      "post_info_exit_code": 0,
+      "network_restored": false,
+      "capture": {
+        "transport_observed": []
+      },
+      "video_track": {
+        "has_video_stream": false
+      },
+      "passed_by_wizard_v1": false,
+      "vicap": {
+        "tcp_control": {
+          "expected_bytes": 11400000,
+          "complete": false,
+          "started": "2026-11-25T13:59:12.398+08:00",
+          "ended": "2026-11-25T13:59:13.381+08:00",
+          "bytes": 0,
+          "bad_bytes": 0,
+          "seconds": 0.984
+        },
+        "tcp_board_events": [
+          [
+            "2026-11-25T13:59:09.169+08:00",
+            "HCV_TCP_CONTROL_READY"
+          ],
+          [
+            "2026-11-25T13:59:09.677+08:00",
+            "HCV_TCP_CONTROL_ERROR"
+          ]
+        ],
+        "tcp_board_errno": 11,
+        "venc_configured_rates": [
+          30,
+          30
+        ],
+        "detector_sample": {
+          "channel": 1,
+          "elapsed_ms": 124634,
+          "frames": 11217,
+          "errors": 0,
+          "fps": 89.99951859043279
+        },
+        "detector_during_rtp": null,
+        "rtp_arrival": {
+          "packets": 0,
+          "bytes": 0,
+          "by_second": {},
+          "closed_by": "board"
+        },
+        "network_restore_reason": "original_network_not_confirmed_in_time",
+        "motion_quality": null
+      }
+    }
+  ]
+}

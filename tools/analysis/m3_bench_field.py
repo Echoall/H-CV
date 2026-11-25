@@ -34,7 +34,7 @@ def board_metrics(directory):
     mode = re.search(r"find sensor .*?output (\d+)x(\d+)@(\d+)", log)
     statuses = re.findall(
         r"(?m)^(\S+) HCV_CH0_CONFIG_STATUS,elapsed_ms=(\d+),[^\r\n]*?"
-        r",packets=(\d+),send_result=(\d+),last_read_error=(\d+)",
+        r",packets=(\d+),send_result=(-?\d+),last_read_error=(-?\d+)",
         log,
     )
     complete = re.search(r"HCV_CH0_CONFIG_SUMMARY,packets=(\d+),bytes=(\d+)", log)
@@ -50,6 +50,24 @@ def board_metrics(directory):
     if complete:
         result.update(packets=int(complete[1]), bytes=int(complete[2]))
     return result
+
+
+def vicap_metrics(directory, data):
+    log = read_text(directory / "board.serial.log")
+    tcp_events = re.findall(r"(?m)^(\S+) (HCV_TCP_CONTROL_[A-Z]+)[^\r\n]*", log)
+    errno = re.search(r"HCV_TCP_CONTROL_ERROR \[Errno (\d+)\]", log)
+    rates = re.search(r"HCV_VENC_FIRMWARE_RATES,(\d+),(\d+)", log)
+    return {
+        "tcp_control": data.get("tcp_control"),
+        "tcp_board_events": tcp_events,
+        "tcp_board_errno": int(errno[1]) if errno else None,
+        "venc_configured_rates": list(map(int, rates.groups())) if rates else None,
+        "detector_sample": data.get("detector_sample"),
+        "detector_during_rtp": data.get("detector_during_rtp"),
+        "rtp_arrival": data.get("rtp_arrival"),
+        "network_restore_reason": data["network"].get("restore_reason"),
+        "motion_quality": data.get("motion_quality"),
+    }
 
 
 def screen_metrics(directory, latency):
@@ -93,6 +111,8 @@ def summarize(root, date, ffprobe):
         }
         if plan.get("latency"):
             entry["screen_check"] = screen_metrics(path.parent, data["latency"])
+        if plan.get("vicap_stream_limit"):
+            entry["vicap"] = vicap_metrics(path.parent, data)
         runs.append(entry)
     return {"date": date, "runs": runs}
 

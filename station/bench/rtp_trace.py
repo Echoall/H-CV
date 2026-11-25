@@ -62,6 +62,7 @@ def trace(endpoint, stats):
                     return
                 peer, stage = "board", "connect"
                 with client, socket.create_connection((target.hostname, target.port), timeout=3) as board:
+                    stats["upstream_connected"] = True
                     client.settimeout(3)
                     buffers = {client: bytearray(), board: bytearray()}
                     while not cancelled.is_set():
