@@ -196,6 +196,8 @@ class Run:
                 outcome = "待测" if "sustained_target" not in row else (
                     "完成" if row["sustained_target"] else "未达到该档")
                 label = f"{row['protocol'].upper()} {direction} {row['target_kBps']} kB/s，{row['seconds']} 秒"
+                if row.get("shape"):
+                    label = f"{row['shape']} 档 {label}"
                 lines.append(f"- {label}。{outcome}" + (f"，实收 {measured} kB/s。" if measured is not None else "。"))
             if "restored" in safe["network"]:
                 status = "是" if safe["network"]["restored"] else "否"
@@ -648,7 +650,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
             if clean.startswith(("HCV_RTSP_PRIVATE,", "HCV_CH0_CONFIG_READY", "HCV_AP_READY",
                                  "HCV_MEDIA_SESSION_", "HCV_CH0_CONFIG_CLEANUP",
                                  "HCV_TCP_CONTROL_READY", "HCV_VICAP_DETECT,", "HCV_RTSP_FIRST_IDR,",
-                                 "HCV_RAW_CLIP_")):
+                                 "HCV_RAW_CLIP_", "HCV_CLIP_RESUMED,")):
                 events.put((clean, received_at))
         events.put(None)
 
@@ -765,6 +767,14 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                     }
                     if timing:
                         run.summary["board_raw_clip"]["sd_write_ms"] = int(timing[0])
+                elif event.startswith("HCV_CLIP_RESUMED,"):
+                    _, elapsed, previous, current, pause = event.split(",")
+                    run.summary["board_clip_resume"] = {
+                        "board_elapsed_ms": int(elapsed.split("=")[1]),
+                        "previous_pts_ms": int(previous.split("=")[1]),
+                        "next_pts_ms": int(current.split("=")[1]),
+                        "write_start_to_next_send_ms": int(pause.split("=")[1]),
+                    }
                 elif event.startswith("HCV_RAW_CLIP_"):
                     run.summary["board_raw_clip"] = {"error": event}
                 elif event == "HCV_MEDIA_SESSION_ALREADY_USED":
@@ -978,6 +988,10 @@ def main(args, ask=input, selected_plan=None):
             run.summary["motion_quality"] = None
         run.finish()
     raw = run.summary.get("board_raw_clip", {})
+    if raw_clip_path and raw.get("bytes") and not clean_board:
+        raw.update(board_path=raw_clip_path, downloaded=False)
+        print("板端已确认保存原片。USB 会话未正常退出，文件路径已记入报告，供恢复后取回。")
+        run.finish()
     if raw_clip_path and clean_board and raw.get("bytes"):
         original_clip = run.directory / "board-encoder.h264"
         print("正在通过 USB 取回板端原始码流。", flush=True)
@@ -1080,13 +1094,16 @@ if __name__ == "__main__":
     parser.add_argument("--runs", type=Path, default=HERE / "runs")
     parser.add_argument("--link-check", action="store_true", help="run wireless tests without starting the camera")
     parser.add_argument("--udp-only", action="store_true", help="run only the two UDP link trials")
+    parser.add_argument("--burst", action="store_true", help="compare five board-to-PC burst patterns")
     parser.add_argument("--automatic-only", action="store_true",
                         help="run a local link check without prompts and verify Wi-Fi restoration")
     parser.add_argument("--field", action="store_true", help="run the operator-led offline M3 field session")
     parser.add_argument("--player", nargs="+", help=argparse.SUPPRESS)
     args = parser.parse_args()
-    if (args.udp_only or args.automatic_only) and (not args.link_check or args.player or args.simulate):
-        parser.error("--udp-only and --automatic-only require a physical --link-check")
+    if (args.udp_only or args.automatic_only or args.burst) and (not args.link_check or args.player or args.simulate):
+        parser.error("link trial options require a physical --link-check")
+    if args.burst and (args.udp_only or args.field):
+        parser.error("--burst requires the five-trial link check")
     if args.player:
         player(args.player)
     else:

@@ -51,6 +51,7 @@ class RawClip:
             digest = hexlify(sha256(payload).digest()).decode()
             print("HCV_RAW_CLIP_SAVED,%d,%d,%d,%s,%d" % (
                 self.used, CLIP_START_MS, CLIP_END_MS, digest, write_ms))
+            return True
 
 
 def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=None,
@@ -63,7 +64,7 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
     stream = None
     media_started = False
     raw_clip = None
-    clip_completed = False
+    saved_after_pts = None
     try:
         tick()
         mode = config["sensor"]
@@ -111,6 +112,11 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
         first_idr_notified = False
         while True:
             elapsed = time.ticks_diff(time.ticks_ms(), started)
+            if raw_clip is not None and elapsed >= CLIP_END_MS:
+                write_started = time.ticks_ms()
+                if raw_clip.save(raw_clip_path, True):
+                    saved_after_pts = stream.last_packet_pts_ms
+                raw_clip = None
             if elapsed >= seconds * 1000:
                 break
             tick()
@@ -121,9 +127,13 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
                     detector_frames += 1
                 except RuntimeError:
                     detector_errors += 1
-                if elapsed >= CLIP_END_MS:
-                    clip_completed = True
-                stream.send_one(timeout_ms=0, capture=raw_clip if CLIP_START_MS <= elapsed < CLIP_END_MS else None)
+                sent = stream.send_one(timeout_ms=0, capture=raw_clip if elapsed >= CLIP_START_MS else None)
+                if sent and saved_after_pts is not None:
+                    resumed = time.ticks_ms()
+                    print("HCV_CLIP_RESUMED,elapsed_ms=%d,previous_pts_ms=%d,next_pts_ms=%d,pause_ms=%d" % (
+                        time.ticks_diff(resumed, started), saved_after_pts, stream.last_packet_pts_ms,
+                        time.ticks_diff(resumed, write_started)))
+                    saved_after_pts = None
                 if not first_idr_notified and stream.first_idr_pts_ms is not None:
                     print("HCV_RTSP_FIRST_IDR,elapsed_ms=%d,pts_ms=%d" % (
                         time.ticks_diff(time.ticks_ms(), started), stream.first_idr_pts_ms,
@@ -169,4 +179,4 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
                     MediaManager.deinit()
         print("HCV_CH0_CONFIG_CLEANUP")
         if raw_clip is not None:
-            raw_clip.save(raw_clip_path, clip_completed)
+            raw_clip.save(raw_clip_path, False)

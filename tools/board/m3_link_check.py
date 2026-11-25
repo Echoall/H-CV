@@ -20,6 +20,8 @@ TRIALS = (
     ("tcp", "board_to_pc", 300, 60),
 )
 UDP_TRIALS = tuple(trial for trial in TRIALS if trial[0] == "udp")
+BURST_SHAPES = ("A", "B", "C", "D", "D")
+BURST_TRIALS = tuple(("udp" if i == 4 else "tcp", "board_to_pc", 190, 60) for i in range(5))
 DATA = b"K" * BLOCK_BYTES
 WOULD_BLOCK = (errno.EAGAIN, getattr(errno, "EWOULDBLOCK", errno.EAGAIN), 10035)
 
@@ -132,6 +134,7 @@ def transfer(sock, sending, rate, seconds, peer=None):
         error = failure.args[0] if failure.args else type(failure).__name__
     return {
         "bytes": transferred, "elapsed_ms": ticks_diff(ticks_ms(), started),
+        "error_at_ms": ticks_diff(ticks_ms(), started) if error is not None else None,
         "active_ms": ticks_diff(last_activity, started), "max_activity_gap_ms": largest_gap,
         "expected_bytes": blocks * BLOCK_BYTES, "error": error,
         "missing_datagrams": blocks - len(seen) if seen is not None else None,
@@ -142,7 +145,87 @@ def banner(index):
     return ("HCVLINK%d\n" % index).encode()
 
 
-def serve(address, index, trial, *, udp_start="tcp"):
+def burst_schedule(shape):
+    """One second of (due ms, bytes), exactly 190,000 bytes for every shape."""
+    if shape == "D":
+        yield 0, 40_000
+        for i in range(1, 31):
+            yield i * 1000 // 31, 5000
+    else:
+        count = {"A": 190, "B": 30, "C": 10}[shape]
+        for i in range(count):
+            yield i * 1000 // count, (i + 1) * 190_000 // count - i * 190_000 // count
+
+
+def send_bursts(sock, shape, seconds, peer=None, trial_index=None):
+    schedule = tuple(burst_schedule(shape))
+    block = memoryview(b"K" * max(size for _, size in schedule))
+    datagram = bytearray(DATA) if peer else None
+    histogram = {}
+    sent = completed = longest = 0
+    failure = None
+    sock.setblocking(False)
+    started = ticks_ms()
+    burst_start = None
+    try:
+        for second in range(seconds):
+            for due, size in schedule:
+                tick()
+                delay = second * 1000 + due - ticks_diff(ticks_ms(), started)
+                if delay > 0:
+                    sleep_ms(delay)
+                burst_start = ticks_ms()
+                offset = 0
+                while offset < size:
+                    tick()
+                    if ticks_diff(ticks_ms(), burst_start) >= 4000:
+                        raise OSError("burst send stalled")
+                    try:
+                        if peer is None:
+                            n = sock.send(block[offset:size])
+                        else:
+                            struct.pack_into(">I", datagram, 0, sent // BLOCK_BYTES)
+                            n = sock.sendto(datagram, peer)
+                            if n != BLOCK_BYTES:
+                                raise OSError("short datagram")
+                    except OSError as error:
+                        if not no_data(error):
+                            raise
+                        sleep_ms(1)
+                        continue
+                    if not n:
+                        raise OSError("socket sent zero bytes")
+                    offset += n
+                    sent += n
+                duration = ticks_diff(ticks_ms(), burst_start)
+                longest = max(longest, duration)
+                histogram[duration] = histogram.get(duration, 0) + 1
+                completed += 1
+                burst_start = None
+            if trial_index is not None:
+                print("HCV_LINK_PROGRESS,%d,%d,%d,%d,%d" % (
+                    trial_index, ticks_diff(ticks_ms(), started), sent, completed, longest))
+        delay = seconds * 1000 - ticks_diff(ticks_ms(), started)
+        if delay > 0:
+            sleep_ms(delay)
+    except OSError as error:
+        failure = error.args[0] if error.args else type(error).__name__
+        if burst_start is not None:
+            longest = max(longest, ticks_diff(ticks_ms(), burst_start))
+    elapsed = ticks_diff(ticks_ms(), started)
+    rank = (99 * completed + 99) // 100
+    p99 = None
+    for duration in sorted(histogram):
+        rank -= histogram[duration]
+        if rank <= 0:
+            p99 = duration
+            break
+    return {"bytes": sent, "active_ms": elapsed, "elapsed_ms": elapsed, "error": failure,
+            "error_at_ms": elapsed if failure is not None else None, "completed_bursts": completed,
+            "send_burst_p99_ms": p99, "send_burst_max_ms": longest}
+
+
+def serve(address, index, trial, *, udp_start="tcp", shape=None):
     protocol, direction, rate, seconds = trial
     datagram_start = protocol == "udp" and udp_start == "udp"
     listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM if datagram_start else socket.SOCK_STREAM)
@@ -181,7 +264,11 @@ def serve(address, index, trial, *, udp_start="tcp"):
                 if not port:
                     raise OSError("invalid UDP destination port")
                 print("HCV_LINK_UDP_START,%d" % index)
+                if shape:
+                    return send_bursts(datagrams, shape, seconds, (remote[0], port), index)
                 return transfer(datagrams, True, rate, seconds, (remote[0], port))
+            if shape:
+                return send_bursts(client, shape, seconds, trial_index=index)
             return transfer(client, direction == "board_to_pc", rate, seconds)
         finally:
             client.close()
@@ -191,11 +278,11 @@ def serve(address, index, trial, *, udp_start="tcp"):
         listener.close()
 
 
-def board_main(wifi, udp_only=False):
+def board_main(wifi, udp_only=False, burst=False):
     import json
     import network
 
-    start(155 if udp_only else 415)
+    start(490 if burst else (155 if udp_only else 415))
     ap = network.WLAN(network.AP_IF)
     try:
         ap.config(ssid=wifi["ssid"], key=wifi["password"], channel=wifi["channel"])
@@ -205,9 +292,10 @@ def board_main(wifi, udp_only=False):
     if address == "0.0.0.0":
         raise OSError("AP has no address")
     print("HCV_LINK_AP,%s" % address)
-    for index, trial in enumerate(UDP_TRIALS if udp_only else TRIALS):
+    trials = BURST_TRIALS if burst else (UDP_TRIALS if udp_only else TRIALS)
+    for index, trial in enumerate(trials):
         try:
-            result = serve(address, index, trial)
+            result = serve(address, index, trial, shape=BURST_SHAPES[index] if burst else None)
         except OSError as error:
             result = {"error": error.args[0] if error.args else type(error).__name__}
         try:
@@ -219,4 +307,4 @@ def board_main(wifi, udp_only=False):
 
 
 if "HCV_LINK_WIFI" in globals():
-    board_main(HCV_LINK_WIFI, globals().get("HCV_LINK_UDP_ONLY", False))
+    board_main(HCV_LINK_WIFI, globals().get("HCV_LINK_UDP_ONLY", False), globals().get("HCV_LINK_BURST", False))

@@ -12,7 +12,7 @@ from threading import Thread
 import time
 
 from station.bench import bench, wlan
-from tools.board.m3_link_check import PORT, TRIALS, UDP_TRIALS, banner, transfer
+from tools.board.m3_link_check import BURST_SHAPES, BURST_TRIALS, PORT, TRIALS, UDP_TRIALS, banner, transfer
 
 
 def wlan_metrics():
@@ -32,7 +32,7 @@ def wlan_metrics():
     return fields
 
 
-def client_trial(address, index, trial):
+def client_trial(address, index, trial, *, observe_close=False):
     protocol, direction, rate, seconds = trial
     host = address, PORT
     deadline = time.monotonic() + 8
@@ -62,7 +62,18 @@ def client_trial(address, index, trial):
                 datagrams.sendto(expected, host)
                 conn.sendall(struct.pack(">H", datagrams.getsockname()[1]))
                 return transfer(datagrams, False, rate, seconds, host)
-        return transfer(conn, direction == "pc_to_board", rate, seconds)
+        began = time.monotonic()
+        result = transfer(conn, direction == "pc_to_board", rate, seconds)
+        if observe_close:
+            terminal = result["error"]
+            if terminal is None:
+                conn.settimeout(3)
+                try:
+                    terminal = "unexpected extra data" if conn.recv(1) else "EOF"
+                except OSError as error:
+                    terminal = error.args[0] if error.args else type(error).__name__
+            result.update(terminal=terminal, terminal_at_ms=round((time.monotonic() - began) * 1000))
+        return result
 
 
 def summarize_trial(row):
@@ -87,14 +98,17 @@ def summarize_trial(row):
     )
 
 
-def run_trials(run, wifi, original, *, udp_only=False, automatic_only=False):
-    trials = UDP_TRIALS if udp_only else TRIALS
+def run_trials(run, wifi, original, *, udp_only=False, automatic_only=False, burst=False):
+    trials = BURST_TRIALS if burst else (UDP_TRIALS if udp_only else TRIALS)
     jobs = run.summary["trials"] = [
         {"protocol": protocol, "direction": direction, "target_kBps": rate, "seconds": seconds}
         for protocol, direction, rate, seconds in trials
     ]
+    if burst:
+        for row, shape in zip(jobs, BURST_SHAPES):
+            row.update(shape=shape, board_alive_after=None)
     board_file = bench.ROOT / "tools/board/m3_link_check.py"
-    source = (f"HCV_LINK_WIFI = {wifi!r}\nHCV_LINK_UDP_ONLY = {udp_only!r}\n"
+    source = (f"HCV_LINK_WIFI = {wifi!r}\nHCV_LINK_UDP_ONLY = {udp_only!r}\nHCV_LINK_BURST = {burst!r}\n"
               + board_file.read_text(encoding="utf-8"))
     events = Queue()
 
@@ -106,7 +120,8 @@ def run_trials(run, wifi, original, *, udp_only=False, automatic_only=False):
                 events.put((received_at, line.strip()))
         events.put(None)
 
-    with subprocess.Popen(bench.BOARD + ["run", "-", "--stream", "--timeout", "175" if udp_only else "440"],
+    board_timeout = "510" if burst else ("175" if udp_only else "440")
+    with subprocess.Popen(bench.BOARD + ["run", "-", "--stream", "--timeout", board_timeout],
                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                           encoding="utf-8", errors="replace", cwd=bench.ROOT) as board:
         worker = Thread(target=collect, args=(board.stdout,), daemon=True)
@@ -136,19 +151,25 @@ def run_trials(run, wifi, original, *, udp_only=False, automatic_only=False):
                     route = "板子 → 电脑" if direction == "board_to_pc" else "电脑 → 板子"
                     row["board_ready_at"] = received_at
                     row["start_at"] = bench.now()
-                    print(f"{index + 1}/{len(jobs)}  {protocol.upper()}  {rate} kB/s"
+                    print(f"{index + 1}/{len(jobs)}  {row.get('shape', '')} {protocol.upper()}  {rate} kB/s"
                           f"  {seconds} 秒  {route}", flush=True)
                     try:
-                        row["pc"] = client_trial(address, index, trials[index])
+                        row["pc"] = client_trial(address, index, trials[index], observe_close=burst)
                     except OSError as error:
                         row["pc"] = {"error": error.args[0] if error.args else type(error).__name__}
                     row["pc_end_at"] = bench.now()
                     row["windows_wlan"] = wlan_metrics()
                     run.finish()
+                elif marker == "HCV_LINK_PROGRESS":
+                    index, elapsed, sent, completed, longest = map(int, value.split(","))
+                    jobs[index]["last_board_progress"] = dict(at=received_at, elapsed_ms=elapsed,
+                                                              bytes=sent, bursts=completed, max_ms=longest)
                 elif marker == "HCV_LINK_RESULT":
                     index, _, payload = value.partition(",")
                     row = jobs[int(index)]
                     row.update(board=json.loads(payload), board_end_at=received_at)
+                    if burst:
+                        row["board_alive_after"] = True
                     summarize_trial(row)
                     run.finish()
             return board.wait(timeout=5)
@@ -162,8 +183,11 @@ def run_trials(run, wifi, original, *, udp_only=False, automatic_only=False):
 
 
 def main(args, ask=input, *, udp_only=False, automatic_only=False):
+    burst = getattr(args, "burst", False)
     directory = args.runs.resolve() / (datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-p8-link")
     title = "方案 8 UDP 补测" if udp_only else "方案 8 无线链路体检"
+    if burst:
+        title = "方案 8 五档突发发送对照"
     run = bench.Run(directory, {"id": "p8-link", "title": title}, False)
     run.summary["network"]["automatic_only"] = automatic_only
     original = None
@@ -185,20 +209,21 @@ def main(args, ask=input, *, udp_only=False, automatic_only=False):
             original = wlan.snapshot()
         except (OSError, subprocess.TimeoutExpired):
             original = None
-        if automatic_only and (not original or not original[2] or original[1] == wifi["ssid"]):
+        if (automatic_only or burst) and (not original or not original[2] or original[1] == wifi["ssid"]):
             raise RuntimeError("Windows 未确认一个可以切回的原 Wi-Fi。电脑没有切网。")
         if original:
             run.private.update(value for value in original if value)
         else:
             print("Windows 未提供当前网络状态。测试结束后请手动切回原 Wi-Fi。", flush=True)
         switched = True
+        options = {"burst": True} if burst else {}
         run.summary["board_exit_code"] = run_trials(
-            run, wifi, original, udp_only=udp_only, automatic_only=automatic_only)
+            run, wifi, original, udp_only=udp_only, automatic_only=automatic_only, **options)
         jobs = run.summary["trials"]
         run.summary["results_collected"] = all("board" in row and "pc" in row for row in jobs)
         if udp_only:
             run.summary["udp_measurements_valid"] = all("udp_loss_pct" in row for row in jobs)
-        else:
+        elif not burst:
             run.summary["tcp_300_kBps_60s_sustained"] = bool(jobs[-1].get("sustained_target"))
         run.summary["message"] = ("链路记录已保存，检查结果以各档收发日志为准。"
                                   if run.summary["results_collected"] else "部分档位缺少收发记录。")
@@ -208,7 +233,7 @@ def main(args, ask=input, *, udp_only=False, automatic_only=False):
     finally:
         if switched and original:
             network = run.summary["network"]
-            for attempt in range(1, 3 if automatic_only else 2):
+            for attempt in range(1, 3 if automatic_only or burst else 2):
                 network["restore_attempts"] = attempt
                 try:
                     network["restored"] = wlan.restore(original, diagnostics=network)
@@ -222,4 +247,4 @@ def main(args, ask=input, *, udp_only=False, automatic_only=False):
     print(f"本次记录已保存到 {run.directory}", flush=True)
     return int(not run.summary.get("results_collected") or run.summary.get("board_exit_code") != 0
                or (udp_only and not run.summary.get("udp_measurements_valid"))
-               or (automatic_only and not run.summary["network"].get("restored")))
+               or ((automatic_only or burst) and not run.summary["network"].get("restored")))

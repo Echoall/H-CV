@@ -157,3 +157,5 @@ ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=width,he
 本地复核时，在仓库根目录对现场子目录的 `recording.mp4` 执行 `ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=duration,nb_read_frames -of json <录像路径>`。帧号使用 `station.bench.field.frame_numbers`。时钟从三张 `latency-*.png` 左右分别抄读，像素比对采用原始 2560×1600 截图右侧 `(1280,120,2560,1480)` 裁区（右下坐标不包含在内）。本机保存原始媒体及日志。
 
 另查 Windows 无线连接事件，07:37:44.024 连接成功，随后首次系统断开事件在 07:40:12.241，正值向导恢复原网络。播放冻结和 07:38:16 的 EOF 期间，Windows 没有记录 Wi-Fi 断开或重连。无线关联保持期间仍可能发生数据停顿。见[脱敏事件时间线](data/M3/bench/2026-11-26-field-wlan-events.json)，本机可在 `Microsoft-Windows-WLAN-AutoConfig/Operational` 中按时间筛选事件 8000 至 8003 复核。
+
+复查电脑原片的 H.264 slice header，按 10 个 IDR 分组，组内推算跳号依次为 11、13、8、13、8、11、8、11、12、4，合计 99。帧号模数为 256，每次跳过 1 至 5 个编号。缺口散布在各组，仍需用同一次板端原片确认编码器实际生成了哪些参考帧。

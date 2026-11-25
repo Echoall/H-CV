@@ -245,6 +245,22 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch, capsys, tmp_path)
     assert target.read_bytes() == b"".join(payload for _, payload in encoded)
     assert capsys.readouterr().out.splitlines()[-1].endswith(",17")
 
+    # The clip must survive a later firmware hang, before sensor.stop or RTSP teardown.
+    ticks = iter((0, 25000, 25001, 35000, 35000, 35000, 35017, 35022, 60000))
+    configurable.time = SimpleNamespace(ticks_ms=lambda: next(ticks), ticks_diff=lambda a, b: a - b)
+    saved = tmp_path / "early.h264"
+    def stop_with_error(*_):
+        assert saved.read_bytes() == b"".join(payload for _, payload in encoded)
+        raise RuntimeError("sensor stop failed")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Sensor, "stop", stop_with_error)
+        with pytest.raises(RuntimeError, match="sensor stop failed"):
+            configurable.run(seconds=60, vicap_stream_limit=True, raw_clip_path=str(saved))
+    log = capsys.readouterr().out
+    assert log.count("HCV_RAW_CLIP_SAVED,") == 1
+    assert "pause_ms=22" in log
+
     stream = stream_module.H264Stream(config, trace_frames=True)
     stream.start_session()
     calls.clear()
