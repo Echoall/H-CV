@@ -1,0 +1,118 @@
+{
+  "field_revision": "b3c9ef79ca2f5cfe30c20bf22b08196b459be26d",
+  "run": "20261126-073707-624884-field-direct",
+  "preflight_only_without_summary": "20261126-073617-774497-field",
+  "firmware": "v1.4-19-ga7de1c8",
+  "plan": {
+    "width": 960,
+    "height": 540,
+    "fps": 30,
+    "bitrate_kbps": 1500,
+    "gop": 30,
+    "transport": "tcp",
+    "caching_ms": 200,
+    "seconds": 60
+  },
+  "restored_final": true,
+  "reset_capture": {
+    "status": "pktmon_busy_or_status_unknown"
+  },
+  "client": {
+    "client_playing_at": "2026-11-26T07:37:55.765+08:00",
+    "seconds_from_board_ready": 13.225,
+    "client_end_at": "2026-11-26T07:38:16.343+08:00",
+    "client_end_reason": "eof"
+  },
+  "vlc_no_data_10s": true,
+  "connect": [
+    {
+      "index": 1,
+      "started": "2026-11-26T07:37:44.688+08:00",
+      "ended": "2026-11-26T07:38:16.536+08:00",
+      "exit_code": 0,
+      "playing": true,
+      "rtsp_status_codes": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "rtsp_stage": "PLAY",
+      "ping": {
+        "exit_code": 0,
+        "echo_reply": true
+      },
+      "errors": [],
+      "socket_error_codes": []
+    }
+  ],
+  "ready": "2026-11-26T07:37:42.540+08:00",
+  "recording": {
+    "codec_name": "h264",
+    "width": 960,
+    "height": 540,
+    "duration": "9.715945",
+    "nb_read_frames": "188",
+    "bytes": 1198198,
+    "sha256": "f0f3c3a4e23b14459f522da07c1a2ec98f02fda76e254fc9dbc20273a9bbb56f",
+    "frame_numbers": {
+      "reference_pictures": 188,
+      "idr": 10,
+      "skipped": 99,
+      "gap_pct": 34.494773519163765
+    }
+  },
+  "clock_readings": [
+    {
+      "image": "latency-01.png",
+      "sha256": "2ba84031cecfa00afeee66c88a4e3e53d36d6ad135c2c4632c7ee3b01731ff64",
+      "pc_ms": 20263,
+      "displayed_ms": 19261,
+      "age_ms": 1002
+    },
+    {
+      "image": "latency-02.png",
+      "sha256": "e679db5c53af9662da8e34c9e68f79529e715d89f58dc5a6fa4273c373c63082",
+      "pc_ms": 24268,
+      "displayed_ms": 19546,
+      "age_ms": 4722
+    },
+    {
+      "image": "latency-03.png",
+      "sha256": "9c6c06ffec56ca0546683b68ce63d64833afb0e02d9432b02c70693997efc66f",
+      "pc_ms": 28265,
+      "displayed_ms": 19546,
+      "age_ms": 8719
+    }
+  ],
+  "identical_screenshots_02_03_region_xyxy": [
+    1280,
+    120,
+    2560,
+    1480
+  ],
+  "snapshot_playback": {
+    "channel": 1,
+    "elapsed_ms": 19123,
+    "frames": 1718,
+    "errors": 0,
+    "fps": 89.83946033572138
+  },
+  "snapshot_all": {
+    "channel": 1,
+    "elapsed_ms": 36271,
+    "frames": 3263,
+    "errors": 0,
+    "fps": 89.96167737310799
+  },
+  "board_final_status": "2026-11-26T07:38:18.831+08:00 HCV_CH0_CONFIG_STATUS,elapsed_ms=36271,registered_sessions=1,packets_since_status=31,packets=1118,send_result=0,last_read_error=0,bytes_since_status=164527,bytes=6819975,interval_ms=1000,last_packet_pts_ms=76175",
+  "board_last_pack": "2026-11-26T07:38:19.719+08:00 HCV_VENC_PACKS,77086,1,1,0,1,0,0",
+  "board_session": {
+    "started": "2026-11-26T07:37:39.885+08:00",
+    "ended": "2026-11-26T07:40:11.430+08:00",
+    "exit_code": 3,
+    "cleanup": false
+  },
+  "board_clip_saved_marker": false,
+  "board_clip_retrieved": false
+}
