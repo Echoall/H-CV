@@ -34,10 +34,39 @@
 ```powershell
 python -m station.bench.bench --simulate <ffmpeg.exe> <mediamtx.exe>
 ```
-# 方案 8 无线链路体检
+## 方案 8 无线链路体检
 
 双击 [方案8无线链路体检.bat](方案8无线链路体检.bat)。保持 K230 接着 USB，关闭 CanMV，把电脑和板子的距离保持在约 0.5–1 米。有无线适配器电源设置时选「最高性能」。输入 `1` 后开始，正常约 5 分钟，期间电脑会临时连接 K230 的 AP。同一次上电即可运行，无需转动镜头、重新拍摄或给板子断电。
 
 测试使用 8554 端口。TCP 从板子发到电脑，按 25、50、100、200 kB/s 各测 30 秒；反方向测 100 kB/s 30 秒。UDP 测 100、200 kB/s 各 30 秒。最后从板子向电脑做 300 kB/s 的 60 秒 TCP 检查。`runs/*-p8-link/summary.json` 保存每档两端的字节数、时长、最大收包间隔和错误；信号或速率字段取不到时留空。TCP 重置发起端需要另外捕获报文，出现重置时该字段记为 `unknown`。
 
-Windows 若拒绝读取当前 Wi-Fi 状态，按调试台提示手动连接 K230 的 AP。结束后先检查原 Wi-Fi 是否已恢复。若未恢复，用右下角网络图标切回原 Wi-Fi。
+测试前可在 Windows 的「设置 → 隐私和安全性 → 位置」打开位置服务，让调试台记录 Wi-Fi 信号百分比和收发速率。若 Windows 仍拒绝读取网络状态，按提示手动连接 K230 的 AP。结束后若原 Wi-Fi 未自动恢复，用右下角网络图标切回。
+
+### TCP 重置复现后的取证
+
+只有方案 8 再次记录到连接重置时，才用管理员 PowerShell 对下一轮取证。先运行下面两条命令。确认没有进行中的抓包且筛选器列表为空，再设置本轮筛选。
+
+```powershell
+pktmon status
+pktmon filter list
+```
+
+```powershell
+$captureDir = Join-Path $env:TEMP ('hcv-rst-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
+New-Item -ItemType Directory -Path $captureDir | Out-Null
+$captureFile = Join-Path $captureDir 'link.etl'
+pktmon filter add HCV8554Syn -t TCP SYN -p 8554
+pktmon filter add HCV8554Rst -t TCP RST -p 8554
+pktmon start --capture --comp nics --pkt-size 96 --file-size 16 --file-name $captureFile
+```
+
+确认启动成功后，在另一窗口运行方案 8。测试一结束，就在原管理员 PowerShell 停止抓包并转换。如果启动失败或取消测试，也要清除本轮添加的筛选器。`pktmon filter remove` 会清除全部筛选器，只在已经确认原本为空时执行。
+
+```powershell
+pktmon stop
+pktmon filter remove
+pktmon etl2pcap $captureFile --out (Join-Path $captureDir 'link.pcapng')
+pktmon etl2txt $captureFile --timestamp --out (Join-Path $captureDir 'link.txt')
+```
+
+将每档的 TCP 建连时刻和两端报错时刻与抓包对齐。按连接去掉重复记录，汇报 RST 首次出现的时刻、电脑网卡看到的方向和标志位。只有实测捕获到对应 RST 时才报告方向。ETL、PCAPNG、抓包文本和实际地址留在本机。
