@@ -2,10 +2,12 @@
 
 import argparse
 from collections import Counter
+from datetime import datetime
 from hashlib import sha256
 import json
 from pathlib import Path
 import re
+from statistics import median
 import subprocess
 
 from PIL import Image
@@ -60,11 +62,16 @@ def vicap_metrics(directory, data):
     rates = re.search(r"HCV_VENC_FIRMWARE_RATES,(\d+),(\d+)", log)
     pack_groups = re.findall(r"HCV_VENC_PACKS,(\d+),(\d+),(\d+),(\d+),(\d+),(\d+),([01])", log)
     histograms = {name: Counter() for name in ("idr", "intra", "predictive", "header", "other")}
-    for _, _, count, i_packs, p_packs, headers, idr in (map(int, row) for row in pack_groups):
+    group_histogram = Counter()
+    idr_pts = []
+    for pts, _, count, i_packs, p_packs, headers, idr in (map(int, row) for row in pack_groups):
         kind = ("idr" if idr else "intra" if i_packs else "predictive" if p_packs
                 else "header" if headers else "other")
         histograms[kind][count] += 1
-    return {
+        group_histogram[(count, i_packs, p_packs, headers, idr)] += 1
+        if idr:
+            idr_pts.append(pts)
+    result = {
         "tcp_control": data.get("tcp_control"),
         "tcp_board_events": tcp_events,
         "tcp_board_errno": int(errno[1]) if errno else None,
@@ -77,10 +84,46 @@ def vicap_metrics(directory, data):
         "vlc_error_lines": data["capture"].get("vlc_error_lines"),
         "pack_group_samples": len(pack_groups),
         "pack_count_histograms": histograms,
+        "pack_group_histogram": [
+            {"returned": signature[0], "i": signature[1], "p": signature[2],
+             "header": signature[3], "idr": signature[4], "groups": groups}
+            for signature, groups in sorted(group_histogram.items())
+        ],
+        "idr_count": len(idr_pts),
+        "median_idr_interval_ms": (
+            median(b - a for a, b in zip(idr_pts, idr_pts[1:])) if len(idr_pts) > 1 else None
+        ),
         "pack_count_mismatches": sum(expected != count for _, expected, count, *_ in pack_groups),
         "network_restore_reason": data["network"].get("restore_reason"),
         "motion_quality": data.get("motion_quality"),
     }
+    arrival = data.get("rtp_arrival") or {}
+    if arrival.get("packets", 0) > 1 and arrival["first_at_ms"] < arrival["last_at_ms"]:
+        first, last = arrival["first_at_ms"], arrival["last_at_ms"]
+        interval = last - first
+        result["rtp_receive_seconds"] = interval / 1000
+        result["rtp_receive_kBps"] = round(arrival["bytes"] / interval, 2)
+        end = data["capture"].get("client_end_at")
+        if end:
+            result["last_rtp_to_client_exit_seconds"] = (round(datetime.fromisoformat(end).timestamp() * 1000) - last) / 1000
+        matching = re.findall(
+            r"(?m)^(\S+) HCV_CH0_CONFIG_STATUS,[^\r\n]*?bytes_since_status=(\d+),"
+            r"bytes=\d+,interval_ms=(\d+)", log,
+        )
+        samples = []
+        after_count = 0
+        for timestamp, size, duration in matching:
+            epoch_ms = round(datetime.fromisoformat(timestamp).timestamp() * 1000)
+            if epoch_ms > last:
+                after_count += 1
+            elif epoch_ms - int(duration) >= first:
+                samples.append([timestamp, int(size), int(duration)])
+        result["board_output_during_rtp"] = samples
+        result["board_status_rows_after_last_rtp"] = after_count
+        if samples:
+            rates = [size / duration for _, size, duration in samples]
+            result["board_output_kBps"] = {"median": round(median(rates), 2), "max": round(max(rates), 2)}
+    return result
 
 
 def screen_metrics(directory, latency):
@@ -96,9 +139,11 @@ def screen_metrics(directory, latency):
     }
 
 
-def summarize(root, date, ffprobe):
+def summarize(root, date, ffprobe, run_name=None):
     runs = []
     for path in sorted(root.glob(f"{date}-*/summary.json")):
+        if run_name is not None and path.parent.name != run_name:
+            continue
         data = json.loads(path.read_text(encoding="utf-8"))
         if data["simulation"]:
             continue
@@ -135,10 +180,11 @@ def main():
     parser.add_argument("runs", type=Path)
     parser.add_argument("date", help="date prefix in YYYYMMDD")
     parser.add_argument("--ffprobe", default="ffprobe", type=Path)
+    parser.add_argument("--run", help="include only this run directory name")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9]{8}", args.date):
         parser.error("date must use YYYYMMDD")
-    print(json.dumps(summarize(args.runs, args.date, args.ffprobe), indent=2))
+    print(json.dumps(summarize(args.runs, args.date, args.ffprobe, args.run), indent=2))
 
 
 if __name__ == "__main__":

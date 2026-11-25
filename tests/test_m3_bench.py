@@ -9,7 +9,8 @@ from types import SimpleNamespace
 import pytest
 
 from k230.hcv import tcp_control
-from station.bench import bench, latency, rtp_trace, wlan
+from station.bench import bench, latency, link_check, rtp_trace, wlan
+from tools.board import m3_link_check
 
 
 def baseline():
@@ -181,6 +182,40 @@ def test_rtp_trace_reassembles_rtsp_body_and_interleaved_frames():
     assert not buffer
 
 
+def test_rtp_trace_keeps_forwarding_if_post_play_inspection_fails():
+    play = b"PLAY rtsp://host/hcv RTSP/1.0\r\nCSeq: 5\r\n\r\n"
+    response = b"RTSP/1.0 200 OK\r\nCSeq: 5\r\n\r\n"
+    rtp = b"$\x00\x00\x0c\x80\x60\x00\x01" + bytes(8)
+    unrecognized = b"x" * 70_000
+    with socket.socket() as upstream:
+        upstream.bind(("127.0.0.1", 0))
+        upstream.listen(1)
+        port = upstream.getsockname()[1]
+
+        def serve():
+            conn, _ = upstream.accept()
+            with conn:
+                assert conn.recv(4096) == play
+                conn.sendall(response + rtp + unrecognized + rtp)
+
+        server = Thread(target=serve, daemon=True)
+        server.start()
+        stats = {}
+        with rtp_trace.trace(f"rtsp://127.0.0.1:{port}/hcv", stats, str) as endpoint:
+            peer = int(endpoint.rsplit(":", 1)[1].split("/")[0])
+            with socket.create_connection(("127.0.0.1", peer), timeout=3) as client:
+                client.sendall(play)
+                received = bytearray()
+                while chunk := client.recv(65_536):
+                    received.extend(chunk)
+        server.join(3)
+    assert received == response + rtp + unrecognized + rtp
+    assert stats["rtp_inspection_stopped"]["reason"] == "invalid RTSP header"
+    assert stats["board_bytes_after_play"] == 2 * len(rtp) + len(unrecognized)
+    assert stats["closed_by"] == "board"
+    assert "error" not in stats
+
+
 def test_rtsp_trace_records_only_matching_describe_responses(tmp_path):
     run = bench.Run(tmp_path / "run", baseline(), False)
     run.private.add("test-network")
@@ -239,6 +274,34 @@ def test_tcp_control_delivers_verified_bytes_and_releases_port(monkeypatch, tmp_
     with socket.socket() as media_listener:
         media_listener.bind((host, port))
         media_listener.listen(1)
+
+
+@pytest.mark.parametrize("protocol,direction", [
+    ("tcp", "board_to_pc"), ("tcp", "pc_to_board"), ("udp", "board_to_pc"),
+])
+def test_link_trial_exchanges_full_payload_in_each_direction(monkeypatch, capsys, protocol, direction):
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    monkeypatch.setattr(m3_link_check, "PORT", port)
+    monkeypatch.setattr(link_check, "PORT", port)
+    trial = (protocol, direction, 30, 1)
+    completed = []
+    server = Thread(target=lambda: completed.append(m3_link_check.serve("127.0.0.1", 0, trial)),
+                    daemon=True)
+    server.start()
+    deadline = bench.time.monotonic() + 3
+    while "HCV_LINK_READY" not in capsys.readouterr().out:
+        assert bench.time.monotonic() < deadline
+        bench.time.sleep(0.01)
+    receipt = link_check.client_trial("127.0.0.1", 0, trial)
+    server.join(3)
+    assert not server.is_alive()
+    for result in (receipt, completed[0]):
+        assert result["error"] is None and result["bytes"] == 30_000
+        assert result["active_ms"] >= 900
+    if protocol == "udp":
+        assert receipt["missing_datagrams"] == 0
 
 
 def test_board_tcp_control_retries_eagain_before_accept(monkeypatch):

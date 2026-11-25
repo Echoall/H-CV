@@ -183,6 +183,20 @@ class Run:
         self.summary["ended"] = now()
         safe = clean_values(self.summary)
         write_json(self.directory / "summary.json", safe)
+        if safe["plan"]["id"] == "p8-link":
+            lines = [f"# {safe['plan']['title']}", "", safe["message"] if "message" in safe else "测试进行中", ""]
+            for row in safe.get("trials", []):
+                direction = "板子 → 电脑" if row["direction"] == "board_to_pc" else "电脑 → 板子"
+                measured = row.get("receive_kBps")
+                outcome = "待测" if "sustained_target" not in row else (
+                    "完成" if row["sustained_target"] else "未达到该档")
+                label = f"{row['protocol'].upper()} {direction} {row['target_kBps']} kB/s，{row['seconds']} 秒"
+                lines.append(f"- {label}。{outcome}" + (f"，实收 {measured} kB/s。" if measured is not None else "。"))
+            if "restored" in safe["network"]:
+                status = "是" if safe["network"]["restored"] else "否"
+                lines.append(f"- 原来的网络已恢复：{status}")
+            (self.directory / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+            return
         capture = safe["capture"]
         state = "达到方案门槛" if safe.get("passed") else "未达到方案门槛"
         if safe["plan"]["id"] == "preflight":
@@ -904,6 +918,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--simulate", nargs=2, type=Path, metavar=("FFMPEG", "MEDIAMTX"))
     parser.add_argument("--runs", type=Path, default=HERE / "runs")
+    parser.add_argument("--link-check", action="store_true", help="run wireless tests without starting the camera")
     parser.add_argument("--player", nargs=7, help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.player:
@@ -911,6 +926,9 @@ if __name__ == "__main__":
     else:
         try:
             with only_instance(args.runs):
+                if args.link_check:
+                    from station.bench.link_check import main as link_main
+                    sys.exit(link_main(args))
                 sys.exit(main(args))
         except RuntimeError as error:
             print(str(error))
