@@ -375,6 +375,13 @@ def positive_timeout(text):
     return value
 
 
+def read_chunk_size(text):
+    size = int(text)
+    if not 1 <= size <= 4096:
+        raise argparse.ArgumentTypeError("read chunk size must be between 1 and 4096")
+    return size
+
+
 def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", default="auto", help="auto or explicit USB serial port")
@@ -391,6 +398,7 @@ def arguments():
     get = commands.add_parser("get")
     get.add_argument("remote")
     get.add_argument("local", type=Path)
+    get.add_argument("--chunk-size", type=read_chunk_size, default=256)
     run = commands.add_parser("run")
     run.add_argument("script", type=Path, help="script path, or - to read script bytes from stdin")
     run.add_argument("--timeout", type=positive_timeout, default=30.0)
@@ -427,7 +435,7 @@ def main():
                 for item in board.fs_listdir(args.remote):
                     print(item.name)
             elif args.command == "get":
-                args.local.write_bytes(board.fs_readfile(args.remote))
+                args.local.write_bytes(board.fs_readfile(args.remote, chunk_size=args.chunk_size))
             elif args.command == "put":
                 project_path(args.remote)
                 require_backup()

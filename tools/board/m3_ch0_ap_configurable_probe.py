@@ -38,7 +38,7 @@ if "HCV_STREAM_SECONDS" in globals():
         address, config["stream"]["port"], config["stream"]["path"]
     ))
     vicap_limit = globals().get("HCV_VICAP_STREAM_LIMIT", False)
-    if vicap_limit:
+    if vicap_limit and not globals().get("HCV_DIRECT_RTSP", False):
         from hcv.tcp_control import send_control
 
         try:
@@ -49,7 +49,7 @@ if "HCV_STREAM_SECONDS" in globals():
             print("HCV_TCP_CONTROL_CLOSED")
     run(seconds=HCV_STREAM_SECONDS, announce_url=False, config=config,
         use_firmware_encoder=globals().get("HCV_USE_FIRMWARE_ENCODER", False),
-        vicap_stream_limit=vicap_limit)
+        vicap_stream_limit=vicap_limit, raw_clip_path=globals().get("HCV_RAW_CLIP_PATH"))
 else:
     print("HCV_AP_READY")
     run()

@@ -24,7 +24,7 @@ def test_sta_log_redacts_credentials_without_losing_traceback():
     )
 
 
-def test_configurable_chn0_matches_verified_probe(monkeypatch, capsys):
+def test_configurable_chn0_matches_verified_probe(monkeypatch, capsys, tmp_path):
     calls = []
     firmware_attributes = []
     pack_desc = {}
@@ -228,6 +228,19 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch, capsys):
     output = capsys.readouterr().out
     assert output.index("HCV_CH0_CONFIG_READY") < output.index("HCV_RTSP_FIRST_IDR,elapsed_ms=1005,pts_ms=1")
     assert "HCV_VENC_PACKS,1,3,3,1,1,1,1" in output
+
+    clip = configurable.RawClip(config["stream"]["bitrate_kbps"])
+    stream = stream_module.H264Stream(config, trace_frames=True)
+    stream.start_session()
+    calls.clear()
+    sent_addresses.clear()
+    assert stream.send_one(timeout_ms=0, capture=clip)
+    assert sent_addresses == [0, 1, 2]
+    target = tmp_path / "clip.h264"
+    clip.save(str(target), completed=False)
+    assert not target.exists()
+    clip.save(str(target), completed=True)
+    assert target.read_bytes() == b"".join(payload for _, payload in encoded)
 
     stream = stream_module.H264Stream(config, trace_frames=True)
     stream.start_session()

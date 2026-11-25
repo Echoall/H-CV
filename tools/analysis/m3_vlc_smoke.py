@@ -29,7 +29,7 @@ def stop(child):
 
 
 def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, show_video=False,
-                       transport="tcp", cache_ms=200, observation=None, window=None):
+                       transport="tcp", cache_ms=200, observation=None, window=None, on_playing=None):
     """Use the CLI's demux and recording options in a VLC 3 player."""
     argv = vlc_command(str(vlc), url, recording, display=show_video)
     options = [
@@ -92,6 +92,8 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
                     window.tick()
                 time.sleep(0.02 if window is not None else 0.1)
             started = time.monotonic()
+            if on_playing is not None:
+                on_playing()
             elapsed = 0
             while elapsed < seconds:
                 if state(player) in (6, 7):

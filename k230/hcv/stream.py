@@ -154,17 +154,21 @@ class H264Stream:
                 return 0
             time.sleep_ms(1)
 
-    def _send_pack(self, pack, inspect_idr):
+    def _send_pack(self, pack, inspect_idr, capture):
         size, address = pack.len, pack.phys_addr
         timestamp = pack.pts // 1000
         idr = False
         path = self.settings["path"]
-        if self.copy_packets or inspect_idr:
+        if self.copy_packets or inspect_idr or capture is not None:
             mapped = self.packet_mapping.kd_mpi_sys_mmap(address, size)
             if not mapped:
                 raise OSError("could not map H.264 packet")
             try:
-                payload = bytes(uctypes.bytearray_at(mapped, size))
+                data = uctypes.bytearray_at(mapped, size)
+                if capture is not None:
+                    capture.append(data)
+                if self.copy_packets or inspect_idr:
+                    payload = bytes(data)
             finally:
                 _checked(self.packet_mapping.kd_mpi_sys_munmap(mapped, size), "unmap H.264 packet")
             if inspect_idr:
@@ -179,7 +183,7 @@ class H264Stream:
         self.last_packet_pts_ms = timestamp
         return idr
 
-    def send_one(self, timeout_ms):
+    def send_one(self, timeout_ms, capture=None):
         """Submit all packets in one encoder output batch."""
         expected = self._available_packs(timeout_ms)
         if not expected:
@@ -208,7 +212,7 @@ class H264Stream:
                     p_packs += kind == venc_struct.K_VENC_P_FRAME
                     headers += kind == venc_struct.K_VENC_HEADER
                     inspect_idr = idr_pts is None and kind != venc_struct.K_VENC_P_FRAME
-                if self.serving and self._send_pack(pack, inspect_idr):
+                if self.serving and self._send_pack(pack, inspect_idr, capture):
                     idr_pts = self.last_packet_pts_ms
                 self.packets += 1
                 self.bytes += pack.len

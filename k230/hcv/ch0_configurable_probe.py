@@ -2,6 +2,8 @@
 
 import sys
 import time
+from binascii import hexlify
+from hashlib import sha256
 
 from media.media import MediaManager
 from media.sensor import Sensor
@@ -14,10 +16,42 @@ from .stream import H264Stream
 
 STREAM_SECONDS = 10
 GUARD_MARGIN_SECONDS = 2
+CLIP_START_MS = 25_000
+CLIP_END_MS = CLIP_START_MS + 10_000
+
+
+class RawClip:
+    def __init__(self, bitrate_kbps):
+        self.buffer = memoryview(bytearray(bitrate_kbps * 10 * 1250 // 8 + 128_000))
+        self.used = 0
+        self.overflow = False
+
+    def append(self, data):
+        end = self.used + len(data)
+        if self.overflow or end > len(self.buffer):
+            self.overflow = True
+            return
+        self.buffer[self.used:end] = data
+        self.used = end
+
+    def save(self, path, completed):
+        if not completed or not self.used or self.overflow:
+            print("HCV_RAW_CLIP_UNAVAILABLE,%d,%d,%d" % (int(completed), self.used, int(self.overflow)))
+            return
+        payload = self.buffer[:self.used]
+        try:
+            with open(path, "wb") as handle:
+                if handle.write(payload) != self.used:
+                    raise OSError("short write of board H.264 clip")
+        except OSError as error:
+            print("HCV_RAW_CLIP_ERROR", error)
+        else:
+            digest = hexlify(sha256(payload).digest()).decode()
+            print("HCV_RAW_CLIP_SAVED,%d,%d,%d,%s" % (self.used, CLIP_START_MS, CLIP_END_MS, digest))
 
 
 def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=None,
-        use_firmware_encoder=False, vicap_stream_limit=False):
+        use_firmware_encoder=False, vicap_stream_limit=False, raw_clip_path=None):
     start(seconds + GUARD_MARGIN_SECONDS)
     if config is None:
         config = load_config("/sdcard/hcv")
@@ -25,6 +59,8 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
     sensor = None
     stream = None
     media_started = False
+    raw_clip = None
+    clip_completed = False
     try:
         tick()
         mode = config["sensor"]
@@ -39,6 +75,11 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
             sensor.set_pixformat(Sensor.GRAYSCALE, chn=1)
         stream = H264Stream(config, sensor_channel=0, copy_packets=copy_packets,
                             trace_frames=vicap_stream_limit)
+        if raw_clip_path is not None:
+            try:
+                raw_clip = RawClip(config["stream"]["bitrate_kbps"])
+            except MemoryError:
+                print("HCV_RAW_CLIP_ERROR insufficient MicroPython heap")
         stream.bind(sensor, source_fps=config["stream"]["fps"] if vicap_stream_limit else None)
         if vicap_stream_limit:
             print("HCV_VICAP_LIMIT,stream_chn=0,fps=%d,detector_sample_chn=1" % stream.source_fps)
@@ -77,7 +118,9 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
                     detector_frames += 1
                 except RuntimeError:
                     detector_errors += 1
-                stream.send_one(timeout_ms=0)
+                if elapsed >= CLIP_END_MS:
+                    clip_completed = True
+                stream.send_one(timeout_ms=0, capture=raw_clip if CLIP_START_MS <= elapsed < CLIP_END_MS else None)
                 if not first_idr_notified and stream.first_idr_pts_ms is not None:
                     print("HCV_RTSP_FIRST_IDR,elapsed_ms=%d,pts_ms=%d" % (
                         time.ticks_diff(time.ticks_ms(), started), stream.first_idr_pts_ms,
@@ -122,3 +165,5 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
                 if media_started:
                     MediaManager.deinit()
         print("HCV_CH0_CONFIG_CLEANUP")
+        if raw_clip is not None:
+            raw_clip.save(raw_clip_path, clip_completed)

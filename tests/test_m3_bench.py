@@ -10,6 +10,7 @@ import pytest
 
 from k230.hcv import tcp_control
 from station.bench import bench, latency, link_check, rtp_trace, wlan
+from tools.analysis.m3_h264_compare import compare
 from tools.board import m3_link_check
 
 
@@ -250,6 +251,50 @@ def test_vicap_player_waits_for_first_idr(tmp_path, monkeypatch, idr):
     assert ("vlc" in run.summary["stages"]) is idr
     if not idr:
         assert "未打开播放器" in run.summary["message"]
+
+
+def test_direct_session_uses_board_url_and_capture_window(tmp_path, monkeypatch):
+    plan = json.loads((bench.HERE / "plans/p7-ap-vicap30.json").read_text(encoding="utf-8"))
+    plan = bench.validate_plan({**plan, "direct_rtsp": True, "latency": True})
+    run = bench.Run(tmp_path / "run", plan, False)
+    events = [
+        "HCV_RTSP_PRIVATE,192.0.2.1,8554,hcv", "HCV_CH0_CONFIG_READY",
+        "HCV_RTSP_FIRST_IDR,elapsed_ms=40,pts_ms=120", "HCV_CH0_CONFIG_CLEANUP",
+        "HCV_RAW_CLIP_SAVED,1800000,25000,35000," + "a" * 64,
+    ]
+    command = [sys.executable, "-u", "-c", f"print({chr(10).join(events)!r})"]
+
+    def receive(current, executable, endpoint, plan, simulated):
+        assert endpoint == "rtsp://192.0.2.1:8554/hcv"
+        current.summary["capture"]["transport_observed"] = ["tcp"]
+
+    monkeypatch.setattr(bench, "receive", receive)
+    assert bench.stream(run, command, None, plan, {}, None, "fake-vlc", False)
+    assert "rtp_arrival" not in run.summary
+    assert run.summary["board_raw_clip"] == {
+        "bytes": 1_800_000, "board_start_ms": 25_000, "board_end_ms": 35_000, "sha256": "a" * 64,
+    }
+    run.summary["capture"].update(client_playing_at="2026-11-25T22:00:01.000+08:00",
+                                  client_done_at="2026-11-25T22:01:04.000+08:00")
+    start = round(bench.datetime.fromisoformat("2026-11-25T22:00:00+08:00").timestamp() * 1000)
+    bench.capture_detector_rate(run, [
+        (start, 0, 0, 0), (start + 2000, 2000, 180, 0),
+        (start + 62_000, 62_000, 5580, 0), (start + 65_000, 65000, 5630, 0),
+    ])
+    assert run.summary["detector_during_playback"] == {
+        "channel": 1, "elapsed_ms": 60_000, "frames": 5400, "errors": 0, "fps": 90,
+    }
+
+
+def test_h264_comparison_excludes_unrecorded_head_and_tail():
+    report = compare(["before", "a", "x", "x", "b", "after"], ["pre", "a", "x", "b", "post"])
+    assert report["status"] == "compared"
+    assert report["board_overlap_indices"] == [1, 4]
+    assert report["pc_overlap_indices"] == [1, 3]
+    assert report["missing_board_pictures"] == 1
+    assert report["unmatched_pc_pictures"] == 0
+    assert report["repeated_payloads"]
+    assert compare(["a", "b"], ["b", "a"])["status"] == "inconsistent_order"
 
 
 def test_tcp_control_delivers_verified_bytes_and_releases_port(monkeypatch, tmp_path):
