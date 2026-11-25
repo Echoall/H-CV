@@ -12,7 +12,9 @@ station/bench/runtime/ffprobe.exe -v error -select_streams v:0 -show_frames -sho
 
 先只读核对当前板端固件 `v1.4-19-ga7de1c8` 对应的 [sensor.py](https://github.com/kendryte/canmv_k230/blob/a7de1c8b9a8eb84238fc6a9880d903c308079b30/port/builtin_py/media/sensor.py)。`Sensor._set_chn_fps(chn=0, fps=30)` 修改指定通道的 `_chn_attr[chn].fps`。`Sensor.run()` 在初始化 VICAP 前把每个已启用通道的属性交给驱动。方案 7 在通道配置后、`sensor.run()` 前调用，传感器保持 `1280×720@90`。编码器按限帧后的输入配置 `30→30`。
 
-本轮沿用已实测能启动的 CHN0 图传路径，在另一路 CHN1 同时实取灰度帧。生产规格要求 CHN0 检测、CHN1 图传，历史实测卡在 CHN1 的 `MediaManager.link`。这轮用于验证 VICAP 能否只限一路，生产通道布局和完整检测算法并行性能仍待另测。
+[Issue #6 的通道决策](https://github.com/Echoall/H-CV/issues/6#issuecomment-7065543321)将生产布局定为 CHN0 接 VENC 做图传，CHN1 采集 640×360 灰度图供检测。此前 CHN1 接 VENC 的路径卡在 `MediaManager.link`。方案 7 按生产布局运行，将 CHN0 限到 30 fps，并同时从 CHN1 取灰度帧验证约 90 fps。[Claude 已同意按此布局实测](https://github.com/Echoall/H-CV/issues/6#issuecomment-7154278671)。
+
+M3 通过后，再把 M1 检测主循环迁到 CHN1，并复验 `mean_pool` 的平均值等价性、90 fps、30 秒回合丢帧情况，以及图传并行时的检测耗时。
 
 1. 在同一个 K230 AP 和 TCP 8554 上先发送 60 秒合成数据，每 100 ms 发 19,000 字节。电脑核对 11,400,000 字节和数据内容。关闭会话后在同一个端口启动媒体。
 2. 板端每约一秒记录编码包数、字节数、实际时间间隔和最近包的 PTS。电脑在 VLC 的唯一 RTSP/TCP 会话前接入本地中继，按 RTP 帧到达时刻记录每秒包数、字节数、首末时刻及最大间隔。选择中继是为了用原有 VLC 播放和录像，在同一条会话上直接统计 RTP。统计位置是电脑应用收到完整 RTP 帧的时刻。中继会改变两端的 TCP 缓冲，结果不用于端到端延迟验收。
