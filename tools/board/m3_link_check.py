@@ -19,6 +19,7 @@ TRIALS = (
     ("udp", "board_to_pc", 200, 30),
     ("tcp", "board_to_pc", 300, 60),
 )
+UDP_TRIALS = tuple(trial for trial in TRIALS if trial[0] == "udp")
 DATA = b"K" * BLOCK_BYTES
 WOULD_BLOCK = (errno.EAGAIN, getattr(errno, "EWOULDBLOCK", errno.EAGAIN), 10035)
 
@@ -83,10 +84,11 @@ def transfer(sock, sending, rate, seconds, peer=None):
             now = ticks_ms()
             elapsed = ticks_diff(now, started)
             if elapsed >= seconds * 1000 + 8000:
-                raise OSError("trial deadline")
-            if ticks_diff(now, last_activity) >= 4000:
                 if seen is not None:
+                    largest_gap = max(largest_gap, seconds * 1000 - ticks_diff(last_activity, started))
                     break
+                raise OSError("trial deadline")
+            if seen is None and ticks_diff(now, last_activity) >= 4000:
                 raise OSError("no activity for 4 seconds")
             try:
                 if sending:
@@ -172,11 +174,11 @@ def serve(address, index, trial):
         listener.close()
 
 
-def board_main(wifi):
+def board_main(wifi, udp_only=False):
     import json
     import network
 
-    start(415)
+    start(155 if udp_only else 415)
     ap = network.WLAN(network.AP_IF)
     try:
         ap.config(ssid=wifi["ssid"], key=wifi["password"], channel=wifi["channel"])
@@ -186,7 +188,7 @@ def board_main(wifi):
     if address == "0.0.0.0":
         raise OSError("AP has no address")
     print("HCV_LINK_AP,%s" % address)
-    for index, trial in enumerate(TRIALS):
+    for index, trial in enumerate(UDP_TRIALS if udp_only else TRIALS):
         try:
             result = serve(address, index, trial)
         except OSError as error:
@@ -200,4 +202,4 @@ def board_main(wifi):
 
 
 if "HCV_LINK_WIFI" in globals():
-    board_main(HCV_LINK_WIFI)
+    board_main(HCV_LINK_WIFI, globals().get("HCV_LINK_UDP_ONLY", False))

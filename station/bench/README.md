@@ -42,6 +42,14 @@ python -m station.bench.bench --simulate <ffmpeg.exe> <mediamtx.exe>
 
 测试前可在 Windows 的「设置 → 隐私和安全性 → 位置」打开位置服务，让调试台记录 Wi-Fi 信号百分比和收发速率。若 Windows 仍拒绝读取网络状态，按提示手动连接 K230 的 AP。结束后若原 Wi-Fi 未自动恢复，用右下角网络图标切回。
 
+确认同意临时切网后，也可以在仓库根目录从后台补测两档 UDP：
+
+```powershell
+python -m station.bench.bench --link-check --udp-only --automatic-only
+```
+
+这个入口从本机运行。当前 Wi-Fi 和已保存的配置能读取时，才会尝试切到 K230。完测或失败都会尝试恢复并核验原网络，最多尝试两次。电脑暂时失去互联网也会继续收发，结果写在 `runs/*-p8-link/summary.json`。
+
 ### TCP 重置复现后的取证
 
 只有方案 8 再次记录到连接重置时，才用管理员 PowerShell 对下一轮取证。先运行下面两条命令。确认没有进行中的抓包且筛选器列表为空，再设置本轮筛选。

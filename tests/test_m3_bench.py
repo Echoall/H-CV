@@ -383,6 +383,38 @@ def test_link_udp_handshake_ignores_idle_canmv_and_wrong_trial(monkeypatch):
     )
 
 
+@pytest.mark.parametrize("readable", [False, True])
+def test_unattended_link_requires_original_network_and_restores_after_failure(tmp_path, monkeypatch, readable):
+    original = ("Wi-Fi", "original", "original profile")
+    calls = []
+    monkeypatch.setattr(wlan, "snapshot", lambda: original if readable else None)
+    monkeypatch.setattr(bench, "config_wifi", lambda: {"ssid": "board", "password": "example-key"})
+    monkeypatch.setattr(bench.Run, "command", lambda *_a, **_kw: (0, "", ""))
+
+    def link(run, wifi, previous, *, udp_only, automatic_only):
+        assert udp_only and automatic_only and previous == original
+        calls.append("switch")
+        raise RuntimeError("synthetic association failure")
+
+    def restore(previous, *, diagnostics):
+        assert previous == original
+        calls.append("restore")
+        return calls.count("restore") == 2
+
+    monkeypatch.setattr(link_check, "run_trials", link)
+    monkeypatch.setattr(wlan, "restore", restore)
+    status = link_check.main(SimpleNamespace(runs=tmp_path), lambda _: pytest.fail("asked for input"),
+                             udp_only=True, automatic_only=True)
+    summary = json.loads(next(tmp_path.glob("*/summary.json")).read_text(encoding="utf-8"))
+    assert status == 1
+    if readable:
+        assert calls == ["switch", "restore", "restore"]
+        assert summary["network"]["restored"]
+        assert summary["network"]["restore_attempts"] == 2
+    else:
+        assert not calls
+
+
 def test_board_tcp_control_retries_eagain_before_accept(monkeypatch):
     clock = [0]
     attempts = []

@@ -987,8 +987,13 @@ if __name__ == "__main__":
     parser.add_argument("--simulate", nargs=2, type=Path, metavar=("FFMPEG", "MEDIAMTX"))
     parser.add_argument("--runs", type=Path, default=HERE / "runs")
     parser.add_argument("--link-check", action="store_true", help="run wireless tests without starting the camera")
+    parser.add_argument("--udp-only", action="store_true", help="run only the two UDP link trials")
+    parser.add_argument("--automatic-only", action="store_true",
+                        help="run a local link check without prompts and verify Wi-Fi restoration")
     parser.add_argument("--player", nargs=7, help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if (args.udp_only or args.automatic_only) and (not args.link_check or args.player or args.simulate):
+        parser.error("--udp-only and --automatic-only require a physical --link-check")
     if args.player:
         player(args.player)
     else:
@@ -996,7 +1001,7 @@ if __name__ == "__main__":
             with only_instance(args.runs):
                 if args.link_check:
                     from station.bench.link_check import main as link_main
-                    sys.exit(link_main(args))
+                    sys.exit(link_main(args, udp_only=args.udp_only, automatic_only=args.automatic_only))
                 sys.exit(main(args))
         except RuntimeError as error:
             print(str(error))

@@ -11,7 +11,7 @@ from threading import Thread
 import time
 
 from station.bench import bench, wlan
-from tools.board.m3_link_check import PORT, TRIALS, banner, transfer
+from tools.board.m3_link_check import PORT, TRIALS, UDP_TRIALS, banner, transfer
 
 
 def wlan_metrics():
@@ -74,7 +74,8 @@ def summarize_trial(row):
     row["receive_kBps"] = round(goodput, 2) if goodput is not None else None
     if row["protocol"] == "tcp" and any(endpoint.get("error") in (104, 10054) for endpoint in (sent, received)):
         row["rst_origin"] = "unknown"
-    if row["protocol"] == "udp" and sent.get("bytes") == expected_bytes and "bytes" in received:
+    if (row["protocol"] == "udp" and not sent.get("error") and not received.get("error")
+            and sent.get("bytes") == expected_bytes and "bytes" in received):
         row["udp_loss_pct"] = round(100 * (expected_bytes - received_bytes) / expected_bytes, 3)
     row["sustained_target"] = bool(
         not sent.get("error") and not received.get("error")
@@ -84,13 +85,15 @@ def summarize_trial(row):
     )
 
 
-def run_trials(run, wifi, original):
+def run_trials(run, wifi, original, *, udp_only=False, automatic_only=False):
+    trials = UDP_TRIALS if udp_only else TRIALS
     jobs = run.summary["trials"] = [
         {"protocol": protocol, "direction": direction, "target_kBps": rate, "seconds": seconds}
-        for protocol, direction, rate, seconds in TRIALS
+        for protocol, direction, rate, seconds in trials
     ]
     board_file = bench.ROOT / "tools/board/m3_link_check.py"
-    source = f"HCV_LINK_WIFI = {wifi!r}\n" + board_file.read_text(encoding="utf-8")
+    source = (f"HCV_LINK_WIFI = {wifi!r}\nHCV_LINK_UDP_ONLY = {udp_only!r}\n"
+              + board_file.read_text(encoding="utf-8"))
     events = Queue()
 
     def collect(pipe):
@@ -101,7 +104,7 @@ def run_trials(run, wifi, original):
                 events.put((received_at, line.strip()))
         events.put(None)
 
-    with subprocess.Popen(bench.BOARD + ["run", "-", "--stream", "--timeout", "440"],
+    with subprocess.Popen(bench.BOARD + ["run", "-", "--stream", "--timeout", "175" if udp_only else "440"],
                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                           encoding="utf-8", errors="replace", cwd=bench.ROOT) as board:
         worker = Thread(target=collect, args=(board.stdout,), daemon=True)
@@ -119,12 +122,14 @@ def run_trials(run, wifi, original):
                 if marker == "HCV_LINK_AP":
                     address = str(IPv4Address(value))
                     if original is None or not bench.connect_board(run, original, wifi):
+                        if automatic_only:
+                            raise RuntimeError("未能验证已连到 K230 的 Wi-Fi。正在切回原网络。")
                         run.summary["network"]["manual"] = True
                         bench.show_board_network(wifi)
                         time.sleep(12)
                 elif marker == "HCV_LINK_READY" and address:
                     index = int(value)
-                    protocol, direction, rate, seconds = TRIALS[index]
+                    protocol, direction, rate, seconds = trials[index]
                     row = jobs[index]
                     route = "板子 → 电脑" if direction == "board_to_pc" else "电脑 → 板子"
                     row["board_ready_at"] = received_at
@@ -132,7 +137,7 @@ def run_trials(run, wifi, original):
                     print(f"{index + 1}/{len(jobs)}  {protocol.upper()}  {rate} kB/s"
                           f"  {seconds} 秒  {route}", flush=True)
                     try:
-                        row["pc"] = client_trial(address, index, TRIALS[index])
+                        row["pc"] = client_trial(address, index, trials[index])
                     except OSError as error:
                         row["pc"] = {"error": error.args[0] if error.args else type(error).__name__}
                     row["pc_end_at"] = bench.now()
@@ -154,14 +159,17 @@ def run_trials(run, wifi, original):
             worker.join(timeout=5)
 
 
-def main(args, ask=input):
+def main(args, ask=input, *, udp_only=False, automatic_only=False):
     directory = args.runs.resolve() / (datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-p8-link")
-    run = bench.Run(directory, {"id": "p8-link", "title": "方案 8 无线链路体检"}, False)
+    title = "方案 8 UDP 补测" if udp_only else "方案 8 无线链路体检"
+    run = bench.Run(directory, {"id": "p8-link", "title": title}, False)
+    run.summary["network"]["automatic_only"] = automatic_only
     original = None
     switched = False
     print("把电脑放在离 K230 约 0.5–1 米处，关闭 CanMV。若电源计划有无线适配器设置，选最高性能。")
-    print("全程约 5 分钟，电脑会暂时连接板子的 Wi-Fi，此方案不打开相机。")
-    if ask("布置好后输入 1 开始，其他键退出 > ").strip() != "1":
+    duration = "1–2" if udp_only else "5"
+    print(f"全程约 {duration} 分钟，电脑会暂时连接板子的 Wi-Fi，此方案不打开相机。")
+    if not automatic_only and ask("布置好后输入 1 开始，其他键退出 > ").strip() != "1":
         run.summary["message"] = "用户取消，未启动链路测试。"
         run.finish()
         return 0
@@ -175,28 +183,41 @@ def main(args, ask=input):
             original = wlan.snapshot()
         except (OSError, subprocess.TimeoutExpired):
             original = None
+        if automatic_only and (not original or not original[2] or original[1] == wifi["ssid"]):
+            raise RuntimeError("Windows 未确认一个可以切回的原 Wi-Fi。电脑没有切网。")
         if original:
             run.private.update(value for value in original if value)
         else:
             print("Windows 未提供当前网络状态。测试结束后请手动切回原 Wi-Fi。", flush=True)
         switched = True
-        run.summary["board_exit_code"] = run_trials(run, wifi, original)
+        run.summary["board_exit_code"] = run_trials(
+            run, wifi, original, udp_only=udp_only, automatic_only=automatic_only)
         jobs = run.summary["trials"]
         run.summary["results_collected"] = all("board" in row and "pc" in row for row in jobs)
-        run.summary["tcp_300_kBps_60s_sustained"] = bool(jobs[-1].get("sustained_target"))
+        if udp_only:
+            run.summary["udp_measurements_valid"] = all("udp_loss_pct" in row for row in jobs)
+        else:
+            run.summary["tcp_300_kBps_60s_sustained"] = bool(jobs[-1].get("sustained_target"))
         run.summary["message"] = ("链路记录已保存，检查结果以各档收发日志为准。"
                                   if run.summary["results_collected"] else "部分档位缺少收发记录。")
-    except (OSError, ValueError, RuntimeError, KeyboardInterrupt) as error:
+    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired, KeyboardInterrupt) as error:
         run.summary["message"] = run.clean(str(error)) or type(error).__name__
         print(run.summary["message"], flush=True)
     finally:
         if switched and original:
-            try:
-                run.summary["network"]["restored"] = wlan.restore(original, diagnostics=run.summary["network"])
-            except (OSError, subprocess.TimeoutExpired):
-                run.summary["network"]["restored"] = False
+            network = run.summary["network"]
+            for attempt in range(1, 3 if automatic_only else 2):
+                network["restore_attempts"] = attempt
+                try:
+                    network["restored"] = wlan.restore(original, diagnostics=network)
+                except (OSError, subprocess.TimeoutExpired):
+                    network["restored"] = False
+                if network["restored"]:
+                    break
         if switched and not run.summary["network"].get("restored"):
             print(wlan.MANUAL_RESTORE, flush=True)
         run.finish()
     print(f"本次记录已保存到 {run.directory}", flush=True)
-    return int(not run.summary.get("results_collected") or run.summary.get("board_exit_code") != 0)
+    return int(not run.summary.get("results_collected") or run.summary.get("board_exit_code") != 0
+               or (udp_only and not run.summary.get("udp_measurements_valid"))
+               or (automatic_only and not run.summary["network"].get("restored")))
