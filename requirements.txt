@@ -5,3 +5,4 @@ matplotlib
 opencv-python
 Pillow
 mpremote==1.29.0
+scapy>=2.6,<3

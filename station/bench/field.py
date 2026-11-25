@@ -8,6 +8,7 @@ import subprocess
 import time
 
 from station.bench import bench, wlan
+from station.bench.reset_capture import ResetCapture
 from tools.analysis.m3_h264_compare import compare, picture_digests
 
 
@@ -68,6 +69,7 @@ def analyze_round(directory, data, ffmpeg):
                   screenshots=data["capture"].get("latency_screenshots"),
                   detector=data.get("detector_during_playback"), detector_full_session=data.get("detector_sample"),
                   raw_clip=data.get("board_raw_clip"), capture_message=data.get("message"))
+    result["rtsp_attempts"] = data.get("rtsp_attempts", [])
     try:
         if data.get("board_raw_clip", {}).get("downloaded"):
             board = frame_numbers(raw, ffmpeg)
@@ -104,6 +106,7 @@ def field(args, ask=input):
     resets = []
     message = "证据不足"
     restored = False
+    capture = None
     print("本向导在本机运行。无线收发已测完，本次先录一轮，必要时再录一轮。请留约 15 分钟。")
     try:
         bench.tools(*(args.simulate or ()))
@@ -120,6 +123,10 @@ def field(args, ask=input):
             print("已核对原 Wi-Fi 和恢复配置。正在检查 USB。")
             if session.command("initial-inventory", bench.BOARD + ["info"], timeout=15)[0]:
                 raise RuntimeError("USB 自检失败。确认已连接 K230 并关闭 CanMV。")
+            capture = args.reset_capture = ResetCapture(root)
+            print("Windows 将询问是否允许记录连接重置。选「否」也能继续录像。", flush=True)
+            if capture.prepare() != "ready":
+                print("本轮跳过网络抓包，继续现场测试。", flush=True)
         args.runs = root
         for index in (1, 2):
             if not simulation:
@@ -165,6 +172,8 @@ def field(args, ask=input):
                 restored = False
         report = dict(simulation=simulation, result=message, restored=restored, threshold_pct=1,
                       udp_evidence="20261125-234752-178860-p8-link", power_cycles=resets, rounds=rounds)
+        if capture:
+            report["reset_capture"] = capture.finish()
         bench.write_json(root / "summary.json", report)
         text = (f"# 离线现场记录\n\n{message}。原 Wi-Fi 恢复核验：{restored}。"
                 "\n\n缺口占比为跳过的帧号数除以跳过数与收到的参考帧数之和。分支阈值为 1%。"

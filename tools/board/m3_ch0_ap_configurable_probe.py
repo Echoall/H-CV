@@ -33,10 +33,10 @@ if "HCV_STREAM_SECONDS" in globals():
     address = ap.ifconfig()[0]
     if address == "0.0.0.0":
         raise RuntimeError("HCV_AP_NO_ADDRESS")
-    print("HCV_AP_READY")
     print("HCV_RTSP_PRIVATE,%s,%d,%s" % (
         address, config["stream"]["port"], config["stream"]["path"]
     ))
+    print("HCV_AP_READY")
     vicap_limit = globals().get("HCV_VICAP_STREAM_LIMIT", False)
     if vicap_limit and not globals().get("HCV_DIRECT_RTSP", False):
         from hcv.tcp_control import send_control

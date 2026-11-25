@@ -17,7 +17,7 @@ import subprocess
 import sys
 from threading import Event, Thread
 import time
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from xml.sax.saxutils import escape
 
 from station.bench import latency, rtp_trace, wlan
@@ -415,11 +415,15 @@ def receive(run, executable, endpoint, plan, simulated):
     seconds = plan["seconds"] + (2 if plan.get("direct_rtsp") else 0)
     show = "0" if simulated and plan.get("direct_rtsp") else (
         "2" if plan.get("latency") else ("0" if simulated else "1"))
-    code, stdout, stderr = run.command("vlc", [
+    command = [
         sys.executable, "-m", "station.bench.bench", "--player",
         executable, endpoint, str(path), str(seconds), plan["transport"],
         str(plan["caching_ms"]), show, run.summary.get("rtsp_ready_at", ""),
-    ], timeout=seconds + 16)
+    ]
+    if plan.get("direct_rtsp"):
+        code, stdout, stderr = direct_playback(run, command, seconds, urlsplit(endpoint).hostname)
+    else:
+        code, stdout, stderr = run.command("vlc", command, timeout=seconds + 16)
     media = run.summary["capture"]
     if plan.get("vicap_stream_limit"):
         media["vlc_error_lines"] = [
@@ -448,6 +452,61 @@ def receive(run, executable, endpoint, plan, simulated):
             sample_at = min(plan["seconds"] / 2, media["seconds"] / 2)
             media["motion_snapshot"] = motion_snapshot(path, run.directory / "motion-preview.png", sample_at)
     return media
+
+
+def direct_playback(run, command, seconds, host):
+    attempts = run.summary["rtsp_attempts"] = []
+    ready = datetime.fromisoformat(run.summary["rtsp_ready_at"]).timestamp()
+    # The board sends for plan.seconds + 65 s from the ready marker.
+    remaining = ready + run.summary["plan"]["seconds"] + 65 - time.time()
+    deadline = time.monotonic() + remaining
+    outcome = (None, "", "board session ended before playback")
+    for index in range(1, 6):
+        remaining = deadline - time.monotonic()
+        if remaining < seconds:
+            break
+        stage = f"vlc-attempt-{index}"
+        ping_result = {}
+
+        def ping():
+            try:
+                reply = subprocess.run(["ping", "-n", "1", "-w", "1000", host],
+                                       capture_output=True, timeout=3)
+                ping_result.update(exit_code=reply.returncode,
+                                   echo_reply=bool(re.search(rb"(?i)\bTTL\s*=", reply.stdout)))
+            except (OSError, subprocess.TimeoutExpired):
+                ping_result["echo_reply"] = None
+
+        probe = Thread(target=ping, daemon=True)
+        probe.start()
+        attempt_command = list(command)
+        path_index = attempt_command.index("--player") + 3
+        recording = Path(attempt_command[path_index])
+        attempt_recording = recording.with_name(f"attempt-{index}.mp4")
+        attempt_command[path_index] = str(attempt_recording)
+        outcome = run.command(stage, attempt_command, timeout=min(seconds + 20, remaining))
+        probe.join(4)
+        code, stdout, stderr = outcome
+        requests = re.findall(r"(?im)^Sending request: (OPTIONS|DESCRIBE|SETUP|PLAY)\b", stderr)
+        responses = [int(x) for x in re.findall(r"(?im)^RTSP/1\.0\s+(\d{3})", stderr)]
+        playing = "HCV_CLIENT_PLAYING " in stdout
+        play_reply = re.search(r"(?is)Received a complete PLAY response:\s+RTSP/1\.0 2\d\d", stderr)
+        errors = [run.clean(line.strip()) for line in stderr.splitlines()
+                  if re.search(r"(?:demux error:|recvfrom\(\) error:|RuntimeError:)", line, re.I)]
+        attempts.append(dict(index=index, **run.summary["stages"][stage], playing=playing,
+                             rtsp_status_codes=responses,
+                             rtsp_stage=requests[-1] if requests else "connect", ping=ping_result,
+                             errors=errors, socket_error_codes=re.findall(
+                                 r"\b(?:100\d{2}|ECONNRESET|ETIMEDOUT|ECONNREFUSED)\b", stderr)))
+        run.summary["stages"]["vlc"] = run.summary["stages"][stage].copy()
+        cancelled = "Esc" in stderr and "RuntimeError" in stderr
+        if playing or play_reply or cancelled or code == 0 or index == 5 or deadline - time.monotonic() < seconds + 2:
+            if attempt_recording.exists():
+                attempt_recording.replace(recording)
+            break
+        print(f"第 {index} 次开播连接失败，2 秒后重新连接。", flush=True)
+        time.sleep(2)
+    return outcome
 
 
 def connect_board(run, original, wifi):
@@ -616,6 +675,9 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                     break
                 event, received_at = item
                 if event == "HCV_AP_READY":
+                    capture = getattr(run, "reset_capture", None)
+                    if capture is not None and endpoint:
+                        capture.start(urlsplit(endpoint).hostname)
                     run.summary["network"]["switch_started"] = now()
                     use_manual = not simulation and (
                         original is None or not connect_board(run, original, wifi)
@@ -783,6 +845,7 @@ def main(args, ask=input, selected_plan=None):
     output_root = args.runs.resolve()
     run = Run(output_root / (stamp + "-preflight"), {"id": "preflight", "title": "开跑前自检"},
               simulated)
+    run.reset_capture = getattr(args, "reset_capture", None)
     print("图传调试台正在自检。请先接好板子，并关闭 CanMV。" if not simulated
           else "图传调试台正在检查电脑上的模拟工具。", flush=True)
     try:
