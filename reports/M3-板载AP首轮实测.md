@@ -35,3 +35,25 @@
 python tools/analysis/m3_bench_field.py station/bench/runs 20261124 --ffprobe <ffprobe.exe>
 python tools/board/board.py run tools/board/m3_venc_rate_inventory.py --timeout 5 --stream
 ```
+
+## 2026-11-25 方案 6 实板复测
+
+调试台版本 `a101f55`，板端 `v1.4-19-ga7de1c8`、MicroPython `1.21.0`，固件镜像哈希未重测。日志确认传感器 `1280×720@90` 和固件 VENC 的 `90→30` 请求。图传仍为 `960×540`、1.5 Mbit/s、GOP 30、TCP、200 ms 缓冲。
+
+| 验收项 | 本轮观测 | 结论 |
+| --- | --- | --- |
+| 持续录制至少 58 秒 | 365 个可解码帧，录像 9.73 秒 | FAIL |
+| 录像帧率符合 30 fps | `r_frame_rate=90/1`，录像平均约 37.5 fps | FAIL |
+| 移动画质至少 4/5 | 用户给 3/5，报告色块和卡顿。约 4.9 秒处抽出的录像帧也有明显色块 | FAIL |
+| 板端清理及串口 `info` | 清理标记出现，`info` 退出码为 0 | PASS |
+| 自动恢复原 Wi-Fi | 连接失败事件 8002、原因码 163851，调试台显示了手动提示 | FAIL |
+
+VLC 在 TCP RTSP 会话中报告连续 10 秒未收到数据后退出。之后板端的编码包计数仍增长约 90 秒，最终计 11,628 包，状态采样未报非零发送或读取错误。该计数代表固件读到编码包并调用发送接口，无法证明电脑收到数据。VLC 运行期间 Windows WLAN 日志无 8003 断开事件，切回原网络的失败发生于 VLC 退出后。本轮尚不能定位中断发生在 RTSP 服务端、无线数据路径还是播放器接收端。此前 5 次有视频轨的实测中有 4 次串口恢复失败，本轮恢复成功，单次结果不足以判断故障率变化。
+
+建议下轮保留检测所需的传感器 90 fps，核对 VICAP 仅限制图传通道的可行性。可在同一轮对照里同时记录板端编码包时间戳与电脑端实际收到数据的时刻。等持续图传达标再测延迟。
+
+[脱敏实测摘要](data/M3/bench/2026-11-25-p6-field-summary.json)。录像、截图及完整日志留在本机。使用下列命令从本地记录复算录像时长、帧数、板端状态和 VLC 会话，再对照本轮 `summary.json` 中的评分与网络恢复字段。Windows WLAN 事件来自 `Microsoft-Windows-WLAN-AutoConfig/Operational`，查询区间见摘要中的播放器起止时间和本地 `summary.json` 中的恢复起止时间。
+
+```powershell
+python tools/analysis/m3_bench_field.py station/bench/runs 20261125 --ffprobe station/bench/runtime/ffprobe.exe
+```
