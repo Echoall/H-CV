@@ -1,0 +1,45 @@
+{
+  "run": "20261126-000827-952070-field-direct",
+  "recorded_seconds": null,
+  "camera_overlap_s": null,
+  "screenshots": 0,
+  "detector": null,
+  "detector_full_session": {
+    "channel": 1,
+    "elapsed_ms": 124946,
+    "frames": 11248,
+    "errors": 0,
+    "fps": 90.0228898884318
+  },
+  "raw_clip": {
+    "bytes": 1838981,
+    "board_start_ms": 25000,
+    "board_end_ms": 35000,
+    "sha256": "a1b11795789c9a47fc72a346ad792e976e2e8100850f274bebce4a84992433cc",
+    "sd_write_ms": 172,
+    "downloaded": true
+  },
+  "capture_message": "本轮没收到可播放的画面，失败位置已写入日志。",
+  "board": {
+    "reference_pictures": 293,
+    "idr": 10,
+    "skipped": 0,
+    "gap_pct": 0.0
+  },
+  "pc": {},
+  "comparison": {},
+  "verdict": "证据不足",
+  "recording_bytes": 160,
+  "raw_sha256_verified": true,
+  "rtsp_describe_ok": true,
+  "setup_failed": true,
+  "final_network_restored": true,
+  "power_cycles": [
+    {
+      "before_ms": 108850,
+      "after_ms": 5742,
+      "elapsed_ms": 20310,
+      "verified": true
+    }
+  ]
+}

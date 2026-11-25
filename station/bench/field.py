@@ -59,6 +59,27 @@ def decide(summary, board, pc, match):
     return "低码率复测" if match.get("missing_board_pictures", 0) else "证据不足"
 
 
+def analyze_round(directory, data, ffmpeg):
+    board = pc = match = {}
+    raw = directory / "board-encoder.h264"
+    mp4 = directory / "recording.mp4"
+    result = dict(run=directory.name, recorded_seconds=data["capture"].get("video_track_seconds"),
+                  camera_overlap_s=data["capture"].get("seconds_from_board_ready"),
+                  screenshots=data["capture"].get("latency_screenshots"),
+                  detector=data.get("detector_during_playback"), detector_full_session=data.get("detector_sample"),
+                  raw_clip=data.get("board_raw_clip"), capture_message=data.get("message"))
+    try:
+        if data.get("board_raw_clip", {}).get("downloaded"):
+            board = frame_numbers(raw, ffmpeg)
+            if data["capture"].get("decodable") is not False:
+                pc = frame_numbers(mp4, ffmpeg)
+                match = compare(picture_digests(raw, ffmpeg), picture_digests(mp4, ffmpeg))
+    except (OSError, subprocess.SubprocessError) as error:
+        result["analysis_error"] = type(error).__name__
+    result.update(board=board, pc=pc, comparison=match, verdict=decide(data, board, pc, match))
+    return result
+
+
 def uptime(run):
     code, out, err = run.command("uptime-" + str(time.monotonic_ns()), bench.BOARD + [
         "run", "-", "--timeout", "5"], timeout=15, data=b'import time\nprint("HCV_UP", time.ticks_ms())')
@@ -124,18 +145,9 @@ def field(args, ask=input):
                 break
             directory = results[-1].parent
             data = json.loads(results[-1].read_text(encoding="utf-8"))
-            board = pc = match = {}
-            if data.get("board_raw_clip", {}).get("downloaded"):
-                raw, mp4 = directory / "board-encoder.h264", directory / "recording.mp4"
-                board, pc = frame_numbers(raw, ffmpeg), frame_numbers(mp4, ffmpeg)
-                match = compare(picture_digests(raw, ffmpeg), picture_digests(mp4, ffmpeg))
-            message = decide(data, board, pc, match)
-            rounds.append(dict(run=directory.name, verdict=message, board=board, pc=pc, comparison=match,
-                               recorded_seconds=data["capture"].get("video_track_seconds"),
-                               camera_overlap_s=data["capture"].get("seconds_from_board_ready"),
-                               screenshots=data["capture"].get("latency_screenshots"),
-                               detector=data.get("detector_during_playback"),
-                               raw_clip=data.get("board_raw_clip")))
+            row = analyze_round(directory, data, ffmpeg)
+            message = row["verdict"]
+            rounds.append(row)
             print(f"本轮机器判读：{message}。")
             if message != "低码率复测" or not data["network"].get("restored"):
                 break

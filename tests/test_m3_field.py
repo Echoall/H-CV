@@ -13,6 +13,17 @@ def test_missing_backup_is_reported_as_local_setup():
         field.uptime(run)
 
 
+def test_empty_recording_preserves_valid_board_evidence(tmp_path, monkeypatch):
+    raw = {"reference_pictures": 293, "skipped": 0, "gap_pct": 0}
+    def read(path, _):
+        assert path.name == "board-encoder.h264"
+        return raw
+    monkeypatch.setattr(field, "frame_numbers", read)
+    row = field.analyze_round(tmp_path, {"capture": {"decodable": False},
+                              "board_raw_clip": {"downloaded": True}}, "ffmpeg")
+    assert row["board"] == raw and row["pc"] == {} and row["verdict"] == "证据不足"
+
+
 @pytest.mark.parametrize("pc_gap,matched,board_gap,raw,round_count,expected", [
     (1, 1, 0, True, 1, "通过"),
     (1.1, 3, 0, True, 2, "通过"),
