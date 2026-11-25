@@ -181,6 +181,42 @@ def test_rtp_trace_reassembles_rtsp_body_and_interleaved_frames():
     assert not buffer
 
 
+def test_rtsp_trace_records_only_matching_describe_responses(tmp_path):
+    run = bench.Run(tmp_path / "run", baseline(), False)
+    run.private.add("test-network")
+    records = []
+    sdp = b"v=0\r\nc=IN IP4 192.0.2.1\r\ns=test-network\r\na=control:track1\r\n"
+    rtp_trace._record_describe(b"DESCRIBE rtsp://example.test/hcv RTSP/1.0\r\nCSeq: 4\r\n\r\n",
+                               b"", False, 10, records, run.clean)
+    rtp_trace._record_describe(b"RTSP/1.0 200 OK\r\nCSeq: 3\r\n\r\n", b"", True, 20, records, run.clean)
+    assert records == [{"cseq": 4, "request_at_ms": 10}]
+    rtp_trace._record_describe(b"RTSP/1.0 200 OK\r\nCSeq: 4\r\n\r\n", sdp, True, 30, records, run.clean)
+    assert records == [{"cseq": 4, "request_at_ms": 10, "response_at_ms": 30, "status": 200,
+                        "sdp": "v=0\r\nc=IN IP4 <ipv4>\r\ns=<private>\r\na=control:track1\r\n"}]
+
+
+@pytest.mark.parametrize("idr", [False, True])
+def test_vicap_player_waits_for_first_idr(tmp_path, monkeypatch, idr):
+    plan = json.loads((bench.HERE / "plans/p7-ap-vicap30.json").read_text(encoding="utf-8"))
+    run = bench.Run(tmp_path / "run", plan, False)
+    events = ["HCV_RTSP_PRIVATE,192.0.2.1,8554,hcv", "HCV_CH0_CONFIG_READY"]
+    if idr:
+        events.append("HCV_RTSP_FIRST_IDR,elapsed_ms=40,pts_ms=120")
+    events.append("HCV_CH0_CONFIG_CLEANUP")
+    command = [sys.executable, "-u", "-c", f"print({chr(10).join(events)!r})"]
+
+    def receive(current, executable, endpoint, plan, simulated):
+        assert current.summary["rtsp_first_idr"]["pts_ms"] == 120
+        current.summary["stages"]["vlc"] = {}
+
+    monkeypatch.setattr(bench, "receive", receive)
+    assert bench.stream(run, command, None, plan, {}, None, "fake-vlc", False)
+    assert "rtsp_ready_at" in run.summary
+    assert ("vlc" in run.summary["stages"]) is idr
+    if not idr:
+        assert "未打开播放器" in run.summary["message"]
+
+
 def test_tcp_control_delivers_verified_bytes_and_releases_port(monkeypatch, tmp_path):
     monkeypatch.setattr(tcp_control, "start", lambda _: None)
     monkeypatch.setattr(tcp_control, "tick", lambda: None)

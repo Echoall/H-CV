@@ -3,6 +3,8 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from tools.analysis.m3_sta_record import redact
 
 
@@ -22,9 +24,15 @@ def test_sta_log_redacts_credentials_without_losing_traceback():
     )
 
 
-def test_configurable_chn0_matches_verified_probe(monkeypatch):
+def test_configurable_chn0_matches_verified_probe(monkeypatch, capsys):
     calls = []
     firmware_attributes = []
+    pack_desc = {}
+    capacity = 12
+    descriptors = []
+    encoded = [(1, b"abc")]
+    sent_addresses = []
+    failed_address = None
 
     def operation(name, result=None):
         def record(*args, **kwargs):
@@ -81,20 +89,48 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
             assert payload == b"abc" and size == 3
             calls.append("rtsp.send")
 
-        rtspserver_sendvideodata_byphyaddr = operation("rtsp.send")
+        def rtspserver_sendvideodata_byphyaddr(self, path, address, size, timestamp):
+            calls.append("rtsp.send")
+            sent_addresses.append(address)
+            if address == failed_address:
+                return 7
+
         rtspserver_stop = operation("rtsp.stop")
         rtspserver_deinit = operation("rtsp.deinit")
 
     media_manager = SimpleNamespace(
         link=link, init=operation("media.init"), deinit=operation("media.deinit")
     )
+
+    def query_status(channel, status):
+        calls.append("query_status")
+        status.cur_packs = len(encoded)
+        return 0
+
+    def get_stream(channel, output, timeout):
+        calls.append("get_stream")
+        assert output.pack_cnt == len(encoded)
+        assert timeout == 0
+        for index, (kind, payload) in enumerate(encoded):
+            pack = descriptors[-capacity + index]
+            pack.type, pack.len, pack.phys_addr, pack.pts = kind, len(payload), index, 1000
+        return 0
+
+    def struct(address, desc, mode):
+        value = SimpleNamespace()
+        if desc is pack_desc:
+            descriptors.append(value)
+        return value
+
     venc = SimpleNamespace(
         kd_mpi_venc_create_chn=operation("encoder.create", 0),
-        kd_mpi_venc_get_stream=operation("get_stream", 0),
+        kd_mpi_venc_query_status=query_status,
+        kd_mpi_venc_get_stream=get_stream,
         kd_mpi_venc_release_stream=operation("release_stream", 0),
     )
     modules = {
-        "media.media": SimpleNamespace(MediaManager=media_manager, VENC_DEV_ID=0, VIDEO_ENCODE_MOD_ID=0),
+        "media.media": SimpleNamespace(MediaManager=media_manager, VENC_DEV_ID=0,
+                                       VIDEO_ENCODE_MOD_ID=0, VENC_PACK_CNT_MAX=capacity),
         "media.sensor": SimpleNamespace(Sensor=Sensor),
         "media.vencoder": SimpleNamespace(
             Encoder=Encoder,
@@ -106,11 +142,12 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         ),
         "mpp": SimpleNamespace(
             venc=venc,
-            sys=SimpleNamespace(kd_mpi_sys_mmap=operation("mmap", 123),
+            sys=SimpleNamespace(kd_mpi_sys_mmap=lambda phys, size: (calls.append("mmap"), phys + 1)[1],
                                 kd_mpi_sys_munmap=operation("munmap", 0)),
-            venc_def=SimpleNamespace(k_venc_pack_desc={}, k_venc_stream_desc={}),
+            venc_def=SimpleNamespace(k_venc_pack_desc=pack_desc, k_venc_stream_desc={}),
             venc_struct=SimpleNamespace(
-                K_VENC_RC_MODE_CBR=1,
+                K_VENC_RC_MODE_CBR=1, K_VENC_P_FRAME=1, K_VENC_I_FRAME=2, K_VENC_HEADER=3,
+                k_venc_chn_status=SimpleNamespace,
                 k_venc_chn_attr=lambda: SimpleNamespace(
                     venc_attr=SimpleNamespace(), rc_attr=SimpleNamespace(cbr=SimpleNamespace())
                 ),
@@ -120,8 +157,8 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
             NATIVE=0,
             sizeof=lambda *args: 8,
             addressof=id,
-            struct=lambda *args: SimpleNamespace(len=3, phys_addr=0, pts=1000),
-            bytearray_at=lambda *args: b"abc",
+            struct=struct,
+            bytearray_at=lambda addr, size: encoded[addr - 1][1] if addr else b"abc",
         ),
     }
     for name, module in modules.items():
@@ -134,7 +171,9 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         spec.loader.exec_module(module)
         return module
 
-    monkeypatch.setitem(sys.modules, "k230.hcv.stream", load("stream"))
+    stream_module = load("stream")
+    stream_module.time = SimpleNamespace(ticks_ms=lambda: 0, ticks_add=lambda a, b: a + b)
+    monkeypatch.setitem(sys.modules, "k230.hcv.stream", stream_module)
     baseline = load("ch0_rtsp_probe")
     configurable = load("ch0_configurable_probe")
     config = {
@@ -164,16 +203,44 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch):
         "rtsp.deinit", "release_link", "encoder.stop", "encoder.destroy", "media.deinit",
     ]
     send = expected.index("rtsp.send")
+    query = expected.index("get_stream")
+    configurable_expected = expected[:query] + ["query_status"] + expected[query:]
     assert sequences == [
-        expected, expected, expected[:send] + ["mmap", "munmap"] + expected[send:], expected,
+        expected, configurable_expected,
+        configurable_expected[:send + 1] + ["mmap", "munmap"] + configurable_expected[send + 1:],
+        configurable_expected,
     ]
     assert firmware_attributes[-1] == dict(src_frame_rate=90, dst_frame_rate=30,
                                            bit_rate=2000, gop_len=30)
 
-    ticks = iter((0, 1001, 10_003))
+    encoded[:] = [(3, b"\x00\x00\x00\x01\x67sps"), (2, b"\x00\x00\x01\x65idr"), (1, b"p")]
+    sent_addresses.clear()
+    ticks = iter((0, 1001, 1005, 10_003))
     configurable.run(vicap_stream_limit=True, use_firmware_encoder=True)
     assert calls.count(("sensor.limit", 0, 30)) == 1
     assert calls.index(("sensor.limit", 0, 30)) < calls.index("sensor.run")
     assert calls.index("sensor.run") < calls.index(("snapshot", 1)) < calls.index("get_stream")
     assert firmware_attributes[-1]["src_frame_rate"] == 30
     assert firmware_attributes[-1]["dst_frame_rate"] == 30
+    assert sent_addresses == [0, 1, 2]
+    assert calls.count("release_stream") == 1
+    assert calls.index("release_stream") > max(i for i, name in enumerate(calls) if name == "rtsp.send")
+    output = capsys.readouterr().out
+    assert output.index("HCV_CH0_CONFIG_READY") < output.index("HCV_RTSP_FIRST_IDR,elapsed_ms=1005,pts_ms=1")
+    assert "HCV_VENC_PACKS,1,3,3,1,1,1,1" in output
+
+    stream = stream_module.H264Stream(config, trace_frames=True)
+    stream.start_session()
+    calls.clear()
+    sent_addresses.clear()
+    failed_address = 1
+    with pytest.raises(OSError, match="send H.264 packet returned 7"):
+        stream.send_one(timeout_ms=0)
+    assert sent_addresses == [0, 1]
+    assert calls[-1] == "release_stream" and calls.count("release_stream") == 1
+    assert stream.first_idr_pts_ms is None
+
+    calls.clear()
+    encoded.clear()
+    assert not stream.send_one(timeout_ms=0)
+    assert calls == ["query_status"]

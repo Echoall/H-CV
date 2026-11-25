@@ -1,6 +1,7 @@
 """Extract shareable measurements from local M3 recordings and diagnostic logs."""
 
 import argparse
+from collections import Counter
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -57,6 +58,12 @@ def vicap_metrics(directory, data):
     tcp_events = re.findall(r"(?m)^(\S+) (HCV_TCP_CONTROL_[A-Z]+)[^\r\n]*", log)
     errno = re.search(r"HCV_TCP_CONTROL_ERROR \[Errno (\d+)\]", log)
     rates = re.search(r"HCV_VENC_FIRMWARE_RATES,(\d+),(\d+)", log)
+    pack_groups = re.findall(r"HCV_VENC_PACKS,(\d+),(\d+),(\d+),(\d+),(\d+),(\d+),([01])", log)
+    histograms = {name: Counter() for name in ("idr", "intra", "predictive", "header", "other")}
+    for _, _, count, i_packs, p_packs, headers, idr in (map(int, row) for row in pack_groups):
+        kind = ("idr" if idr else "intra" if i_packs else "predictive" if p_packs
+                else "header" if headers else "other")
+        histograms[kind][count] += 1
     return {
         "tcp_control": data.get("tcp_control"),
         "tcp_board_events": tcp_events,
@@ -65,6 +72,12 @@ def vicap_metrics(directory, data):
         "detector_sample": data.get("detector_sample"),
         "detector_during_rtp": data.get("detector_during_rtp"),
         "rtp_arrival": data.get("rtp_arrival"),
+        "rtsp_ready_at": data.get("rtsp_ready_at"),
+        "rtsp_first_idr": data.get("rtsp_first_idr"),
+        "vlc_error_lines": data["capture"].get("vlc_error_lines"),
+        "pack_group_samples": len(pack_groups),
+        "pack_count_histograms": histograms,
+        "pack_count_mismatches": sum(expected != count for _, expected, count, *_ in pack_groups),
         "network_restore_reason": data["network"].get("restore_reason"),
         "motion_quality": data.get("motion_quality"),
     }

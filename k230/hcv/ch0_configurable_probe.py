@@ -37,7 +37,8 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
             sensor.set_framesize(width=detector["width"], height=detector["height"],
                                  crop=detector["crop"], chn=1)
             sensor.set_pixformat(Sensor.GRAYSCALE, chn=1)
-        stream = H264Stream(config, sensor_channel=0, copy_packets=copy_packets)
+        stream = H264Stream(config, sensor_channel=0, copy_packets=copy_packets,
+                            trace_frames=vicap_stream_limit)
         stream.bind(sensor, source_fps=config["stream"]["fps"] if vicap_stream_limit else None)
         if vicap_stream_limit:
             print("HCV_VICAP_LIMIT,stream_chn=0,fps=%d,detector_sample_chn=1" % stream.source_fps)
@@ -63,6 +64,7 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
         next_status = 1000
         previous_packets = previous_bytes = previous_elapsed = 0
         detector_frames = detector_errors = 0
+        first_idr_notified = False
         while True:
             elapsed = time.ticks_diff(time.ticks_ms(), started)
             if elapsed >= seconds * 1000:
@@ -76,6 +78,11 @@ def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=No
                 except RuntimeError:
                     detector_errors += 1
                 stream.send_one(timeout_ms=0)
+                if not first_idr_notified and stream.first_idr_pts_ms is not None:
+                    print("HCV_RTSP_FIRST_IDR,elapsed_ms=%d,pts_ms=%d" % (
+                        time.ticks_diff(time.ticks_ms(), started), stream.first_idr_pts_ms,
+                    ))
+                    first_idr_notified = True
             else:
                 stream.send_one(timeout_ms=100)
             if elapsed >= next_status:

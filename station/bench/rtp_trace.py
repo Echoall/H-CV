@@ -33,8 +33,30 @@ def messages(buffer):
         del buffer[:size]
 
 
+def _record_describe(header, body, from_board, at_ms, requests, redact):
+    if not (header.startswith(b"RTSP/") if from_board else header.startswith(b"DESCRIBE ")):
+        return
+    cseq = re.search(rb"(?im)^CSeq:[ \t]*(\d+)", header)
+    if cseq is None:
+        return
+    sequence = int(cseq[1])
+    if not from_board:
+        requests.append({"cseq": sequence, "request_at_ms": at_ms})
+        return
+    status = re.match(rb"RTSP/\d\.\d[ \t]+(\d{3})", header)
+    if status is None:
+        return
+    for request in reversed(requests):
+        if request["cseq"] == sequence and "response_at_ms" not in request:
+            request.update(response_at_ms=at_ms, status=int(status[1]))
+            if body:
+                key = "sdp" if b"application/sdp" in header.lower() or body.startswith(b"v=") else "response_body"
+                request[key] = redact(body.decode("utf-8", errors="replace"))
+            break
+
+
 @contextmanager
-def trace(endpoint, stats):
+def trace(endpoint, stats, redact):
     target = urlsplit(endpoint)
     cancelled = Event()
     with socket.socket() as listener:
@@ -45,7 +67,8 @@ def trace(endpoint, stats):
         upstream = f"rtsp://{target.netloc}".encode("ascii")
         local_bytes = local.encode("ascii")
         buckets = {}
-        stats.update(packets=0, bytes=0, by_second=buckets)
+        describes = []
+        stats.update(packets=0, bytes=0, by_second=buckets, describes=describes)
 
         def relay():
             last_ns = None
@@ -93,10 +116,12 @@ def trace(endpoint, stats):
                                         bucket[0] += 1
                                         bucket[1] += size
                                         last_ns = stamp
-                                elif source is board:
-                                    header = header.replace(upstream, local_bytes)
                                 else:
-                                    header = header.replace(local_bytes, upstream)
+                                    from_board = source is board
+                                    _record_describe(header, body, from_board, stamp // 1_000_000,
+                                                     describes, redact)
+                                    header = (header.replace(upstream, local_bytes) if from_board
+                                              else header.replace(local_bytes, upstream))
                                 destination = client if source is board else board
                                 peer, stage = ("player" if source is board else "board"), "send"
                                 destination.sendall(header + body)

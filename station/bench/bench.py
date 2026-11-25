@@ -394,6 +394,11 @@ def receive(run, executable, endpoint, plan, simulated):
         str(plan["caching_ms"]), "2" if plan.get("latency") else ("0" if simulated else "1"),
     ], timeout=plan["seconds"] + 16)
     media = run.summary["capture"]
+    if plan.get("vicap_stream_limit"):
+        media["vlc_error_lines"] = [
+            run.clean(line.strip()) for line in stderr.splitlines()
+            if re.search(r"\b(error:|(?:connection|read) timeout|no data received|RuntimeError:)", line, re.I)
+        ]
     transports = set()
     for match in re.finditer(r"(?im)^Transport:\s*RTP/AVP([^;\r\n]*)", stderr):
         transports.add("tcp" if match[1].upper() == "/TCP" else "udp")
@@ -534,6 +539,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
     control_closed = Event()
     state = {"cleanup": False}
     detector_samples = []
+    vicap = plan.get("vicap_stream_limit")
 
     def collect(pipe):
         for line in pipe:
@@ -544,7 +550,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                 control_closed.set()
             if clean.startswith(("HCV_RTSP_PRIVATE,", "HCV_CH0_CONFIG_READY", "HCV_AP_READY",
                                  "HCV_MEDIA_SESSION_", "HCV_CH0_CONFIG_CLEANUP",
-                                 "HCV_TCP_CONTROL_READY", "HCV_VICAP_DETECT,")):
+                                 "HCV_TCP_CONTROL_READY", "HCV_VICAP_DETECT,", "HCV_RTSP_FIRST_IDR,")):
                 events.put((clean, received_at))
         events.put(None)
 
@@ -559,7 +565,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
             endpoint = None
             use_manual = False
             deadline = time.monotonic() + plan["seconds"] + 90
-            if plan.get("vicap_stream_limit") and not simulation:
+            if vicap and not simulation:
                 deadline += 120
             while True:
                 remaining = deadline - time.monotonic()
@@ -599,8 +605,19 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                     }
                     stamp = round(datetime.fromisoformat(received_at).timestamp() * 1000)
                     detector_samples.append((stamp, duration, count, failures))
-                elif event == "HCV_CH0_CONFIG_READY" and endpoint:
-                    vicap = plan.get("vicap_stream_limit")
+                elif event == "HCV_CH0_CONFIG_READY" and vicap and not simulation:
+                    run.summary["rtsp_ready_at"] = received_at
+                    print("板子已启动图传，正在等首个关键帧。", flush=True)
+                elif endpoint and (event == "HCV_CH0_CONFIG_READY"
+                                   or (vicap and event.startswith("HCV_RTSP_FIRST_IDR,"))):
+                    if "vlc" in run.summary["stages"]:
+                        continue
+                    if event.startswith("HCV_RTSP_FIRST_IDR,"):
+                        _, elapsed, pts = event.split(",")
+                        run.summary["rtsp_first_idr"] = {
+                            "serial_at": received_at, "elapsed_ms": int(elapsed.split("=")[1]),
+                            "pts_ms": int(pts.split("=")[1]),
+                        }
                     if not vicap and not wait_for_board(
                         run, str(IPv4Address(address)), int(port), seconds=20 if use_manual else 3
                     ):
@@ -615,7 +632,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                     trace = nullcontext(endpoint)
                     if vicap:
                         run.summary["rtp_arrival"] = {}
-                        trace = rtp_trace.trace(endpoint, run.summary["rtp_arrival"])
+                        trace = rtp_trace.trace(endpoint, run.summary["rtp_arrival"], run.clean)
                     with trace as player_endpoint:
                         receive(run, vlc, player_endpoint, plan, simulation)
                     network = run.summary["network"]
@@ -646,6 +663,9 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
             worker.join(timeout=5)
             staging.update(ended=now(), exit_code=code, cleanup=state["cleanup"])
             capture_detector_rate(run, detector_samples)
+            if vicap and run.summary.get("rtsp_ready_at") and "vlc" not in run.summary["stages"]:
+                run.summary["message"] = "板端没有确认首个 H.264 关键帧，本轮未打开播放器。"
+                print(run.summary["message"], flush=True)
     return code == 0 and state["cleanup"]
 
 
