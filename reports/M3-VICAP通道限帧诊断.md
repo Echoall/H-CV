@@ -125,3 +125,17 @@ python tools/analysis/m3_bench_field.py station/bench/runs 20261125 --ffprobe st
 ```powershell
 python -m tools.analysis.m3_h264_compare <board-encoder.h264> <recording.mp4> --ffmpeg <ffmpeg.exe>
 ```
+
+## 11 月 26 日首次现场直连的原片复核
+
+板端在第 25–35 秒按时间截取 H.264。该文件从一个 GOP 中间开始，前四个 NAL 单元均为类型 1。严格解码整个文件时，FFmpeg 在片头报告缺少 PPS。首个 SPS 在字节偏移 27699，随后依次是 PPS 和 IDR。从这个位置开始严格解码正常结束，ffprobe 读到 293 帧，分辨率 960×540。这次结果只覆盖能够独立解码的片段。原始码流保存在本地。[脱敏核验记录](data/M3/bench/2026-11-26-field-decode.json)
+
+在本次 `board-encoder.h264` 所在目录运行以下命令可复核，`ffmpeg` 和 `ffprobe` 也可替换为调试台自带的程序路径。
+
+```powershell
+python -c "from pathlib import Path; b=Path('board-encoder.h264').read_bytes(); Path('from-first-sps.h264').write_bytes(b[27699:])"
+ffmpeg -nostdin -v error -xerror -i from-first-sps.h264 -map 0:v:0 -f null -
+ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=width,height,nb_read_frames -of json from-first-sps.h264
+```
+
+该次探针在 CHN1 调用 `sensor.snapshot` 并累计帧数和错误数。124 条周期记录支持计算平均采样率。完整 M1 检测流程的逐帧处理耗时以及与关闭图传时的 p95 对照仍待测。VLC 在 SETUP 阶段断开，此轮没有可用于判读运动色块和端到端延迟的电脑画面。

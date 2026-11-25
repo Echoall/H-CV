@@ -1,0 +1,45 @@
+{
+  "source_run": "20261126-000827-952070-field-direct",
+  "sha256": "a1b11795789c9a47fc72a346ad792e976e2e8100850f274bebce4a84992433cc",
+  "first_sps_offset": 27699,
+  "nal_types_before_sps": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "first_types_from_sps": [
+    7,
+    8,
+    5,
+    1
+  ],
+  "results": [
+    {
+      "input": "original",
+      "strict_decode_exit": 3199971767,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 960,
+          "height": 540,
+          "nb_read_frames": "293"
+        }
+      ],
+      "missing_pps_reported": true
+    },
+    {
+      "input": "from_first_sps",
+      "strict_decode_exit": 0,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 960,
+          "height": 540,
+          "nb_read_frames": "293"
+        }
+      ],
+      "missing_pps_reported": false
+    }
+  ]
+}
