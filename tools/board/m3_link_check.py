@@ -142,23 +142,28 @@ def banner(index):
     return ("HCVLINK%d\n" % index).encode()
 
 
-def serve(address, index, trial):
+def serve(address, index, trial, *, udp_start="tcp"):
     protocol, direction, rate, seconds = trial
-    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM if protocol == "tcp" else socket.SOCK_DGRAM)
+    datagram_start = protocol == "udp" and udp_start == "udp"
+    listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM if datagram_start else socket.SOCK_STREAM)
+    datagrams = None
     try:
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listener.setblocking(False)
         listener.bind((address, PORT))
-        if protocol == "tcp":
+        if protocol == "udp" and not datagram_start:
+            datagrams = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            datagrams.bind((address, PORT))
+        if not datagram_start:
             listener.listen(1)
         print("HCV_LINK_READY,%d" % index)
         limit = 45_000 if index == 0 else 18_000
-        if protocol == "udp":
+        if datagram_start:
             expected = banner(index)
             # CanMV returns an empty datagram with port 0 when a nonblocking socket is idle.
             _, peer = wait_call(lambda: listener.recvfrom(64), limit, lambda item: item[0] == expected)
             return transfer(listener, True, rate, seconds, peer)
-        client, _ = wait_call(listener.accept, limit)
+        client, remote = wait_call(listener.accept, limit)
         try:
             client.setblocking(False)
             greeting = banner(index)
@@ -167,10 +172,22 @@ def serve(address, index, trial):
                 if not sent:
                     raise OSError("failed to send TCP control message")
                 greeting = greeting[sent:]
+            if protocol == "udp":
+                port_bytes = b""
+                while len(port_bytes) < 2:
+                    part = wait_call(lambda: client.recv(2 - len(port_bytes)), 3000, bool)
+                    port_bytes += part
+                port = struct.unpack(">H", port_bytes)[0]
+                if not port:
+                    raise OSError("invalid UDP destination port")
+                print("HCV_LINK_UDP_START,%d" % index)
+                return transfer(datagrams, True, rate, seconds, (remote[0], port))
             return transfer(client, direction == "board_to_pc", rate, seconds)
         finally:
             client.close()
     finally:
+        if datagrams is not None:
+            datagrams.close()
         listener.close()
 
 

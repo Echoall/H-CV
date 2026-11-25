@@ -239,8 +239,11 @@ def test_configurable_chn0_matches_verified_probe(monkeypatch, capsys, tmp_path)
     target = tmp_path / "clip.h264"
     clip.save(str(target), completed=False)
     assert not target.exists()
+    write_ticks = iter((4142, 4159))
+    monkeypatch.setattr(configurable.time, "ticks_ms", lambda: next(write_ticks))
     clip.save(str(target), completed=True)
     assert target.read_bytes() == b"".join(payload for _, payload in encoded)
+    assert capsys.readouterr().out.splitlines()[-1].endswith(",17")
 
     stream = stream_module.H264Stream(config, trace_frames=True)
     stream.start_session()

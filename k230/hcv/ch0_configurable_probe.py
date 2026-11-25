@@ -40,14 +40,17 @@ class RawClip:
             return
         payload = self.buffer[:self.used]
         try:
+            started = time.ticks_ms()
             with open(path, "wb") as handle:
                 if handle.write(payload) != self.used:
                     raise OSError("short write of board H.264 clip")
+            write_ms = time.ticks_diff(time.ticks_ms(), started)
         except OSError as error:
             print("HCV_RAW_CLIP_ERROR", error)
         else:
             digest = hexlify(sha256(payload).digest()).decode()
-            print("HCV_RAW_CLIP_SAVED,%d,%d,%d,%s" % (self.used, CLIP_START_MS, CLIP_END_MS, digest))
+            print("HCV_RAW_CLIP_SAVED,%d,%d,%d,%s,%d" % (
+                self.used, CLIP_START_MS, CLIP_END_MS, digest, write_ms))
 
 
 def run(seconds=STREAM_SECONDS, announce_url=True, copy_packets=False, config=None,

@@ -108,6 +108,21 @@ def test_wlan_failure_gives_manual_instructions(capsys, monkeypatch, tmp_path):
     assert run.summary["network"]["automatic_switch"] is False
 
 
+def test_wlan_reads_saved_profile_when_location_details_are_denied(monkeypatch):
+    original = ("WLAN", "测试网络", "Saved Profile")
+    profiles = iter([original, ("WLAN", "测试网络", None)])
+
+    def run(args, **_):
+        if args[:2] == ["netsh", "wlan"]:
+            return CompletedProcess(args, 1, "Access denied")
+        assert args[0] == "powershell.exe"
+        return CompletedProcess(args, 0, json.dumps(next(profiles)))
+
+    monkeypatch.setattr(wlan.subprocess, "run", run)
+    assert wlan.snapshot() == original
+    assert wlan.snapshot() is None
+
+
 def test_restore_failure_records_reason_and_displays_manual_prompt(capsys, tmp_path, monkeypatch):
     original = ("Wi-Fi", "Original Synthetic", "Saved Synthetic")
     failure = lambda *args: CompletedProcess(args, 1, "")
@@ -378,7 +393,7 @@ def test_link_udp_handshake_ignores_idle_canmv_and_wrong_trial(monkeypatch):
         m3_link_check, "transfer",
         lambda listener, sending, rate, seconds, peer: (sending, rate, seconds, peer),
     )
-    assert m3_link_check.serve("192.0.2.1", 6, ("udp", "board_to_pc", 200, 30)) == (
+    assert m3_link_check.serve("192.0.2.1", 6, ("udp", "board_to_pc", 200, 30), udp_start="udp") == (
         True, 200, 30, expected_peer,
     )
 

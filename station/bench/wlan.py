@@ -1,5 +1,6 @@
 """Switch Windows Wi-Fi and restore the connection that was actually in use."""
 
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -11,6 +12,27 @@ from xml.sax.saxutils import escape
 MANUAL_CONNECT = "自动连接失败。请点右下角网络图标，选下方显示的板子网络并连接。"
 MANUAL_RESTORE = "原网络未自动恢复。请点右下角网络图标，重新选你原来使用的网络。"
 
+CONNECTED_PROFILE = r"""
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$network = [Windows.Networking.Connectivity.NetworkInformation,Windows.Networking.Connectivity,ContentType=WindowsRuntime]
+$connected = @($network::GetConnectionProfiles() | Where-Object {
+    $_.IsWlanConnectionProfile -and $_.WlanConnectionProfileDetails.GetConnectedSsid()
+})
+if ($connected.Count -ne 1) { exit 1 }
+$profile = $connected[0]
+$interface = @(Get-NetAdapter | Where-Object {
+    [guid]$_.InterfaceGuid -eq $profile.NetworkAdapter.NetworkAdapterId
+})
+if ($interface.Count -ne 1 -or -not $profile.ProfileName) { exit 1 }
+netsh wlan show profiles "name=$($profile.ProfileName)" "interface=$($interface[0].Name)" | Out-Null
+if ($LASTEXITCODE -ne 0) { exit 1 }
+ConvertTo-Json -Compress -InputObject @(
+    $interface[0].Name, $profile.WlanConnectionProfileDetails.GetConnectedSsid(), $profile.ProfileName
+)
+"""
+
 
 def netsh(*args):
     return subprocess.run(
@@ -19,11 +41,30 @@ def netsh(*args):
     )
 
 
+def connected_profile():
+    """Read a saved profile without requesting location-dependent radio details."""
+    try:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", CONNECTED_PROFILE],
+            capture_output=True, encoding="utf-8", errors="replace", timeout=7, check=False,
+        )
+        if result.returncode:
+            return None
+        values = json.loads(result.stdout)
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return None
+    if isinstance(values, list) and len(values) == 3 and all(
+        isinstance(value, str) and value for value in values
+    ):
+        return tuple(values)
+    return None
+
+
 def snapshot(command=netsh):
     result = command("show", "interfaces")
-    if result.returncode:
-        return None
     interfaces = re.split(r"(?im)^[ \t]*(?:Name|名称|名字)[ \t]*:[ \t]*", result.stdout)[1:]
+    if result.returncode or not interfaces:
+        return connected_profile() if command is netsh else None
     if len(interfaces) != 1:
         return None
     name, _, details = interfaces[0].partition("\n")

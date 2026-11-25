@@ -418,7 +418,7 @@ def receive(run, executable, endpoint, plan, simulated):
     code, stdout, stderr = run.command("vlc", [
         sys.executable, "-m", "station.bench.bench", "--player",
         executable, endpoint, str(path), str(seconds), plan["transport"],
-        str(plan["caching_ms"]), show,
+        str(plan["caching_ms"]), show, run.summary.get("rtsp_ready_at", ""),
     ], timeout=seconds + 16)
     media = run.summary["capture"]
     if plan.get("vicap_stream_limit"):
@@ -651,6 +651,8 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                                    or (vicap and event.startswith("HCV_RTSP_FIRST_IDR,"))):
                     if "vlc" in run.summary["stages"]:
                         continue
+                    if direct and simulation:
+                        run.summary["rtsp_ready_at"] = received_at
                     if event.startswith("HCV_RTSP_FIRST_IDR,"):
                         _, elapsed, pts = event.split(",")
                         run.summary["rtsp_first_idr"] = {
@@ -695,10 +697,12 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                 elif event == "HCV_CH0_CONFIG_CLEANUP":
                     state["cleanup"] = True
                 elif event.startswith("HCV_RAW_CLIP_SAVED,"):
-                    _, size, start, end, digest = event.split(",")
+                    _, size, start, end, digest, *timing = event.split(",")
                     run.summary["board_raw_clip"] = {
                         "bytes": int(size), "board_start_ms": int(start), "board_end_ms": int(end), "sha256": digest,
                     }
+                    if timing:
+                        run.summary["board_raw_clip"]["sd_write_ms"] = int(timing[0])
                 elif event.startswith("HCV_RAW_CLIP_"):
                     run.summary["board_raw_clip"] = {"error": event}
                 elif event == "HCV_MEDIA_SESSION_ALREADY_USED":
@@ -827,6 +831,8 @@ def main(args, ask=input, selected_plan=None):
             except (OSError, subprocess.TimeoutExpired):
                 original = None
             if original is None:
+                if getattr(args, "field", False):
+                    raise RuntimeError("无法核对原 Wi-Fi，请恢复原网络后重新打开向导。")
                 print("Windows 没有提供当前的 Wi-Fi 状态，电脑无法自动切换并切回。")
                 print("可在「设置 → 隐私和安全性 → 位置」开启位置服务后重新打开调试台。")
                 print("也可以现在手动切换，录完后请自己重新连接原来的 Wi-Fi。")
@@ -835,6 +841,8 @@ def main(args, ask=input, selected_plan=None):
                     return 0
                 run.summary["network"]["before"] = "Windows 未提供 Wi-Fi 状态"
             else:
+                if getattr(args, "field", False) and original != args.original:
+                    raise RuntimeError("当前网络与自检时不同，请先切回开始时的 Wi-Fi。")
                 run.private.update(value for value in original if value)
                 run.summary["network"]["before"] = (
                     "原 Wi-Fi 已连接" if original[1] else "原来未连接 Wi-Fi"
@@ -859,6 +867,15 @@ def main(args, ask=input, selected_plan=None):
                 if plan.get("direct_rtsp"):
                     raw_clip_path = f"/sdcard/hcv/{stamp}-encoder.h264"
                 source = board_entry(plan, wifi, raw_clip_path)
+            if plan.get("direct_rtsp") and not simulated:
+                import winsound
+                if ask("镜头已对准屏幕左半边？输入「拍」后听五声低音，随后高音启动采集 > ").strip() != "拍":
+                    run.summary["message"] = "用户取消拍摄。"
+                    return 0
+                for _ in range(5):
+                    winsound.Beep(440, 150)
+                    time.sleep(0.85)
+                winsound.Beep(1100, 200)
             clean_board = stream(run, command, source, plan, wifi, original, vlc, simulated)
             if clean_board and not simulated:
                 code, _, _ = run.command("board-after", BOARD + ["info"], timeout=15)
@@ -910,6 +927,8 @@ def main(args, ask=input, selected_plan=None):
         if not raw["downloaded"]:
             print("原始码流未取回，板上文件已保留供重试。", flush=True)
         run.finish()
+    if getattr(args, "field", False):
+        return int(not run.summary.get("recording_passed"))
     try:
         if plan.get("latency"):
             run.summary["latency"] = latency.read_samples(run.directory, ask)
@@ -937,7 +956,7 @@ def main(args, ask=input, selected_plan=None):
 
 
 def player(arguments):
-    executable, url, recording, seconds, transport, cache_ms, show_video = arguments
+    executable, url, recording, seconds, transport, cache_ms, show_video, *ready = arguments
 
     def ended(elapsed, state):
         event = {"client_end_seconds": round(elapsed, 3), "client_end_at": now(),
@@ -945,7 +964,17 @@ def player(arguments):
         print("HCV_CLIENT_ENDED " + json.dumps(event), flush=True)
 
     def playing():
-        print("HCV_CLIENT_PLAYING " + json.dumps({"client_playing_at": now()}), flush=True)
+        event = {"client_playing_at": now()}
+        if ready and ready[0]:
+            delta = (datetime.fromisoformat(event["client_playing_at"]) - datetime.fromisoformat(ready[0])).total_seconds()
+            event.update(seconds_from_board_ready=round(delta, 3), overlap_ready=0 <= delta <= 20)
+            status = "满足" if event["overlap_ready"] else "不足"
+            message = f"录像已开始，距板端就绪约 {delta:.1f} 秒，原始短片重叠窗口{status}。"
+            if window is not None:
+                window.title.configure(text=message)
+                window.root.update_idletasks()
+            (Path(recording).parent / "playback-start.txt").write_text(message, encoding="utf-8")
+        print("HCV_CLIENT_PLAYING " + json.dumps(event), flush=True)
 
     window = latency.ClockWindow(Path(recording).parent) if show_video == "2" else None
     try:
@@ -990,7 +1019,8 @@ if __name__ == "__main__":
     parser.add_argument("--udp-only", action="store_true", help="run only the two UDP link trials")
     parser.add_argument("--automatic-only", action="store_true",
                         help="run a local link check without prompts and verify Wi-Fi restoration")
-    parser.add_argument("--player", nargs=7, help=argparse.SUPPRESS)
+    parser.add_argument("--field", action="store_true", help="run the operator-led offline M3 field session")
+    parser.add_argument("--player", nargs="+", help=argparse.SUPPRESS)
     args = parser.parse_args()
     if (args.udp_only or args.automatic_only) and (not args.link_check or args.player or args.simulate):
         parser.error("--udp-only and --automatic-only require a physical --link-check")
@@ -999,6 +1029,9 @@ if __name__ == "__main__":
     else:
         try:
             with only_instance(args.runs):
+                if args.field:
+                    from station.bench.field import field
+                    sys.exit(field(args))
                 if args.link_check:
                     from station.bench.link_check import main as link_main
                     sys.exit(link_main(args, udp_only=args.udp_only, automatic_only=args.automatic_only))

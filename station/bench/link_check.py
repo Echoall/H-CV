@@ -6,6 +6,7 @@ import json
 from queue import Empty, Queue
 import re
 import socket
+import struct
 import subprocess
 from threading import Thread
 import time
@@ -34,12 +35,6 @@ def wlan_metrics():
 def client_trial(address, index, trial):
     protocol, direction, rate, seconds = trial
     host = address, PORT
-    if protocol == "udp":
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as conn:
-            conn.bind(("", 0))
-            for _ in range(3):
-                conn.sendto(banner(index), host)
-            return transfer(conn, False, rate, seconds, host)
     deadline = time.monotonic() + 8
     while True:
         try:
@@ -60,6 +55,13 @@ def client_trial(address, index, trial):
             greeting.extend(payload)
         if greeting != expected:
             raise OSError("link trial handshake did not match")
+        if protocol == "udp":
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as datagrams:
+                datagrams.bind((conn.getsockname()[0], 0))
+                # Open the outbound UDP flow for the Windows firewall before announcing readiness.
+                datagrams.sendto(expected, host)
+                conn.sendall(struct.pack(">H", datagrams.getsockname()[1]))
+                return transfer(datagrams, False, rate, seconds, host)
         return transfer(conn, direction == "pc_to_board", rate, seconds)
 
 

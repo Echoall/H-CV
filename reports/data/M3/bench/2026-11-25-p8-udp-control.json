@@ -1,0 +1,84 @@
+{
+  "run": "20261125-234752-178860-p8-link",
+  "firmware": "v1.4-19-ga7de1c8",
+  "simulation": false,
+  "started": "2026-11-25T23:47:52.179+08:00",
+  "ended": "2026-11-25T23:49:16.661+08:00",
+  "network": {
+    "automatic_only": true,
+    "automatic_switch": true,
+    "restore_attempts": 1,
+    "restore_command_exit": 0,
+    "restore_reason": "verified",
+    "restored": true
+  },
+  "udp_measurements_valid": true,
+  "trials": [
+    {
+      "protocol": "udp",
+      "direction": "board_to_pc",
+      "target_kBps": 100,
+      "seconds": 30,
+      "board_ready_at": "2026-11-25T23:47:55.849+08:00",
+      "start_at": "2026-11-25T23:48:02.048+08:00",
+      "pc": {
+        "bytes": 2976000,
+        "elapsed_ms": 38001,
+        "active_ms": 30008,
+        "max_activity_gap_ms": 382,
+        "expected_bytes": 3000000,
+        "error": null,
+        "missing_datagrams": 24
+      },
+      "pc_end_at": "2026-11-25T23:48:40.074+08:00",
+      "windows_wlan": {},
+      "board": {
+        "active_ms": 30000,
+        "bytes": 3000000,
+        "rssi": null,
+        "max_activity_gap_ms": 30,
+        "missing_datagrams": null,
+        "expected_bytes": 3000000,
+        "elapsed_ms": 30000,
+        "error": null
+      },
+      "board_end_at": "2026-11-25T23:48:32.077+08:00",
+      "receive_kBps": 99.17,
+      "udp_loss_pct": 0.8,
+      "sustained_target": false
+    },
+    {
+      "protocol": "udp",
+      "direction": "board_to_pc",
+      "target_kBps": 200,
+      "seconds": 30,
+      "board_ready_at": "2026-11-25T23:48:32.078+08:00",
+      "start_at": "2026-11-25T23:48:40.362+08:00",
+      "pc": {
+        "bytes": 6000000,
+        "elapsed_ms": 30010,
+        "active_ms": 30010,
+        "max_activity_gap_ms": 43,
+        "expected_bytes": 6000000,
+        "error": null,
+        "missing_datagrams": 0
+      },
+      "pc_end_at": "2026-11-25T23:49:10.401+08:00",
+      "windows_wlan": {},
+      "board": {
+        "active_ms": 30000,
+        "bytes": 6000000,
+        "rssi": null,
+        "max_activity_gap_ms": 6,
+        "missing_datagrams": null,
+        "expected_bytes": 6000000,
+        "elapsed_ms": 30000,
+        "error": null
+      },
+      "board_end_at": "2026-11-25T23:49:10.398+08:00",
+      "receive_kBps": 199.93,
+      "udp_loss_pct": 0.0,
+      "sustained_target": true
+    }
+  ]
+}
