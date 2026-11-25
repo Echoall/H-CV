@@ -6,6 +6,13 @@ import pytest
 from station.bench import field
 
 
+def test_missing_backup_is_reported_as_local_setup():
+    run = SimpleNamespace(command=lambda *args, **kwargs: (
+        1, "", "board: run the board.py backup command before put, run or verify"))
+    with pytest.raises(RuntimeError, match="缺少本机原有的板卡备份清单"):
+        field.uptime(run)
+
+
 @pytest.mark.parametrize("pc_gap,matched,board_gap,raw,round_count,expected", [
     (1, 1, 0, True, 1, "通过"),
     (1.1, 3, 0, True, 2, "通过"),

@@ -60,9 +60,11 @@ def decide(summary, board, pc, match):
 
 
 def uptime(run):
-    code, out, _ = run.command("uptime-" + str(time.monotonic_ns()), bench.BOARD + [
+    code, out, err = run.command("uptime-" + str(time.monotonic_ns()), bench.BOARD + [
         "run", "-", "--timeout", "5"], timeout=15, data=b'import time\nprint("HCV_UP", time.ticks_ms())')
     match = re.search(r"(?m)^HCV_UP (\d+)", out)
+    if code and "board.py backup command" in err:
+        raise RuntimeError("此向导缺少本机原有的板卡备份清单。保持 USB 插着，联系我补齐向导目录。")
     if code or not match:
         raise RuntimeError("读不到板子运行时间。请检查 USB 数据线，关闭 CanMV，再重开本向导。")
     return int(match[1])
