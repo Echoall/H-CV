@@ -45,6 +45,8 @@ class ResetCapture:
                 value = (self.source / "state").read_text(encoding="utf-8").strip()
                 if value and value not in pending:
                     return value
+            except PermissionError:
+                return "state_unreadable"
             except OSError:
                 pass
             if self.process.poll() is not None:
@@ -67,7 +69,7 @@ class ResetCapture:
             self.process = subprocess.Popen(["powershell.exe", "-NoProfile", "-NonInteractive",
                                             "-Command", launch], stdout=subprocess.DEVNULL,
                                            stderr=subprocess.DEVNULL)
-            self.summary["status"] = self.wait_state(set(), 45)
+            self.summary["status"] = self.wait_state(set(), 90)
         except OSError:
             self.summary["status"] = "helper_unavailable"
         if self.summary["status"] != "ready":

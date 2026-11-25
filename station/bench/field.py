@@ -124,7 +124,8 @@ def field(args, ask=input):
             if session.command("initial-inventory", bench.BOARD + ["info"], timeout=15)[0]:
                 raise RuntimeError("USB 自检失败。确认已连接 K230 并关闭 CanMV。")
             capture = args.reset_capture = ResetCapture(root)
-            print("Windows 将询问是否允许记录连接重置。选「否」也能继续录像。", flush=True)
+            print("Windows 将询问是否允许记录连接重置。任务栏可能有闪烁的盾牌图标。"
+                  "可在 90 秒内选择，选「否」也能继续录像。", flush=True)
             if capture.prepare() != "ready":
                 print("本轮跳过网络抓包，继续现场测试。", flush=True)
         args.runs = root

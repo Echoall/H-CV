@@ -85,3 +85,13 @@ def test_rst_summary_uses_direction_and_only_board_service(tmp_path):
     result = reset_capture.summarize_packets(capture, board)
     assert [(r["direction"], r["sequence"]) for r in result] == [("from_board", 84), ("toward_board", 42)]
     assert all(r["time"] == "2023-11-14T22:13:20+00:00" for r in result)
+
+
+def test_unreadable_elevated_capture_state_is_distinct_from_timeout(tmp_path, monkeypatch):
+    capture = reset_capture.ResetCapture(tmp_path)
+    capture.source = tmp_path / "admin-owned"
+    def denied(path, **kwargs):
+        assert path == capture.source / "state"
+        raise PermissionError("Access denied")
+    monkeypatch.setattr(Path, "read_text", denied)
+    assert capture.wait_state(set(), 90) == "state_unreadable"

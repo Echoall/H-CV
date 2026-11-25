@@ -5,6 +5,7 @@ $pkt = Join-Path ([Environment]::SystemDirectory) 'pktmon.exe'
 $privateDir = Join-Path ([Environment]::SystemDirectory) "..\Temp\hcv-rst-$RunId"
 $clock = [Diagnostics.Stopwatch]::StartNew()
 $started = $false
+$created = $false
 $ownFilters = $null
 function Active {
     return ($clock.Elapsed.TotalMinutes -lt 18 -and
@@ -16,6 +17,15 @@ function State([string]$name) {
 }
 try {
     New-Item -Path $privateDir -ItemType Directory -ErrorAction Stop | Out-Null
+    $created = $true
+    $owner = Get-CimInstance Win32_Process -Filter "ProcessId=$OwnerPid" -ErrorAction Stop
+    $identity = Invoke-CimMethod -InputObject $owner -MethodName GetOwnerSid -ErrorAction Stop
+    if ($identity.ReturnValue -ne 0 -or $identity.Sid -notmatch '^S-1-(?:\d+-)+\d+$') {
+        throw 'owner SID unavailable'
+    }
+    $aclTool = Join-Path ([Environment]::SystemDirectory) 'icacls.exe'
+    & $aclTool $privateDir /grant "*$($identity.Sid):(OI)(CI)RX" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'unable to grant capture owner read access' }
     $status = (& $pkt status | Out-String).Trim()
     if ($LASTEXITCODE -ne 0 -or $status -notmatch 'not running|未运行|没有运行|未在运行') {
         State 'pktmon_busy_or_status_unknown'
@@ -45,7 +55,7 @@ try {
     State 'capturing'
     while (Active) { Start-Sleep -Milliseconds 300 }
 } catch {
-    if (Test-Path -LiteralPath $privateDir) { State 'helper_error' }
+    if ($created) { State 'helper_error' }
 } finally {
     if ($started) {
         & $pkt stop | Out-Null
