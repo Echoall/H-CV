@@ -155,3 +155,5 @@ ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=width,he
 07:38:16.343 播放器报告 EOF，VLC 日志显示此前连续 10 秒无输入。07:38:18.831 板端仍报告上一统计窗口处理了 31 个编码包，最后一条编码包记录在 07:38:19.719。板端发送调用返回值不能证明对端收到了数据。07:40:11 主机报告 raw REPL 恢复失败。此次 pktmon 返回 `pktmon_busy_or_status_unknown`，没有 ETL/PCAPNG，因此没有 TCP 重置方向的证据。热点、板端发送、电脑接收三者之间的责任仍未定位。
 
 本地复核时，在仓库根目录对现场子目录的 `recording.mp4` 执行 `ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=duration,nb_read_frames -of json <录像路径>`。帧号使用 `station.bench.field.frame_numbers`。时钟从三张 `latency-*.png` 左右分别抄读，像素比对采用原始 2560×1600 截图右侧 `(1280,120,2560,1480)` 裁区（右下坐标不包含在内）。本机保存原始媒体及日志。
+
+另查 Windows 无线连接事件，07:37:44.024 连接成功，随后首次系统断开事件在 07:40:12.241，正值向导恢复原网络。播放冻结和 07:38:16 的 EOF 期间，Windows 没有记录 Wi-Fi 断开或重连。无线关联保持期间仍可能发生数据停顿。见[脱敏事件时间线](data/M3/bench/2026-11-26-field-wlan-events.json)，本机可在 `Microsoft-Windows-WLAN-AutoConfig/Operational` 中按时间筛选事件 8000 至 8003 复核。
