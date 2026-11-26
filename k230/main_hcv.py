@@ -907,6 +907,8 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
         gc.enable()
         gc.collect()
         if started_us is not None:
+            if shared is not None:
+                shared.report(frame_number)
             _log_memory(round_index, "stopped")
             if round_start_us is not None and frame_number > round_frame_start:
                 print(

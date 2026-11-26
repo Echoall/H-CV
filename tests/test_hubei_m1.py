@@ -22,7 +22,9 @@ def test_simulated_ap_cannot_open_physical_wizard(tmp_path):
 
 
 def test_only_complete_concurrent_windows_are_counted_including_gc():
-    lines = []
+    origin = datetime.fromtimestamp(1000, timezone.utc).isoformat()
+    stop = datetime.fromtimestamp(1005.1, timezone.utc).isoformat()
+    lines = [f"{origin} HCV_DUAL_ORIGIN,0", f"{stop} HCV_DUAL_END,300,5100000"]
     for i, elapsed in enumerate((1, 2, 3.1, 4.1, 5.1), 1):
         stamp = datetime.fromtimestamp(1000 + elapsed, timezone.utc).isoformat()
         duration = 1_100_000 if i == 3 else 1_000_000
@@ -33,7 +35,7 @@ def test_only_complete_concurrent_windows_are_counted_including_gc():
     assert result["process_us"] == [100, 300, 500]
     assert result["after_capture_us"] == [1100, 1500, 2400]
     with pytest.raises(ValueError, match="incomplete"):
-        dual.during_display(lines[:1] + lines[2:], cap)
+        dual.during_display(lines[:2] + lines[3:], cap)
 
 
 def test_module_upload_timeout_stops_before_capture():
@@ -54,9 +56,11 @@ def test_wizard_records_same_60_seconds_and_restores(tmp_path, monkeypatch):
     def physical(run, mode, ask, original, vlc):
         assert mode == "ap" and run.summary["plan"]["m1"]
         run.summary["capture"].update(display_start_epoch=1001, display_end_epoch=1061, video_track_seconds=61)
-        lines = []
+        origin = datetime.fromtimestamp(1000, timezone.utc).isoformat()
+        stop = datetime.fromtimestamp(1062, timezone.utc).isoformat()
+        lines = [f"{origin} HCV_DUAL_ORIGIN,0", f"{stop} HCV_DUAL_END,3720,62000000"]
         for i in range(1, 63):
-            stamp = datetime.fromtimestamp(1000 + i, timezone.utc).isoformat()
+            stamp = datetime.fromtimestamp(1063, timezone.utc).isoformat()
             lines.append(f"{stamp} HCV_DUAL,{60*i},{1000000*i},1000000,300,500,900,1300,1700,2300")
         (run.directory / "board.serial.log").write_text("\n".join(lines), encoding="utf-8")
         return True

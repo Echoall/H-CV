@@ -68,13 +68,26 @@ def during_display(lines, capture):
     start, end = capture.get("display_start_epoch"), capture.get("display_end_epoch")
     if start is None or end is None:
         return None
-    inside = [row for row in rows if start <= row[0] <= end]
-    if len(inside) < 2:
+    anchors = []
+    for label in ("HCV_DUAL_ORIGIN,", "HCV_DUAL_END,"):
+        marks = [line.split(label, 1) for line in lines if label in line]
+        if len(marks) != 1:
+            return None
+        prefix, raw = marks[0]
+        anchors.append((datetime.fromisoformat(prefix.strip()).timestamp(), int(raw.split(",")[-1])))
+    (host0, board0), (host1, board1) = anchors
+    if host1 <= host0 or board1 <= board0:
         return None
-    if any(b[0] <= a[0] or b[1] != a[1] + 60 for a, b in zip(inside, inside[1:])):
-        raise ValueError("non-contiguous serial timestamps in display window")
-    result = metrics(inside[1:], 60)
-    result["serial_span_s"] = inside[-1][0] - inside[0][0]
+    # Only endpoint markers are sent live. Use the envelope of both clock
+    # offsets so an uncertain boundary window cannot increase the overlap.
+    offsets = [host - board / 1e6 for host, board in anchors]
+    inside = [row for row in rows if start <= min(offsets) + (row[2] - row[3]) / 1e6
+              and max(offsets) + row[2] / 1e6 <= end]
+    if not inside:
+        return None
+    result = metrics(inside, 60)
+    result["anchor_offset_difference_s"] = max(offsets) - min(offsets)
+    result["serial_span_s"] = host1 - host0
     result["process_p95_within_6ms"] = result["process_us"][1] <= 6000
     return result
 
@@ -90,6 +103,8 @@ def wizard(args, ask=input):
     plan = dict(hubei.plan("ap"), id="hubei-m1", title="湖北图传同时找球", seconds=66, m1=True)
     run = bench.Run(args.runs / (datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-hubei-m1"), plan, False)
     run.summary["prior_ap"] = evidence.parent.parent.name
+    run.summary.update(scope="本轮只测时序。1080p60 的视场和裁剪可能改变，VALID 和位置误差不参与判定。",
+                       next_if_pass="保持湖北线程结构，仅改传感器为 720p90，按 90 fps 再测 60 秒。两轮通过后确认并行。")
     measured = False
     try:
         clean = hubei.physical(run, "ap", ask, original, vlc)
