@@ -1,0 +1,116 @@
+{
+  "normal_+0mm": {
+    "frames": 180,
+    "valid": 180,
+    "target_mm": 0,
+    "mean_mm": 0.0,
+    "std_mm": 0.0,
+    "mean_error_mm": 0.0,
+    "passed": true,
+    "zero_check_passed": true
+  },
+  "normal_empty": {
+    "frames": 180,
+    "valid": 0,
+    "target_mm": null,
+    "passed": true
+  },
+  "normal_-50mm": {
+    "frames": 180,
+    "valid": 180,
+    "target_mm": -50,
+    "mean_mm": -50.0,
+    "std_mm": 0.0,
+    "mean_error_mm": 0.0,
+    "passed": true
+  },
+  "normal_+50mm": {
+    "frames": 180,
+    "valid": 180,
+    "target_mm": 50,
+    "mean_mm": 50.0,
+    "std_mm": 0.0,
+    "mean_error_mm": 0.0,
+    "passed": true
+  },
+  "normal_-100mm": {
+    "frames": 180,
+    "valid": 180,
+    "target_mm": -100,
+    "mean_mm": -100.0,
+    "std_mm": 0.0,
+    "mean_error_mm": 0.0,
+    "passed": true
+  },
+  "normal_+100mm": {
+    "frames": 180,
+    "valid": 180,
+    "target_mm": 100,
+    "mean_mm": 100.0,
+    "std_mm": 0.0,
+    "mean_error_mm": 0.0,
+    "passed": true
+  },
+  "normal_-120mm": {
+    "frames": 180,
+    "valid": 180,
+    "target_mm": -120,
+    "mean_mm": -120.0,
+    "std_mm": 0.0,
+    "mean_error_mm": 0.0,
+    "passed": true
+  },
+  "normal_+120mm": {
+    "frames": 180,
+    "valid": 180,
+    "target_mm": 120,
+    "mean_mm": 120.0,
+    "std_mm": 0.0,
+    "mean_error_mm": 0.0,
+    "passed": true
+  },
+  "off_empty": {
+    "frames": 180,
+    "valid": 0,
+    "target_mm": null,
+    "passed": true
+  },
+  "off_+0mm": {
+    "frames": 180,
+    "valid": 180,
+    "target_mm": 0,
+    "mean_mm": 0.0,
+    "std_mm": 0.0,
+    "mean_error_mm": 0.0,
+    "passed": true
+  },
+  "side_empty": {
+    "frames": 180,
+    "valid": 0,
+    "target_mm": null,
+    "passed": true
+  },
+  "side_+0mm": {
+    "frames": 180,
+    "valid": 180,
+    "target_mm": 0,
+    "mean_mm": 0.0,
+    "std_mm": 0.0,
+    "mean_error_mm": 0.0,
+    "passed": true
+  },
+  "insertion": {
+    "first_image_change": 92,
+    "first_protocol_change": 94,
+    "frames_including_change": 3,
+    "frame_interval_max_ms": 12,
+    "passed": true
+  },
+  "removal": {
+    "first_image_change": 92,
+    "first_protocol_change": 100,
+    "frames_including_change": 9,
+    "frame_interval_max_ms": 12,
+    "passed": true
+  }
+}

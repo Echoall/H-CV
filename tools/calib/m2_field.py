@@ -9,6 +9,7 @@ import statistics
 import subprocess
 import sys
 import tempfile
+from threading import Timer
 import time
 from pathlib import Path
 
@@ -55,12 +56,11 @@ def board_command(port, *args):
 
 
 def capture_reference(port, output):
-    subprocess.run(board_command(
-        port, "run", BOARD_TOOLS / "m2_reference.py", "--timeout", 30,
-        "--log", output / "reference.log",
-    ), check=True)
+    countdown()
+    run_cued_capture(port, output, "m2_reference.py", "HCV_CAPTURE_CUE = True\n",
+                     "HCV_M2_CAPTURE_CUE", 30, log_path=output / "reference.log")
     for name in ("m2-ruler.pgm", "m2-reference.json"):
-        subprocess.run(board_command(port, "get", REMOTE + name, output / name), check=True)
+        subprocess.run(board_command(port, "get", REMOTE + name, output / name), check=True, timeout=120)
     reference = json.loads((output / "m2-reference.json").read_text(encoding="utf-8"))
     image = cv2.imdecode(np.fromfile(output / "m2-ruler.pgm", dtype=np.uint8),
                          cv2.IMREAD_GRAYSCALE)
@@ -128,23 +128,40 @@ def tone(high=False):
         print("\a", end="", flush=True)
 
 
-def run_cued_capture(port, directory, source, params, cue, timeout):
-    directory.mkdir()
+def countdown():
+    for _ in range(5):
+        tone()
+        time.sleep(0.86)
+
+
+def run_cued_capture(port, directory, source, params, cue, timeout, log_path=None):
+    if log_path is None:
+        directory.mkdir()
+        log_path = directory / "board.log"
     with tempfile.TemporaryDirectory(prefix="hcv-field-") as temporary:
         script = Path(temporary) / "capture.py"
         script.write_text(params + (BOARD_TOOLS / source).read_text(encoding="utf-8"), encoding="utf-8")
         command = board_command(port, "run", script, "--timeout", timeout, "--stream",
-                                "--log", directory / "board.log")
+                                "--log", log_path)
         signalled = False
         with subprocess.Popen(command, stdout=subprocess.PIPE, text=True,
                               encoding="utf-8", errors="replace") as process:
-            for line in process.stdout:
-                if not signalled and line.startswith(cue):
-                    signalled = True
-                    tone(high=True)
-                    print(f"采集提示 {line.strip()}", flush=True)
-            if process.wait() or not signalled:
-                raise RuntimeError(f"capture did not finish with a cue; see {directory / 'board.log'}")
+            timer = Timer(timeout + 25, process.kill)
+            timer.start()
+            try:
+                for line in process.stdout:
+                    if not signalled and line.startswith(cue):
+                        signalled = True
+                        tone(high=True)
+                        print(f"采集提示 {line.strip()}", flush=True)
+                if process.wait() or not signalled:
+                    raise RuntimeError(f"采集中断或缺少提示信号，请保留 {log_path}")
+            except BaseException:
+                if process.poll() is None:
+                    process.kill()
+                raise
+            finally:
+                timer.cancel()
 
 
 def record(port, directory, transition=False, calibration_path=None, seconds=2):
@@ -153,14 +170,11 @@ def record(port, directory, transition=False, calibration_path=None, seconds=2):
     )
     if calibration_path is not None:
         params += "CALIBRATION_PATH = %r\n" % calibration_path
-    if transition:
-        for _ in range(5):
-            tone()
-            time.sleep(0.86)
+    countdown()
     run_cued_capture(port, directory, "m1_ball_insertion.py", params, "HCV_FIELD_CUE,", 38)
     capture = directory / "capture.bin"
     subprocess.run(board_command(port, "get", REMOTE + "m1-ball-insertion.bin", capture),
-                   check=True)
+                   check=True, timeout=600)
     result = decode_recording(capture, directory, None)
     with (directory / "ball.csv").open(encoding="utf-8", newline="") as stream:
         rows = list(csv.DictReader(stream))
@@ -170,11 +184,12 @@ def record(port, directory, transition=False, calibration_path=None, seconds=2):
 
 
 def capture_ball_samples(port, directory, fingerprint):
+    countdown()
     run_cued_capture(port, directory, "m2_reference.py", "HCV_BALL_SAMPLES = True\n",
                      "HCV_M2_CAPTURE_CUE", 24)
     samples_file = directory / "ball-pixels.json"
     subprocess.run(board_command(port, "get", REMOTE + "m2-ball-pixels.json", samples_file),
-                   check=True)
+                   check=True, timeout=120)
     packet = json.loads(samples_file.read_text(encoding="utf-8"))
     if packet["fingerprint"] != fingerprint or len(packet["u_px"]) != 120:
         raise ValueError("ball samples do not match the reference or expected frame count")
@@ -244,7 +259,7 @@ def transition_result(rows, first_changed, insertion, max_interval_ms, fps):
 
 def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=None):
     output.mkdir(parents=True)
-    input("相机和纸尺固定，横尺调平，台灯正常，清空检测区。准备后按回车。")
+    input("相机和纸尺固定，横尺调平，台灯正常，清空检测区。准备好拍底图再按回车，五声低音后听高音。")
     image, reference = capture_reference(port, output)
     config = reference["config"]
     static_seconds = max(2, ceil(120 / config["sensor"]["fps"]))
@@ -263,7 +278,7 @@ def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=N
     pending = output / "calib.pending.json"
     write_json(pending, calibration)
     remote_pending = REMOTE + "calib.pending.json"
-    subprocess.run(board_command(port, "put", pending, remote_pending), check=True)
+    subprocess.run(board_command(port, "put", pending, remote_pending), check=True, timeout=120)
     input("把钢球球心对准尺子上实际印刷的 0 刻度。放稳后按回车。")
     zero_rows, _ = record(port, output / "normal_+0mm", calibration_path=remote_pending,
                          seconds=static_seconds)
@@ -274,7 +289,7 @@ def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=N
     if not zero["zero_check_passed"]:
         raise ValueError("zero check failed: put the ball on the physical 0 tick and verify numbering")
     subprocess.run(board_command(port, "put", pending, REMOTE + "calib.json"),
-                   check=True)
+                   check=True, timeout=120)
     pending.replace(output / "calib.json")
 
     if compare_with is not None:

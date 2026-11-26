@@ -70,7 +70,7 @@ def test_wrong_tick_numbering_never_replaces_active_calibration(tmp_path, monkey
     monkeypatch.setattr(m2_field, "capture_reference", lambda _port, _output: (image, reference))
     monkeypatch.setattr(m2_field, "confirm_numbering", lambda *_args: True)
     monkeypatch.setattr(m2_field.subprocess, "run",
-                        lambda command, check: uploads.append(command[-1]))
+                        lambda command, check, timeout: uploads.append(command[-1]))
 
     def record_zero(_port, directory, *, calibration_path, seconds):
         assert directory.name == "normal_+0mm"
@@ -193,7 +193,7 @@ def test_ball_field_mode_has_independent_zero_and_compares_fresh_samples(
     monkeypatch.setattr("builtins.input", lambda _prompt: "")
     monkeypatch.setattr(m2_field, "capture_reference", lambda _port, _output: (None, reference))
     monkeypatch.setattr(m2_field.subprocess, "run",
-                        lambda command, check: uploads.append(command[-1]))
+                        lambda command, check, timeout: uploads.append(command[-1]))
 
     def collect(_port, directory, fingerprint):
         assert fingerprint == reference["fingerprint"]
