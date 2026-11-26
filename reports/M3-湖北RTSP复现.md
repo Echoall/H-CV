@@ -17,7 +17,7 @@ Issue #6 评论 `7181822763` 指定先做板载 AP，只有录制对照失败才
 
 - 本板既有串口记录 `lcd_live_capture_check3.log` 首行显示 `gc2093_csi2`、传感器类型 30、输出 `1920x1080@60`。原文件 SHA-256 为 `a5310ae96834d3b6df86cfc619b27435dc08ac4dbf42b61ba1c7942e0c263b4f`。因此保持上游原生模式。
 - 已保存的板端 API 清单包含 `GetStream`、`ReleaseStream` 和 `rtspserver_sendvideodata_byphyaddr`。固件对应的 `media.py` 定义 `ALIGN_UP`，`sensor.py` 的 `set_framesize` 接受并使用 `alignment`，`vencoder.py` 的 `StreamData` 有 `phy_addr`，`GetStream(chn, streamData, timeout=-1)` 成功返回 0。编码器建通道时读取 src/dst、GOP 和码率。见[逐项只读核对和源码哈希](data/M3/bench/2026-11-26-hubei-api.json)、[实板 API 清单](data/M3/m3-20261122-reconnect/api-inventory.log)和[实板固件 revision](data/P0-EXP00/revision.txt)。
-- 本次 COM3 可枚举，`board.py info` 未进入 raw REPL。没有复位或启动相机。现场向导每轮在重新上电后先执行 `info` 和只读探针，核对当前固件、驱动返回的模式与 API，再提示「拍」。若核对失败会留下记录并退出。
+- 本次 COM3 可枚举，`board.py info` 未进入 raw REPL。现场向导每轮在重新上电后先执行 `info`，再用 `os.uname()`、`ALIGN_UP` 和 `hasattr` 核对版本与 Python 接口。1920×1080@60 的兼容依据是上述本板历史日志。现场实际模式由输入「拍」后启动的脚本记录。第二轮的热点配置在第一轮前检查，缺失时仍可测试 AP；若需要 STA，向导再提示填写。随身 Wi-Fi 需开启 2.4 GHz，关闭客户端隔离 / AP 隔离。
 
 ## 向导与判读
 

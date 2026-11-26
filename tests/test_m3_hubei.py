@@ -1,9 +1,28 @@
+import ast
+import json
 from types import SimpleNamespace
 
 import pytest
 
 from station.bench import hubei
 from station.bench.render_pipe import RenderedFrames
+
+
+def test_probe_does_not_construct_media_or_call_mpi():
+    path = hubei.bench.ROOT / "tools/board/m3_hubei_inventory.py"
+    calls = {ast.unparse(n.func) for n in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+             if isinstance(n, ast.Call)}
+    assert calls <= {"ALIGN_UP", "hasattr", "os.uname", "print", "int"}
+
+
+@pytest.mark.parametrize("sta", [None, {"ssid": "test", "password": ""}, {"ssid": "test", "password": "12345678"}])
+def test_sta_preflight_is_read_only(tmp_path, monkeypatch, sta):
+    monkeypatch.setattr(hubei.bench, "HERE", tmp_path)
+    config = tmp_path / "config.local.json"
+    config.write_text(json.dumps({"hubei_sta": sta}), encoding="utf-8")
+    before = config.read_bytes()
+    assert bool(hubei.saved_sta()) == bool(sta and sta["password"])
+    assert config.read_bytes() == before
 
 
 def test_repeated_vlc_frames_are_not_display_progress():
@@ -43,6 +62,5 @@ def test_missing_usb_is_inconclusive_and_does_not_trigger_sta(tmp_path, monkeypa
     monkeypatch.setattr(hubei.bench, "config_wifi", lambda: {"ssid": "board", "password": "dummy"})
     monkeypatch.setattr(hubei.list_ports, "comports", lambda: [])
     assert hubei.wizard(SimpleNamespace(simulate=None, runs=tmp_path)) == 1
-    import json
     report = json.loads(next(tmp_path.glob("*/summary.json")).read_text(encoding="utf-8"))
     assert [(row["mode"], row["result"]) for row in report["rounds"]] == [("ap", "未验证")]

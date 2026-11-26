@@ -54,13 +54,25 @@ def verify_power(run, ask):
     probe = bench.ROOT / "tools/board/m3_hubei_inventory.py"
     code, out, _ = run.command("hubei-api", bench.BOARD + ["run", str(probe), "--timeout", "8"], timeout=20)
     if code or "HCV_HUBEI_API v1.4-a7de1c8 1" not in out:
-        raise RuntimeError("只读固件或传感器模式核对未通过。")
+        raise RuntimeError("固件版本或 Python 接口核对未通过。")
+
+
+def saved_sta():
+    path = bench.HERE / "config.local.json"
+    if not path.is_file():
+        return None
+    settings = json.loads(path.read_text(encoding="utf-8"))
+    wifi = settings.get("hubei_sta")
+    if isinstance(wifi, dict):
+        ssid, password = wifi.get("ssid"), wifi.get("password")
+        if (isinstance(ssid, str) and 1 <= len(ssid.encode("utf-8")) <= 32
+                and isinstance(password, str) and 8 <= len(password) <= 63):
+            return dict(mode="sta", ssid=ssid, password=password)
+    return None
 
 
 def sta_wifi(ask):
-    path = bench.HERE / "config.local.json"
-    settings = json.loads(path.read_text(encoding="utf-8"))
-    wifi = settings.get("hubei_sta")
+    wifi = saved_sta()
     if not wifi:
         ssid = ask("请输入随身 Wi-Fi 的名称，直接回车退出 > ").strip()
         if not ssid:
@@ -69,6 +81,8 @@ def sta_wifi(ask):
         wifi = dict(ssid=ssid, password=password)
         if not (1 <= len(ssid.encode("utf-8")) <= 32 and 8 <= len(password) <= 63):
             raise RuntimeError("随身 Wi-Fi 的名称或密码长度有误，配置未保存。")
+        path = bench.HERE / "config.local.json"
+        settings = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
         settings["hubei_sta"] = wifi
         bench.write_json(path, settings)
     return dict(mode="sta", ssid=wifi["ssid"], password=wifi["password"])
@@ -125,6 +139,13 @@ def wizard(args, ask=input):
         raise RuntimeError("开始前需要可恢复的原 Wi-Fi 以及 FFmpeg、ffprobe。")
     if not simulated and original[1] == bench.config_wifi()["ssid"]:
         raise RuntimeError("请先将电脑连回日常 Wi-Fi，再打开向导。")
+    if not simulated:
+        if saved_sta():
+            print("已找到第二轮用的随身 Wi-Fi 配置。")
+        else:
+            print("第二轮的随身 Wi-Fi 名称或密码还没填好。现在可以直接做第一轮；"
+                  "只有需要第二轮时，按窗口提示输入名称和密码，会保存在本机。")
+        print("第二轮需要随身 Wi-Fi 开启 2.4 GHz，并关闭“客户端隔离 / AP 隔离”，让电脑能连到板子。")
     root = args.runs / (bench.datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-hubei")
     root.mkdir(parents=True)
     rows = []
