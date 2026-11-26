@@ -103,6 +103,7 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
                     window.tick()
                 time.sleep(0.02 if window is not None else 0.1)
             started = time.monotonic()
+            display_epoch = time.time()
             if on_playing is not None:
                 on_playing()
             elapsed = 0
@@ -110,6 +111,7 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
                 first = last = previous = None
                 samples = 0
                 next_sample = longest = 0.0
+                longest_start = 0.0
             while elapsed < seconds:
                 if state(player) in (6, 7):
                     if observation is not None:
@@ -133,12 +135,16 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
                             first = elapsed
                         previous, last = current, elapsed
                         samples += 1
-                        longest = max(longest, last - first)
+                        if last - first > longest:
+                            longest = last - first
+                            longest_start = first
                 time.sleep(min(0.01 if window is not None else 0.1, seconds - elapsed))
                 elapsed = time.monotonic() - started
             if hubei:
-                print('HCV_DISPLAY {"changed_display_samples":%d,"continuous_display_s":%.3f}' %
-                      (samples, longest), flush=True)
+                print("HCV_DISPLAY " + json.dumps(dict(changed_display_samples=samples,
+                      continuous_display_s=round(longest, 3),
+                      display_start_epoch=display_epoch + longest_start,
+                      display_end_epoch=display_epoch + longest_start + longest)), flush=True)
     finally:
         dll_dir.close()
         if render_pipe is not None:

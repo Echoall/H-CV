@@ -58,7 +58,7 @@ class CameraRtspServer:
         self.media_ready = self.encoder_created = self.encoder_running = False
         self.rtsp_ready = self.rtsp_running = self.sensor_running = False
 
-    def start(self):
+    def start(self, detection=None):
         width = ALIGN_UP(STREAM_WIDTH, 16)
         self.sensor = Sensor(
             width=SENSOR_WIDTH,
@@ -72,6 +72,8 @@ class CameraRtspServer:
             alignment=12,
         )
         self.sensor.set_pixformat(Sensor.YUV420SP)
+        if detection is not None:
+            detection.configure(self.sensor)
 
         self.encoder = Encoder()
         self.encoder.SetOutBufs(0, 8, width, STREAM_HEIGHT)
@@ -181,7 +183,7 @@ class CameraRtspServer:
             MediaManager.deinit()
 
 
-def run(wifi):
+def run(wifi, detection=None):
     import sys
     sys.path.insert(0, "/sdcard/hcv")
     from hcv.guard import start, tick
@@ -211,7 +213,10 @@ def run(wifi):
         print("HCV_AP_READY")
     server = CameraRtspServer()
     try:
-        server.start()
+        server.start(detection)
+        if detection is not None:
+            detection.measure(server)
+            return
         began = last = time.ticks_ms()
         while time.ticks_diff(time.ticks_ms(), began) < 125000:
             tick()

@@ -1114,9 +1114,12 @@ if __name__ == "__main__":
                         help="run a local link check without prompts and verify Wi-Fi restoration")
     parser.add_argument("--field", action="store_true", help="run the operator-led offline M3 field session")
     parser.add_argument("--hubei", action="store_true", help="run the AP then conditional STA reproduction")
+    parser.add_argument("--hubei-m1", action="store_true", help="measure CHN1 alongside approved physical AP video")
     parser.add_argument("--simulate-cut", choices=("ap", "both"), help="end selected Hubei simulated sources early")
     parser.add_argument("--player", nargs="+", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.hubei_m1 and (args.simulate or args.hubei or args.field or args.link_check or args.player):
+        parser.error("--hubei-m1 requires a standalone physical session")
     if args.simulate_cut and not (args.hubei and args.simulate):
         parser.error("--simulate-cut requires --hubei --simulate")
     if (args.udp_only or args.automatic_only or args.burst) and (not args.link_check or args.player or args.simulate):
@@ -1128,6 +1131,9 @@ if __name__ == "__main__":
     else:
         try:
             with only_instance(args.runs):
+                if args.hubei_m1:
+                    from station.bench.hubei_m1 import wizard
+                    sys.exit(wizard(args))
                 if args.hubei:
                     from station.bench.hubei import wizard
                     sys.exit(wizard(args))

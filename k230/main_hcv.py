@@ -522,9 +522,14 @@ def _allocation_probe(
 
 
 def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=None,
-        calibration_path=None):
+        calibration_path=None, shared=None):
     """Run the bounded M1 loop and print machine-readable evidence lines."""
-    config = load_config("/sdcard/hcv")
+    config = load_config("/sdcard/hcv") if shared is None else shared.config
+    channel = 0
+    if shared is not None:
+        channel = 1
+        if allocation_probe:
+            raise ValueError("allocation probe requires exclusive sensor access")
     warning, warning_err = runtime_config_warning(config)
     if warning:
         print("HCV_CONFIG_WARNING," + warning)
@@ -571,18 +576,21 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
     calib_id = 0
     try:
         guard_start(float(max_runtime_s) + 20.0)
-        sensor = Sensor(
-            width=config["sensor"]["width"],
-            height=config["sensor"]["height"],
-            fps=config["sensor"]["fps"],
-        )
-        configure_detector_sensor(sensor, config)
-        MediaManager.init()
-        media_started = True
-        sensor.run()
+        if shared is None:
+            sensor = Sensor(
+                width=config["sensor"]["width"],
+                height=config["sensor"]["height"],
+                fps=config["sensor"]["fps"],
+            )
+            configure_detector_sensor(sensor, config)
+            MediaManager.init()
+            media_started = True
+            sensor.run()
+        else:
+            sensor = shared.sensor
         for _ in range(8):
             guard_tick()
-            image = sensor.snapshot(chn=0, timeout=1000)
+            image = sensor.snapshot(chn=channel, timeout=1000)
             image = None
         roi = config["roi"]
         x0, y0, width, height = roi["x"], roi["y"], roi["w"], roi["h"]
@@ -597,7 +605,7 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
         )
         lut, calib_ok, calib_id, lut_err, background = calibration
         if background is None:
-            image = sensor.snapshot(chn=0, timeout=1000)
+            image = sensor.snapshot(chn=channel, timeout=1000)
             _write_column_profile(image, roi_bounds, roi_pixels, profile_pixels)
             background = np.array(profile_array)
         detector = ProfileDetector(
@@ -668,6 +676,8 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
             )
             return
         _log_memory(round_index, "start")
+        if shared is not None:
+            shared.begin(started_us)
         while True:
             guard_tick()
             loop_start = time.ticks_us()
@@ -677,7 +687,7 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
                 break
 
             snapshot_start = time.ticks_us()
-            image = sensor.snapshot(chn=0, timeout=1000)
+            image = sensor.snapshot(chn=channel, timeout=1000)
             t_cap_us = time.ticks_us()
             health.add("snapshot", time.ticks_diff(t_cap_us, snapshot_start))
             if last_cap is not None:
@@ -774,7 +784,8 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
                 INV,
             )
             health.add("pack", time.ticks_diff(time.ticks_us(), pack_start))
-            health.add("process", time.ticks_diff(time.ticks_us(), process_start))
+            process_us = time.ticks_diff(time.ticks_us(), process_start)
+            health.add("process", process_us)
 
             uart_start = time.ticks_us()
             link.uart.write(ball_buffer)
@@ -877,15 +888,19 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
                 round_dropped_start = dropped
                 round_valid_start = valid_count
                 last_cap = None
+            if shared is not None:
+                shared.end_frame(frame_number, process_us, t_cap_us)
     finally:
         stopped_us = time.ticks_us()
+        if shared is not None and started_us is not None:
+            print("HCV_DUAL_END,%d,%d" % (frame_number, time.ticks_diff(stopped_us, started_us)))
         image = None
         image_array = None
         roi_image = None
         roi_profile = None
         if link is not None:
             link.close()
-        if sensor is not None:
+        if sensor is not None and shared is None:
             sensor.stop()
         if media_started:
             MediaManager.deinit()

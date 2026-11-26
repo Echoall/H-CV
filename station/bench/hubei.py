@@ -79,6 +79,10 @@ def physical(run, mode, ask, original, vlc):
         if not current or current[1] != wifi["ssid"]:
             raise RuntimeError("电脑未确认连接指定的随身 Wi-Fi。")
     verify_power(run, ask)
+    combined = run.summary["plan"].get("m1", False)
+    if combined:
+        from station.bench.hubei_m1 import prepare
+        entry = prepare(run)
     if ask("镜头对准电脑屏幕左侧后输入「拍」，随后五低一高启动本轮 > ").strip() != "拍":
         raise RuntimeError("用户取消拍摄")
     import winsound
@@ -87,7 +91,10 @@ def physical(run, mode, ask, original, vlc):
         time.sleep(0.85)
     winsound.Beep(1100, 200)
     script = (bench.ROOT / "tools/board/m3_hubei_rtsp.py").read_text(encoding="utf-8")
-    source = (f"HCV_HUBEI_WIFI = {wifi!r}\n" + script).encode()
+    if combined:
+        source = (script + "\n" + entry + "\nrun(%r, detection)\n" % wifi).encode()
+    else:
+        source = (f"HCV_HUBEI_WIFI = {wifi!r}\n" + script).encode()
     return bench.stream(run, bench.BOARD + ["run", "-", "--stream", "--timeout", "180"],
                         source, run.summary["plan"], wifi, original, vlc, False)
 
