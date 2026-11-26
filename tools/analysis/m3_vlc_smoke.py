@@ -29,15 +29,25 @@ def stop(child):
 
 
 def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, show_video=False,
-                       transport="tcp", cache_ms=200, observation=None, window=None, on_playing=None):
+                       transport="tcp", cache_ms=200, observation=None, window=None, on_playing=None,
+                       hubei=False):
     """Use the CLI's demux and recording options in a VLC 3 player."""
-    argv = vlc_command(str(vlc), url, recording, display=show_video)
+    argv = vlc_command(str(vlc), url, recording, display=show_video or hubei)
     options = [
         b"--ignore-config", b"--no-media-library", b"--verbose=2",
         b"--avcodec-hw=none", f"--network-caching={cache_ms}".encode("ascii"),
     ]
     options.append(b"--rtsp-tcp" if transport == "tcp" else b"--no-rtsp-tcp")
-    if show_video:
+    render_pipe = None
+    if hubei:
+        if show_video:
+            options.remove(b"--avcodec-hw=none")
+        options.extend([b"--no-one-instance", b"--live-caching=200", b"--no-audio"])
+        if not show_video:
+            from station.bench.render_pipe import RenderPipe
+            render_pipe = RenderPipe(640, 360)
+            options.extend([b"--vout=yuv", b"--yuv-chroma=I420", ("--yuv-file=" + render_pipe.name).encode()])
+    elif show_video:
         options.append(b"--vout=wingdi")
     if diagnostic_log:
         options.extend([
@@ -73,7 +83,8 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
                 "media_add_option_flag", None, instance_type, ctypes.c_char_p, ctypes.c_uint
             )
             media_option(media, (":sout=" + argv[argv.index("--sout") + 1]).encode("utf-8"), 2)
-            media_option(media, b":avcodec-hw=none", 2)
+            if not hubei or not show_video:
+                media_option(media, b":avcodec-hw=none", 2)
             player = api("media_player_new_from_media", instance_type, instance_type)(media)
             if not player:
                 raise RuntimeError("could not start LibVLC player")
@@ -95,6 +106,10 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
             if on_playing is not None:
                 on_playing()
             elapsed = 0
+            if hubei:
+                first = last = previous = None
+                samples = 0
+                next_sample = longest = 0.0
             while elapsed < seconds:
                 if state(player) in (6, 7):
                     if observation is not None:
@@ -102,10 +117,32 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
                     break
                 if window is not None:
                     window.tick(elapsed)
+                if hubei and elapsed >= next_sample:
+                    next_sample = elapsed + 0.2
+                    if window is None:
+                        if render_pipe.error:
+                            raise render_pipe.error
+                        current = render_pipe.frames.picture
+                    else:
+                        # Sample the returned image only. The running PC clock is on the left.
+                        image = window.grab()
+                        w, h = image.size
+                        current = image.crop((w // 2, h // 6, w, 5 * h // 6)).resize((160, 96)).tobytes()
+                    if current is not None and current != previous:
+                        if last is None or elapsed - last > 1:
+                            first = elapsed
+                        previous, last = current, elapsed
+                        samples += 1
+                        longest = max(longest, last - first)
                 time.sleep(min(0.01 if window is not None else 0.1, seconds - elapsed))
                 elapsed = time.monotonic() - started
+            if hubei:
+                print('HCV_DISPLAY {"changed_display_samples":%d,"continuous_display_s":%.3f}' %
+                      (samples, longest), flush=True)
     finally:
         dll_dir.close()
+        if render_pipe is not None:
+            render_pipe.close()
     return version
 
 
@@ -129,7 +166,8 @@ def logged_child(stack, command, output, redact, **options):
 
 @contextmanager
 def localhost_source(ffmpeg, mediamtx, output, transports=("tcp",), *,
-                     size="320x192", fps=30, redact=lambda line: line):
+                     size="320x192", fps=30, gop=15, bitrate_kbps=None, source_seconds=None,
+                     redact=lambda line: line):
     tcp = local_port()
     url = f"rtsp://127.0.0.1:{tcp}/hcv"
     config = output / "mediamtx.yml"
@@ -153,7 +191,9 @@ def localhost_source(ffmpeg, mediamtx, output, transports=("tcp",), *,
         publisher = logged_child(stack, [
             str(ffmpeg), "-nostdin", "-hide_banner", "-re", "-f", "lavfi", "-i",
             f"testsrc2=size={size}:rate={fps}", "-an", "-c:v", "libx264", "-tune", "zerolatency",
-            "-g", "15", "-pix_fmt", "yuv420p", "-f", "rtsp", "-rtsp_transport", "tcp", url,
+            "-g", str(gop), *(["-b:v", f"{bitrate_kbps}k"] if bitrate_kbps else []),
+            *(["-t", str(source_seconds)] if source_seconds else []),
+            "-pix_fmt", "yuv420p", "-f", "rtsp", "-rtsp_transport", "tcp", url,
         ], output / "publisher.log", redact, creationflags=flags)
         deadline = time.monotonic() + 10
         while "stream is available and online" not in server_log.read_text(errors="replace"):

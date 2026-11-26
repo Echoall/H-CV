@@ -422,6 +422,8 @@ def receive(run, executable, endpoint, plan, simulated):
         executable, endpoint, str(path), str(seconds), plan["transport"],
         str(plan["caching_ms"]), show, run.summary.get("rtsp_ready_at", ""),
     ]
+    if plan.get("hubei"):
+        command.append("hubei")
     if plan.get("direct_rtsp"):
         code, stdout, stderr = direct_playback(run, command, seconds, urlsplit(endpoint).hostname)
     else:
@@ -437,7 +439,7 @@ def receive(run, executable, endpoint, plan, simulated):
         transports.add("tcp" if match[1].upper() == "/TCP" else "udp")
     media["transport_observed"] = sorted(transports)
     for line in stdout.splitlines():
-        if line.startswith(("HCV_CLIENT_ENDED ", "HCV_CLIENT_PLAYING ", "HCV_CLIENT_DONE ")):
+        if line.startswith(("HCV_CLIENT_ENDED ", "HCV_CLIENT_PLAYING ", "HCV_CLIENT_DONE ", "HCV_DISPLAY ")):
             event = json.loads(line.partition(" ")[2])
             media.update(event)
     media["exit_code"] = code
@@ -448,7 +450,7 @@ def receive(run, executable, endpoint, plan, simulated):
             media["decodable"] = False
     if plan.get("latency"):
         media["latency_screenshots"] = len(list(run.directory.glob("latency-*.png")))
-    if plan.get("firmware_encoder") and media.get("frames"):
+    if (plan.get("firmware_encoder") or plan.get("hubei")) and media.get("frames"):
         inspect_frame_rate(run, path, find_ffprobe())
         if not plan.get("latency"):
             sample_at = min(plan["seconds"] / 2, media["seconds"] / 2)
@@ -502,6 +504,8 @@ def direct_playback(run, command, seconds, host):
                                  r"\b(?:100\d{2}|ECONNRESET|ETIMEDOUT|ECONNREFUSED)\b", stderr)))
         run.summary["stages"]["vlc"] = run.summary["stages"][stage].copy()
         cancelled = "Esc" in stderr and "RuntimeError" in stderr
+        if cancelled:
+            run.summary["capture"]["operator_cancelled"] = True
         if playing or play_reply or cancelled or code == 0 or index == 5 or deadline - time.monotonic() < seconds + 2:
             if attempt_recording.exists():
                 attempt_recording.replace(recording)
@@ -650,7 +654,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
             if clean.startswith(("HCV_RTSP_PRIVATE,", "HCV_CH0_CONFIG_READY", "HCV_AP_READY",
                                  "HCV_MEDIA_SESSION_", "HCV_CH0_CONFIG_CLEANUP",
                                  "HCV_TCP_CONTROL_READY", "HCV_VICAP_DETECT,", "HCV_RTSP_FIRST_IDR,",
-                                 "HCV_RAW_CLIP_", "HCV_CLIP_RESUMED,")):
+                                 "HCV_RAW_CLIP_", "HCV_CLIP_RESUMED,", "HCV_HUBEI_STATUS,")):
                 events.put((clean, received_at))
         events.put(None)
 
@@ -665,6 +669,8 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
             endpoint = None
             use_manual = False
             deadline = time.monotonic() + plan["seconds"] + 90
+            if plan.get("hubei") and not simulation:
+                deadline += 45  # Allow bounded STA association before the 125-second stream.
             if vicap and not direct and not simulation:
                 deadline += 120
             while True:
@@ -676,7 +682,12 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                 if item is None:
                     break
                 event, received_at = item
-                if event == "HCV_AP_READY":
+                if event.startswith("HCV_HUBEI_STATUS,"):
+                    values = dict(field.split("=") for field in event.split(",")[1:])
+                    run.summary.setdefault("board_heartbeats", []).append(
+                        dict(at=received_at, elapsed_ms=int(values["elapsed_ms"]), frames=int(values["frames"]),
+                             bytes=int(values["bytes"]), fps=float(values["fps"])))
+                elif event == "HCV_AP_READY":
                     capture = getattr(run, "reset_capture", None)
                     if capture is not None and endpoint:
                         capture.start(urlsplit(endpoint).hostname)
@@ -686,6 +697,8 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                     )
                     run.summary["network"]["manual"] = use_manual
                     if use_manual:
+                        if plan.get("hubei"):
+                            raise RuntimeError("电脑未能确认连接板载 AP，本轮网络对照无效。")
                         show_board_network(wifi)
                 elif event.startswith("HCV_RTSP_PRIVATE,"):
                     _, address, port, path = event.split(",", 3)
@@ -715,7 +728,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                                    or (vicap and event.startswith("HCV_RTSP_FIRST_IDR,"))):
                     if "vlc" in run.summary["stages"]:
                         continue
-                    if direct and simulation:
+                    if direct and (simulation or plan.get("hubei")):
                         run.summary["rtsp_ready_at"] = received_at
                     if event.startswith("HCV_RTSP_FIRST_IDR,"):
                         _, elapsed, pts = event.split(",")
@@ -723,7 +736,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                             "serial_at": received_at, "elapsed_ms": int(elapsed.split("=")[1]),
                             "pts_ms": int(pts.split("=")[1]),
                         }
-                    if not vicap and not wait_for_board(
+                    if not vicap and not direct and not wait_for_board(
                         run, str(IPv4Address(address)), int(port), seconds=20 if use_manual else 3
                     ):
                         run.summary["network"]["connected"] = "未确认"
@@ -1034,6 +1047,7 @@ def main(args, ask=input, selected_plan=None):
 
 def player(arguments):
     executable, url, recording, seconds, transport, cache_ms, show_video, *ready = arguments
+    hubei = ready[1:] == ["hubei"]
 
     def ended(elapsed, state):
         event = {"client_end_seconds": round(elapsed, 3), "client_end_at": now(),
@@ -1042,7 +1056,7 @@ def player(arguments):
 
     def playing():
         event = {"client_playing_at": now()}
-        if ready and ready[0]:
+        if ready and ready[0] and not hubei:
             delta = (datetime.fromisoformat(event["client_playing_at"]) - datetime.fromisoformat(ready[0])).total_seconds()
             event.update(seconds_from_board_ready=round(delta, 3), overlap_ready=0 <= delta <= 20)
             status = "满足" if event["overlap_ready"] else "不足"
@@ -1059,6 +1073,7 @@ def player(arguments):
             Path(executable), url, Path(recording), seconds=int(seconds), diagnostic_log=False,
             show_video=show_video != "0", transport=transport, cache_ms=int(cache_ms),
             observation=ended, window=window, on_playing=playing,
+            **({"hubei": True} if hubei else {}),
         )
     finally:
         if window is not None:
@@ -1098,8 +1113,12 @@ if __name__ == "__main__":
     parser.add_argument("--automatic-only", action="store_true",
                         help="run a local link check without prompts and verify Wi-Fi restoration")
     parser.add_argument("--field", action="store_true", help="run the operator-led offline M3 field session")
+    parser.add_argument("--hubei", action="store_true", help="run the AP then conditional STA reproduction")
+    parser.add_argument("--simulate-cut", choices=("ap", "both"), help="end selected Hubei simulated sources early")
     parser.add_argument("--player", nargs="+", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.simulate_cut and not (args.hubei and args.simulate):
+        parser.error("--simulate-cut requires --hubei --simulate")
     if (args.udp_only or args.automatic_only or args.burst) and (not args.link_check or args.player or args.simulate):
         parser.error("link trial options require a physical --link-check")
     if args.burst and (args.udp_only or args.field):
@@ -1109,6 +1128,9 @@ if __name__ == "__main__":
     else:
         try:
             with only_instance(args.runs):
+                if args.hubei:
+                    from station.bench.hubei import wizard
+                    sys.exit(wizard(args))
                 if args.field:
                     from station.bench.field import field
                     sys.exit(field(args))
