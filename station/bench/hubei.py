@@ -7,9 +7,7 @@ import shutil
 import subprocess
 import time
 
-from serial.tools import list_ports
-
-from station.bench import bench, wlan
+from station.bench import bench, power, wlan
 from station.bench.field import frame_numbers
 
 
@@ -30,25 +28,7 @@ def conclusion(results):
 
 
 def verify_power(run, ask):
-    def boards():
-        return {p.serial_number or p.location for p in list_ports.comports()
-                if (p.vid, p.pid) == (0x1209, 0xABD1)}
-
-    before = boards()
-    if len(before) != 1:
-        raise RuntimeError("电脑未识别到唯一的 K230 USB 设备。")
-    if ask("拔掉 K230 所有电源，指示灯全灭后按回车；退出输入 q > ").strip().lower() == "q":
-        raise RuntimeError("用户结束")
-    if boards() & before:
-        raise RuntimeError("电脑仍检测到板子的 USB 连接，本轮未开始。")
-    time.sleep(10)
-    if ask("现在插回 USB，等板子启动后按回车；退出输入 q > ").strip().lower() == "q":
-        raise RuntimeError("用户结束")
-    deadline = time.monotonic() + 20
-    while not (boards() & before) and time.monotonic() < deadline:
-        time.sleep(0.25)
-    if not (boards() & before):
-        raise RuntimeError("原板子的 USB 连接未恢复。")
+    power.reconnect(ask)
     if run.command("inventory", bench.BOARD + ["info"], timeout=18)[0]:
         raise RuntimeError("USB 已枚举，但板端未响应 info。")
     probe = bench.ROOT / "tools/board/m3_hubei_inventory.py"

@@ -60,7 +60,7 @@ def test_missing_usb_is_inconclusive_and_does_not_trigger_sta(tmp_path, monkeypa
     monkeypatch.setattr(hubei.wlan, "snapshot", lambda: ("wifi", "original", "profile"))
     monkeypatch.setattr(hubei.wlan, "restore", lambda *a, **kw: True)
     monkeypatch.setattr(hubei.bench, "config_wifi", lambda: {"ssid": "board", "password": "dummy"})
-    monkeypatch.setattr(hubei.list_ports, "comports", lambda: [])
+    monkeypatch.setattr(hubei.power.list_ports, "comports", lambda: [])
     assert hubei.wizard(SimpleNamespace(simulate=None, runs=tmp_path)) == 1
     report = json.loads(next(tmp_path.glob("*/summary.json")).read_text(encoding="utf-8"))
     assert [(row["mode"], row["result"]) for row in report["rounds"]] == [("ap", "未验证")]

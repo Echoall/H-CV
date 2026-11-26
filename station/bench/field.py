@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import time
 
-from station.bench import bench, wlan
+from station.bench import bench, power, wlan
 from station.bench.reset_capture import ResetCapture
 from tools.analysis.m3_h264_compare import compare, picture_digests
 
@@ -133,10 +133,7 @@ def field(args, ask=input):
             if not simulation:
                 before = uptime(session)
                 started = time.monotonic()
-                reply = ask("拔掉板子全部电源，等灯全灭 10 秒，插回 USB。完成后按回车，退出输入 q > ")
-                if reply.strip().lower() == "q":
-                    message = "用户结束"
-                    break
+                power.reconnect(ask)
                 if session.command(f"inventory-after-power-{index}", bench.BOARD + ["info"], timeout=18)[0]:
                     raise RuntimeError("重新插入后 USB 自检失败，本轮已停止。")
                 after = uptime(session)

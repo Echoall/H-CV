@@ -53,6 +53,9 @@ def test_uac_declined_continues_to_operator_recording(tmp_path, monkeypatch):
     monkeypatch.setattr(field, "uptime", lambda _: next(times))
     clock = iter((100.0, 111.0))
     monkeypatch.setattr(field, "time", SimpleNamespace(monotonic=lambda: next(clock)))
+    usb = iter((["simulated-board"], [], ["simulated-board"]))
+    monkeypatch.setattr(field.power, "boards", lambda: next(usb))
+    monkeypatch.setattr(field.power, "time", SimpleNamespace(monotonic=lambda: 0, sleep=lambda _: None))
     # The unelevated PowerShell launcher exits when the UAC elevation is declined.
     monkeypatch.setattr(reset_capture.subprocess, "Popen", lambda *_a, **_k: SimpleNamespace(poll=lambda: 1))
 
