@@ -4,6 +4,7 @@ import argparse
 from contextlib import ExitStack
 from hashlib import sha256
 import json
+import re
 from math import isfinite
 from pathlib import Path, PurePosixPath
 import sys
@@ -225,6 +226,16 @@ def project_path(path):
     return parsed
 
 
+def image_matches(output, version):
+    for line in output.splitlines():
+        fields = dict(re.findall(r"\b(machine|release|version)='([^']+)'", line))
+        if fields.get("machine") == "k230_canmv_hiwonder":
+            release = fields.get("release", "").split("-")[0]
+            build = fields.get("version", "").split(" on ")[0].split("-")[0]
+            return release == build == version
+    return False
+
+
 def upload(board, local, remote):
     destination = project_path(remote)
     content = local.read_bytes()
@@ -395,6 +406,7 @@ def arguments():
     put = commands.add_parser("put")
     put.add_argument("local", type=Path)
     put.add_argument("remote")
+    put.add_argument("--hiwonder-v18", action="store_true")
     get = commands.add_parser("get")
     get.add_argument("remote")
     get.add_argument("local", type=Path)
@@ -439,6 +451,10 @@ def main():
             elif args.command == "put":
                 project_path(args.remote)
                 require_backup()
+                if args.hiwonder_v18:
+                    identity = board.exec("import os\nprint(os.uname())").decode()
+                    if not image_matches(identity, "v1.8"):
+                        raise ValueError("upload requires Hiwonder v1.8")
                 upload(board, args.local, args.remote)
             elif args.command == "run":
                 if args.script != Path("-") and not args.script.is_file():

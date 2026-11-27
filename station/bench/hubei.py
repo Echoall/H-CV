@@ -1,5 +1,6 @@
 """Operator-led reproduction of the Hubei team's threaded, video-only RTSP stream."""
 
+from contextlib import nullcontext
 import getpass
 import json
 from pathlib import Path
@@ -9,6 +10,7 @@ import time
 
 from station.bench import bench, power, wlan
 from station.bench.field import frame_numbers
+from tools.board.board import image_matches
 
 
 def plan(mode):
@@ -27,13 +29,20 @@ def conclusion(results):
     return "对照尚不完整，请查看各轮记录。"
 
 
-def verify_power(run, ask):
+def verify_power(run, ask, version="v1.4"):
     power.reconnect(ask)
-    if run.command("inventory", bench.BOARD + ["info"], timeout=18)[0]:
+    code, info, _ = run.command("inventory", bench.BOARD + ["info"], timeout=18)
+    if code != 0:
         raise RuntimeError("USB 已枚举，但板端未响应 info。")
+    if not image_matches(info, version):
+        raise RuntimeError("板型或版本不符，本轮需要 Hiwonder " + version)
+    run.summary["verified_image"] = version
     probe = bench.ROOT / "tools/board/m3_hubei_inventory.py"
     code, out, _ = run.command("hubei-api", bench.BOARD + ["run", str(probe), "--timeout", "8"], timeout=20)
-    if code or "HCV_HUBEI_API v1.4-a7de1c8 1" not in out:
+    tokens = out.strip().split()
+    if (code != 0 or len(tokens) != 3 or tokens[0] != "HCV_HUBEI_API" or tokens[2] != "1"
+            or (version == "v1.4" and tokens[1] != "v1.4-a7de1c8")
+            or f"release='{tokens[1]}'" not in info):
         raise RuntimeError("固件版本或 Python 接口核对未通过。")
 
 
@@ -78,7 +87,11 @@ def physical(run, mode, ask, original, vlc):
         current = wlan.snapshot()
         if not current or current[1] != wifi["ssid"]:
             raise RuntimeError("电脑未确认连接指定的随身 Wi-Fi。")
-    verify_power(run, ask)
+    comparison = run.summary["plan"].get("firmware_compare")
+    verify_power(run, ask, "v1.8" if comparison else "v1.4")
+    if comparison:
+        from station.bench.firmware import prepare
+        prepare(run, ask)
     combined = run.summary["plan"].get("m1", False)
     if combined:
         from station.bench.hubei_m1 import prepare
@@ -90,13 +103,20 @@ def physical(run, mode, ask, original, vlc):
         winsound.Beep(440, 150)
         time.sleep(0.85)
     winsound.Beep(1100, 200)
-    script = (bench.ROOT / "tools/board/m3_hubei_rtsp.py").read_text(encoding="utf-8")
-    if combined:
+    monitor = nullcontext()
+    script_name = "m3_firmware_v18.py" if comparison else "m3_hubei_rtsp.py"
+    script = (bench.ROOT / "tools/board" / script_name).read_text(encoding="utf-8")
+    if comparison:
+        from station.bench.usb_session import monitor as observe_usb
+        monitor = observe_usb(run, run.usb_board)
+        source = (script + "\nrun(%r)\n" % wifi).encode()
+    elif combined:
         source = (script + "\n" + entry + "\nrun(%r, detection)\n" % wifi).encode()
     else:
         source = (f"HCV_HUBEI_WIFI = {wifi!r}\n" + script).encode()
-    return bench.stream(run, bench.BOARD + ["run", "-", "--stream", "--timeout", "180"],
-                        source, run.summary["plan"], wifi, original, vlc, False)
+    with monitor:
+        return bench.stream(run, bench.BOARD + ["run", "-", "--stream", "--timeout", "180"],
+                            source, run.summary["plan"], wifi, original, vlc, False)
 
 
 def assess(run, clean_board, ffmpeg):
@@ -118,6 +138,7 @@ def assess(run, clean_board, ffmpeg):
 
 
 def wizard(args, ask=input):
+    comparison = getattr(args, "firmware_compare", False)
     simulated = bool(args.simulate)
     vlc, sim_ffmpeg, mtx = bench.tools(*(args.simulate or ()))
     ffmpeg = sim_ffmpeg or shutil.which("ffmpeg") or bench.HERE / "runtime/ffmpeg.exe"
@@ -133,11 +154,14 @@ def wizard(args, ask=input):
             print("第二轮的随身 Wi-Fi 名称或密码还没填好。现在可以直接做第一轮；"
                   "只有需要第二轮时，按窗口提示输入名称和密码，会保存在本机。")
         print("第二轮需要随身 Wi-Fi 开启 2.4 GHz，并关闭“客户端隔离 / AP 隔离”，让电脑能连到板子。")
-    root = args.runs / (bench.datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-hubei")
+    root = args.runs / (bench.datetime.now().strftime("%Y%m%d-%H%M%S-%f") + ("-firmware-v18" if comparison else "-hubei"))
     root.mkdir(parents=True)
     rows = []
+    stop_requested = False
     for mode in ("ap", "sta"):
         run = bench.Run(root / mode, plan(mode), simulated)
+        if comparison:
+            run.summary["plan"]["firmware_compare"] = True
         outcome = "未验证"
         try:
             if simulated:
@@ -150,12 +174,19 @@ def wizard(args, ask=input):
             else:
                 clean = physical(run, mode, ask, original, vlc)
             outcome = assess(run, clean, ffmpeg)
+            if comparison and outcome == "失败":
+                from station.bench.firmware import valid_failure
+                if not valid_failure(run):
+                    outcome = "未验证"
         except (OSError, RuntimeError, ValueError, KeyError, EOFError, KeyboardInterrupt, subprocess.SubprocessError) as exc:
             run.summary["message"] = run.clean(str(exc)) if isinstance(exc, RuntimeError) else type(exc).__name__
             print(run.summary["message"])
             if isinstance(exc, RuntimeError) and run.summary.get("rtsp_ready_at") and "vlc" in run.summary["stages"]:
                 if run.summary["capture"].get("client_end_reason"):
-                    outcome = "失败"
+                    if comparison:
+                        from station.bench.firmware import valid_failure
+                    if not comparison or valid_failure(run):
+                        outcome = "失败"
         finally:
             restored = simulated
             if not simulated:
@@ -166,6 +197,13 @@ def wizard(args, ask=input):
                 run.summary["network"]["restored"] = restored
                 if not restored:
                     print(wlan.MANUAL_RESTORE)
+            if comparison and not simulated and "usb_presence" in run.summary:
+                try:
+                    voltage = ask("若本轮已用表读到供电电压，可填伏特数（例如 5.02）；回车跳过 > ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    voltage = None
+                    stop_requested = True
+                run.summary["power_connection"]["observed_5v_volts"] = voltage or None
             images = sorted(p.name for p in run.directory.glob("latency-*.png"))
             run.summary["clock_images"] = images
             run.summary.update(result=outcome, passed=outcome == "通过")
@@ -173,8 +211,12 @@ def wizard(args, ask=input):
             rows.append(dict(mode=mode, result=outcome, capture=run.summary["capture"], clock_images=images,
                              restored=None if simulated else restored))
             result = conclusion([row["result"] for row in rows])
+            if comparison:
+                from station.bench.firmware import interpretation
+                result = ("电脑模拟，" + " / ".join(r["mode"].upper() + " " + r["result"] for r in rows)
+                          if simulated else interpretation([row["result"] for row in rows]))
             bench.write_json(root / "summary.json", dict(simulation=simulated, rounds=rows, conclusion=result))
-        if outcome != "失败" or not restored:
+        if stop_requested or outcome != "失败" or not restored:
             break
     print(result, root)
     return int(rows[-1]["result"] != "通过" or not restored)

@@ -97,6 +97,8 @@
 
 ## 交付记录（Codex 追加）
 
+- 2026-11-27，Issue #6。13 次实板断流[离线取证](../reports/M3-断流离线取证.md)经 Manager 复核。Hiwonder v1.8 [备用卡向导](固件对照-操作指南.md)和[三组电脑回环](../reports/data/M3/bench/2026-11-27-firmware-loopback.json)提交复核，实板待测。
+
 - 2026-11-26，Issue #6 第 2 项，湖北图传与 CHN1 检测预案进入 REVIEW。电脑回放、现场向导和原始记录见 [实验报告](../reports/M3-湖北图传同时找球.md)。
 - 2026-11-26，Issue #6 第 3 项，M2 双击向导和全流程电脑模拟进入 REVIEW，见 [报告](../reports/M2-现场向导演练.md)。
 
