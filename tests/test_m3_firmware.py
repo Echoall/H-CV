@@ -137,3 +137,16 @@ def test_empty_card_creates_project_and_nested_directory(tmp_path):
     board.upload(transport, source, '/sdcard/hcv/fw18/guard.py')
     assert directories == ['/sdcard', '/sdcard/hcv', '/sdcard/hcv/fw18']
     assert files == {'/sdcard/hcv/fw18/guard.py': b'example'}
+
+
+def test_ambiguous_cdc_reports_only_usb_ids(monkeypatch):
+    from types import SimpleNamespace
+    from station.bench import power
+    port = SimpleNamespace(vid=0x1209, pid=0xABD1, serial_number='private-serial', location='private-port')
+    monkeypatch.setattr(power.list_ports, 'comports', lambda: [port, port])
+    with pytest.raises(RuntimeError) as error:
+        power.reconnect(lambda _: pytest.fail('ambiguous devices must stop before user prompts'))
+    assert '1209:ABD1, 1209:ABD1' in str(error.value)
+    assert 'private' not in str(error.value)
+    monkeypatch.setattr(power.list_ports, 'comports', lambda: [])
+    assert '无 USB 串口' in power.usb_listing()

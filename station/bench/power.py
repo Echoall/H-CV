@@ -9,6 +9,12 @@ def boards():
             if (p.vid, p.pid) == (0x1209, 0xABD1)]
 
 
+def usb_listing():
+    devices = sorted(f"{p.vid:04X}:{p.pid:04X}" for p in list_ports.comports()
+                     if p.vid is not None and p.pid is not None)
+    return "当前串口枚举的 VID/PID：" + (", ".join(devices) or "无 USB 串口") + "。本轮未开始。"
+
+
 def wait_present(board, present, seconds):
     deadline = time.monotonic() + seconds
     while (board in boards()) != present:
@@ -22,7 +28,7 @@ def wait_present(board, present, seconds):
 def reconnect(ask):
     initial = boards()
     if len(initial) != 1:
-        raise RuntimeError("电脑未识别到唯一的 K230 USB 设备。")
+        raise RuntimeError("电脑未识别到唯一的 K230 USB 设备。" + usb_listing())
     prompt = "拔掉 K230 所有电源，保持板端 USB 拔出，等灯全灭后按回车；退出输入 q > "
     for _ in range(3):
         if ask(prompt).strip().lower() == "q":
@@ -37,4 +43,4 @@ def reconnect(ask):
     if ask("现在插回 USB，等板子启动后按回车；退出输入 q > ").strip().lower() == "q":
         raise RuntimeError("用户结束")
     if not wait_present(initial[0], True, 20):
-        raise RuntimeError("原板子的 USB 连接未恢复。")
+        raise RuntimeError("原板子的 USB 连接未恢复。" + usb_listing())
