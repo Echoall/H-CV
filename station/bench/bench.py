@@ -188,6 +188,18 @@ class Run:
         self.summary["ended"] = now()
         safe = clean_values(self.summary)
         write_json(self.directory / "summary.json", safe)
+        if safe["plan"]["id"] == "m1-v18":
+            mode = "历史日志回放" if safe["simulation"] else "板上实测"
+            lines = [f"# {safe['plan']['title']}（{mode}）", "", safe["message"]]
+            if "measurement" in safe:
+                m = safe["measurement"]
+                drops = m["wall_duration_dropped"]
+                lines.extend(["", f"- 处理帧数 {m['summary']['frames']}",
+                              f"- 最大窗口处理 p95 为 {m['max_sample_process_p95_us']} 微秒",
+                              f"- 完整采集时长法估计丢帧 {drops if drops is not None else '缺少起止记录'}",
+                              f"- 活动与回合间 GC 合计估计丢帧 {m.get('duration_dropped_including_gc', '缺少回合记录')}"])
+            (self.directory / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+            return
         if safe["plan"]["id"] == "p8-link":
             lines = [f"# {safe['plan']['title']}", "", safe["message"] if "message" in safe else "测试进行中", ""]
             for row in safe.get("trials", []):

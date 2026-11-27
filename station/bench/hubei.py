@@ -77,6 +77,16 @@ def sta_wifi(ask):
     return dict(mode="sta", ssid=wifi["ssid"], password=wifi["password"])
 
 
+def confirm_capture(ask):
+    if ask("镜头已对准目标后输入「拍」，随后五低一高启动本轮 > ").strip() != "拍":
+        raise RuntimeError("用户取消拍摄")
+    import winsound
+    for _ in range(5):
+        winsound.Beep(440, 150)
+        time.sleep(0.85)
+    winsound.Beep(1100, 200)
+
+
 def physical(run, mode, ask, original, vlc):
     wifi = bench.config_wifi() if mode == "ap" else sta_wifi(ask)
     run.private.update((wifi["ssid"], wifi["password"], *filter(None, original)))
@@ -96,13 +106,8 @@ def physical(run, mode, ask, original, vlc):
     if combined:
         from station.bench.hubei_m1 import prepare
         entry = prepare(run)
-    if ask("镜头对准电脑屏幕左侧后输入「拍」，随后五低一高启动本轮 > ").strip() != "拍":
-        raise RuntimeError("用户取消拍摄")
-    import winsound
-    for _ in range(5):
-        winsound.Beep(440, 150)
-        time.sleep(0.85)
-    winsound.Beep(1100, 200)
+    print("请把镜头对准电脑屏幕左半边。")
+    confirm_capture(ask)
     monitor = nullcontext()
     script_name = "m3_firmware_v18.py" if comparison else "m3_hubei_rtsp.py"
     script = (bench.ROOT / "tools/board" / script_name).read_text(encoding="utf-8")

@@ -522,9 +522,9 @@ def _allocation_probe(
 
 
 def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=None,
-        calibration_path=None, shared=None):
+        calibration_path=None, shared=None, config_directory="/sdcard/hcv", report_capture_span=False):
     """Run the bounded M1 loop and print machine-readable evidence lines."""
-    config = load_config("/sdcard/hcv") if shared is None else shared.config
+    config = load_config(config_directory) if shared is None else shared.config
     channel = 0
     if shared is not None:
         channel = 1
@@ -909,6 +909,10 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
         if started_us is not None:
             if shared is not None:
                 shared.report(frame_number)
+            if report_capture_span:
+                if health.frame_count:
+                    _print_stats(health, dropped, gc.mem_free(), run_info, parser)
+                print("HCV_M1_CAPTURE_SPAN_US,%d" % time.ticks_diff(stopped_us, started_us))
             _log_memory(round_index, "stopped")
             if round_start_us is not None and frame_number > round_frame_start:
                 print(
