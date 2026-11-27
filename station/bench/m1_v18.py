@@ -11,9 +11,11 @@ MODULES = ("__init__", "calibration", "compat", "config", "detect_profile", "gua
            "link_uart", "media_session_guard", "proto", "tracker")
 
 
-def prepare(run):
-    files = [(f"k230/hcv/{name}.py", f"hcv/{name}.py") for name in MODULES]
-    files.extend([("k230/main_hcv.py", "main_hcv.py"),
+def prepare(run, *, combined=False):
+    modules = MODULES + ("hubei_detection",) if combined else MODULES
+    files = [(f"k230/hcv/{name}.py", f"hcv/{name}.py") for name in modules]
+    runner = "hubei_m1_runner.py" if combined else "main_hcv.py"
+    files.extend([("k230/main_hcv.py", runner),
                   ("reports/data/M1/m1-config.json", "m1_v18/config.json")])
     for source, target in files:
         code, _, _ = run.command("upload-" + Path(target).name, bench.BOARD + [

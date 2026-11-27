@@ -20,18 +20,24 @@ def prior_ap(runs):
     raise RuntimeError("请先完成湖北纯图传实板 AP 轮。已有通过记录后，这个向导才会开始。")
 
 
-def prepare(run):
-    for relative, target in [("k230/main_hcv.py", "hubei_m1_runner.py"),
-                             ("k230/hcv/hubei_detection.py", "hcv/hubei_detection.py")]:
-        code, _, _ = run.command("prepare-" + Path(target).stem, bench.BOARD + [
-            "put", str(bench.ROOT / relative), "/sdcard/hcv/" + target], timeout=30)
-        if code != 0:
-            raise RuntimeError("准备并行检测模块失败，详见本轮记录。")
+def prepare(run, v18=False):
+    directory = "/sdcard/hcv"
+    if v18:
+        from station.bench import m1_v18
+        m1_v18.prepare(run, combined=True)
+        directory += "/m1_v18"
+    else:
+        for relative, target in [("k230/main_hcv.py", "hubei_m1_runner.py"),
+                                 ("k230/hcv/hubei_detection.py", "hcv/hubei_detection.py")]:
+            code, _, _ = run.command("prepare-" + Path(target).stem, bench.BOARD + [
+                "put", str(bench.ROOT / relative), "/sdcard/hcv/" + target], timeout=30)
+            if code != 0:
+                raise RuntimeError("准备并行检测模块失败，详见本轮记录。")
     settings = json.loads((bench.HERE / "hubei_detection.json").read_text(encoding="utf-8"))
     return (
         'import sys\nsys.path.insert(0, "/sdcard/hcv")\n'
         'from hcv.config import load_config\nfrom hcv.hubei_detection import HubeiDetection\n'
-        'config = load_config("/sdcard/hcv")\n'
+        f'config = load_config({directory!r})\n'
         'if not config["detector"]["params"].get("m1_fast"): raise ValueError("M1 fast config required")\n'
         'config["sensor"].update(width=SENSOR_WIDTH, height=SENSOR_HEIGHT, fps=SENSOR_FPS)\n'
         f'detection = HubeiDetection(config, {settings!r})\n'
@@ -92,8 +98,8 @@ def during_display(lines, capture):
     return result
 
 
-def wizard(args, ask=input):
-    evidence = prior_ap(args.runs)
+def wizard(args, ask=input, *, v18_visit=None):
+    evidence = prior_ap(args.runs) if v18_visit is None else v18_visit
     vlc, _, _ = bench.tools()
     ffmpeg = shutil.which("ffmpeg") or bench.HERE / "runtime/ffmpeg.exe"
     original = wlan.snapshot()
@@ -101,8 +107,15 @@ def wizard(args, ask=input):
             or not Path(ffmpeg).is_file() or not bench.find_ffprobe()):
         raise RuntimeError("开始前请确认电脑连着可恢复的日常 Wi-Fi，且录像工具齐全。")
     plan = dict(hubei.plan("ap"), id="hubei-m1", title="湖北图传同时找球", seconds=66, m1=True)
-    run = bench.Run(args.runs / (datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-hubei-m1"), plan, False)
-    run.summary["prior_ap"] = evidence.parent.parent.name
+    suffix = "-hubei-m1"
+    if v18_visit is not None:
+        plan["v18_combined"] = True
+        suffix = "-v18-hubei-m1"
+    run = bench.Run(args.runs / (datetime.now().strftime("%Y%m%d-%H%M%S-%f") + suffix), plan, False)
+    if v18_visit is None:
+        run.summary["prior_ap"] = evidence.parent.parent.name
+    else:
+        run.summary["visit"] = v18_visit.name
     run.summary.update(scope="本轮只测时序。1080p60 的视场和裁剪可能改变，VALID 和位置误差不参与判定。",
                        next_if_pass="保持湖北线程结构，仅改传感器为 720p90，按 90 fps 再测 60 秒。两轮通过后确认并行。")
     measured = False

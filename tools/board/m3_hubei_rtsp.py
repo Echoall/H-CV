@@ -58,7 +58,7 @@ class CameraRtspServer:
         self.media_ready = self.encoder_created = self.encoder_running = False
         self.rtsp_ready = self.rtsp_running = self.sensor_running = False
 
-    def start(self, detection=None):
+    def start(self, detection=None, private_pool=False):
         width = ALIGN_UP(STREAM_WIDTH, 16)
         self.sensor = Sensor(
             width=SENSOR_WIDTH,
@@ -88,15 +88,19 @@ class CameraRtspServer:
         attributes.dst_frame_rate = STREAM_FPS
         attributes.bit_rate = STREAM_BIT_RATE
         attributes.gop_len = STREAM_GOP
+        if private_pool:
+            self.encoder.Create(0, attributes)
+            self.encoder_created = True
         self.link = MediaManager.link(
             self.sensor.bind_info()["src"],
             (VIDEO_ENCODE_MOD_ID, VENC_DEV_ID, 0),
         )
 
-        MediaManager.init()
-        self.media_ready = True
-        self.encoder.Create(0, attributes)
-        self.encoder_created = True
+        if not private_pool:
+            MediaManager.init()
+            self.media_ready = True
+            self.encoder.Create(0, attributes)
+            self.encoder_created = True
         self.server.rtspserver_init(RTSP_PORT)
         self.rtsp_ready = True
         self.server.rtspserver_createsession(
@@ -183,11 +187,19 @@ class CameraRtspServer:
             MediaManager.deinit()
 
 
-def run(wifi, detection=None):
+def run(wifi, detection=None, private_pool=False):
     import sys
     sys.path.insert(0, "/sdcard/hcv")
     from hcv.guard import start, tick
     from hcv.media_session_guard import claim
+    if private_pool:
+        identity = os.uname()
+        if identity.machine != "k230_canmv_hiwonder" or identity.release.split("-")[0] != "v1.8":
+            raise RuntimeError("Expected Hiwonder v1.8")
+        try:
+            os.stat("/sdcard/hcv/run")
+        except OSError:
+            os.mkdir("/sdcard/hcv/run")
     start(173)
     claim()
     ap = wifi["mode"] == "ap"
@@ -213,7 +225,7 @@ def run(wifi, detection=None):
         print("HCV_AP_READY")
     server = CameraRtspServer()
     try:
-        server.start(detection)
+        server.start(detection, private_pool)
         if detection is not None:
             detection.measure(server)
             return

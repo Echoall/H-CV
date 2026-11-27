@@ -98,14 +98,15 @@ def physical(run, mode, ask, original, vlc):
         if not current or current[1] != wifi["ssid"]:
             raise RuntimeError("电脑未确认连接指定的随身 Wi-Fi。")
     comparison = run.summary["plan"].get("firmware_compare")
-    verify_power(run, ask, "v1.8" if comparison else "v1.4")
+    v18_combined = run.summary["plan"].get("v18_combined", False)
+    verify_power(run, ask, "v1.8" if comparison or v18_combined else "v1.4")
     if comparison:
         from station.bench.firmware import prepare
         prepare(run, ask)
     combined = run.summary["plan"].get("m1", False)
     if combined:
         from station.bench.hubei_m1 import prepare
-        entry = prepare(run)
+        entry = prepare(run, v18=v18_combined)
     print("请把镜头对准电脑屏幕左半边。")
     confirm_capture(ask)
     monitor = nullcontext()
@@ -116,7 +117,7 @@ def physical(run, mode, ask, original, vlc):
         monitor = observe_usb(run, run.usb_board)
         source = (script + "\nrun(%r)\n" % wifi).encode()
     elif combined:
-        source = (script + "\n" + entry + "\nrun(%r, detection)\n" % wifi).encode()
+        source = (script + "\n" + entry + "\nrun(%r, detection, private_pool=%r)\n" % (wifi, v18_combined)).encode()
     else:
         source = (f"HCV_HUBEI_WIFI = {wifi!r}\n" + script).encode()
     with monitor:
