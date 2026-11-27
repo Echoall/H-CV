@@ -37,7 +37,8 @@ def test_ten_minute_assessment_boundaries(tmp_path, process_us, span, expected):
     assert "历史日志回放" in result.read_text(encoding="utf-8")
 
 
-def test_field_cancellation_never_reaches_board_camera(monkeypatch, tmp_path):
+@pytest.mark.parametrize("skip_modes", [True, False])
+def test_field_cancellation_never_reaches_board_camera(monkeypatch, tmp_path, skip_modes):
     run = bench.Run(tmp_path / "field", {"id": "m1-v18"}, False)
     commands = []
 
@@ -50,10 +51,12 @@ def test_field_cancellation_never_reaches_board_camera(monkeypatch, tmp_path):
         return 0, "", ""
 
     monkeypatch.setattr(run, "command", command)
-    monkeypatch.setattr(m1_v18.hubei, "verify_power", lambda r, a, version: None)
+    monkeypatch.setattr(m1_v18.hubei, "verify_power", lambda r, a, version: commands.append("power-" + version))
     with pytest.raises(RuntimeError, match="取消"):
-        m1_v18.field(run, lambda _: "取消")
-    assert commands[0] == "sensor-modes"
+        m1_v18.field(run, lambda _: "取消", skip_mode_list=skip_modes)
+    assert commands[0] == "power-v1.8"
+    assert ("sensor-modes" in commands) == (not skip_modes)
+    assert run.summary["mode_list_skipped"] is skip_modes
     assert "upload-main_hcv.py" in commands
     assert len(set(commands)) == len(commands)
     assert "m1" not in commands

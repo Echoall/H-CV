@@ -65,9 +65,11 @@ def verify_modes(run):
         raise RuntimeError("未确认板上 GC2093 的 720p90 模式，请保留枚举日志。")
 
 
-def field(run, ask):
+def field(run, ask, *, skip_mode_list=False):
     hubei.verify_power(run, ask, "v1.8")
-    verify_modes(run)
+    run.summary["mode_list_skipped"] = skip_mode_list
+    if not skip_mode_list:
+        verify_modes(run)
     prepare(run)
     print("保持相机固定，让画面中的检测区空着。采集约 10 分钟。")
     hubei.confirm_capture(ask)
@@ -92,7 +94,7 @@ def main(args, ask=input):
         if args.replay:
             run.summary["measurement"] = assess(args.replay)
         else:
-            field(run, ask)
+            field(run, ask, skip_mode_list=getattr(args, "skip_mode_list", False))
         m = run.summary["measurement"]
         run.summary["timing_checks_passed"] = all(m["checks"].values())
         run.summary["passed"] = (run.summary["timing_checks_passed"] and
@@ -111,6 +113,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs", type=Path, default=bench.HERE / "runs")
     parser.add_argument("--replay", type=Path, help="用既有串口日志离线复算")
+    parser.add_argument("--skip-mode-list", action="store_true", help="独立上电后跳过 Sensor.list_mode 对照")
     args = parser.parse_args()
     with bench.only_instance(args.runs):
         raise SystemExit(main(args))

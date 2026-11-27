@@ -56,9 +56,17 @@ def service_stop(folder, ask):
 
 def visit(root, ask=input):
     root.mkdir(parents=True)
-    args = SimpleNamespace(runs=root, replay=None)
+    args = SimpleNamespace(runs=root, replay=None, skip_mode_list=False)
+
+    def longrun():
+        mode = ask("M1 本轮回车按常规先枚举；若上次未进入采集，请输入 2，独立上电跳过枚举 > ").strip()
+        if mode not in ("", "2"):
+            raise RuntimeError("未选择 M1 测量方式，本项未开始。")
+        args.skip_mode_list = mode == "2"
+        return m1_v18.main(args, ask)
+
     stages = (("图传由板端停止", lambda: service_stop(root, ask)),
-              ("独占找球约十分钟", lambda: m1_v18.main(args, ask)),
+              ("独占找球约十分钟", longrun),
               ("图传与找球同时运行", lambda: hubei_m1.wizard(args, ask, v18_visit=root)))
     report = {"simulation": False, "stages": [], "completed": False}
     try:
