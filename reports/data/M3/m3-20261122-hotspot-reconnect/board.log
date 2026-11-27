@@ -1,0 +1,16 @@
+HCV_STA_ENDPOINT_AVAILABLE
+HCV_MEDIA_GUARD,claimed
+find sensor gc2093_csi2, type 32, output 1280x720@90
+HCV_CH0_CONFIG_STEP,sensor_reset
+HCV_CH0_CONFIG_STEP,media_link
+vb common pool count 3
+HCV_CH0_CONFIG_STEP,media_init
+HCV_CH0_CONFIG_STEP,encoder_started
+sensor(0), mode 0, buffer_num 4, buffer_size 0
+HCV_CH0_CONFIG_STEP,sensor_started
+HCV_CH0_CONFIG_READY
+HCV_CH0_CONFIG_SUMMARY,packets=5402,bytes=15017486
+HCV_CH0_CONFIG_CLEANUP
+HCV_BOARD_EXIT,0
+HCV_POST_INFO,0
+HCV_VLC_ERROR,RuntimeError

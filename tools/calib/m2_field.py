@@ -2,11 +2,14 @@
 
 import argparse
 import csv
+from itertools import count
 import json
+from math import ceil
 import statistics
 import subprocess
 import sys
 import tempfile
+from threading import Timer
 import time
 from pathlib import Path
 
@@ -18,7 +21,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.analysis.m1_ball_evidence import decode_recording
-from tools.calib.ruler_lut import build_calibration
+from tools.calib.ruler_lut import (
+    BALL_POSITIONS_MM,
+    ball_anchor,
+    build_ball_calibration,
+    build_calibration,
+    compare_calibrations,
+)
+from k230.hcv.calibration import runtime_calibration
 
 
 BOARD_TOOLS = ROOT / "tools" / "board"
@@ -46,12 +56,11 @@ def board_command(port, *args):
 
 
 def capture_reference(port, output):
-    subprocess.run(board_command(
-        port, "run", BOARD_TOOLS / "m2_reference.py", "--timeout", 30,
-        "--log", output / "reference.log",
-    ), check=True)
+    countdown()
+    run_cued_capture(port, output, "m2_reference.py", "HCV_CAPTURE_CUE = True\n",
+                     "HCV_M2_CAPTURE_CUE", 30, log_path=output / "reference.log")
     for name in ("m2-ruler.pgm", "m2-reference.json"):
-        subprocess.run(board_command(port, "get", REMOTE + name, output / name), check=True)
+        subprocess.run(board_command(port, "get", REMOTE + name, output / name), check=True, timeout=120)
     reference = json.loads((output / "m2-reference.json").read_text(encoding="utf-8"))
     image = cv2.imdecode(np.fromfile(output / "m2-ruler.pgm", dtype=np.uint8),
                          cv2.IMREAD_GRAYSCALE)
@@ -119,42 +128,91 @@ def tone(high=False):
         print("\a", end="", flush=True)
 
 
-def record(port, directory, transition=False, calibration_path=None):
-    directory.mkdir()
-    params = "CAPTURE_SECONDS = %d\nSIGNAL_FRAME = %d\n" % (
-        8 if transition else 2, 90 if transition else 1,
-    )
-    if calibration_path is not None:
-        params += "CALIBRATION_PATH = %r\n" % calibration_path
+def countdown():
+    for _ in range(5):
+        tone()
+        time.sleep(0.86)
+
+
+def run_cued_capture(port, directory, source, params, cue, timeout, log_path=None):
+    if log_path is None:
+        directory.mkdir()
+        log_path = directory / "board.log"
     with tempfile.TemporaryDirectory(prefix="hcv-field-") as temporary:
         script = Path(temporary) / "capture.py"
-        script.write_text(params + (BOARD_TOOLS / "m1_ball_insertion.py").read_text(),
-                          encoding="utf-8")
-        if transition:
-            for _ in range(5):
-                tone()
-                time.sleep(0.86)
-        command = board_command(port, "run", script, "--timeout", 38, "--stream",
-                                "--log", directory / "board.log")
+        script.write_text(params + (BOARD_TOOLS / source).read_text(encoding="utf-8"), encoding="utf-8")
+        command = board_command(port, "run", script, "--timeout", timeout, "--stream",
+                                "--log", log_path)
         signalled = False
         with subprocess.Popen(command, stdout=subprocess.PIPE, text=True,
                               encoding="utf-8", errors="replace") as process:
-            for line in process.stdout:
-                if line.startswith("HCV_FIELD_CUE,"):
-                    signalled = True
-                    tone(high=True)
-                    print(f"采集提示 {line.strip()}", flush=True)
-            if process.wait() or not signalled:
-                raise RuntimeError(f"capture did not finish with a cue; see {directory / 'board.log'}")
+            timer = Timer(timeout + 25, process.kill)
+            timer.start()
+            try:
+                for line in process.stdout:
+                    if not signalled and line.startswith(cue):
+                        signalled = True
+                        tone(high=True)
+                        print(f"采集提示 {line.strip()}", flush=True)
+                if process.wait() or not signalled:
+                    raise RuntimeError(f"采集中断或缺少提示信号，请保留 {log_path}")
+            except BaseException:
+                if process.poll() is None:
+                    process.kill()
+                raise
+            finally:
+                timer.cancel()
+
+
+def record(port, directory, transition=False, calibration_path=None, seconds=2):
+    params = "CAPTURE_SECONDS = %d\nSIGNAL_FRAME = %d\n" % (
+        8 if transition else seconds, 90 if transition else 1,
+    )
+    if calibration_path is not None:
+        params += "CALIBRATION_PATH = %r\n" % calibration_path
+    countdown()
+    run_cued_capture(port, directory, "m1_ball_insertion.py", params, "HCV_FIELD_CUE,", 38)
     capture = directory / "capture.bin"
     subprocess.run(board_command(port, "get", REMOTE + "m1-ball-insertion.bin", capture),
-                   check=True)
+                   check=True, timeout=600)
     result = decode_recording(capture, directory, None)
     with (directory / "ball.csv").open(encoding="utf-8", newline="") as stream:
         rows = list(csv.DictReader(stream))
     if not all(int(row["status"]) & CALIB_OK for row in rows):
         raise RuntimeError("K230 did not mark every recorded frame as calibrated")
     return rows, result
+
+
+def capture_ball_samples(port, directory, fingerprint):
+    countdown()
+    run_cued_capture(port, directory, "m2_reference.py", "HCV_BALL_SAMPLES = True\n",
+                     "HCV_M2_CAPTURE_CUE", 24)
+    samples_file = directory / "ball-pixels.json"
+    subprocess.run(board_command(port, "get", REMOTE + "m2-ball-pixels.json", samples_file),
+                   check=True, timeout=120)
+    packet = json.loads(samples_file.read_text(encoding="utf-8"))
+    if packet["fingerprint"] != fingerprint or len(packet["u_px"]) != 120:
+        raise ValueError("ball samples do not match the reference or expected frame count")
+    return packet["u_px"]
+
+
+def collect_ball_points(port, output, fingerprint):
+    output.mkdir()
+    points = {}
+    for mm in BALL_POSITIONS_MM:
+        for attempt in count(1):
+            input(f"把球心对准 {mm / 10:+g} cm 刻线，手移开，放稳后按回车采集。")
+            columns = capture_ball_samples(port, output / f"{mm:+d}mm-{attempt}", fingerprint)
+            try:
+                anchor = ball_anchor(mm, columns)
+            except ValueError as error:
+                print(f"{error}。请重新放球，按回车重测；Ctrl+C 可终止。", flush=True)
+                continue
+            print(f"{mm:+d} mm，{anchor['n']} 个有效检测，标准差 {anchor['std_px']:.3f} px。",
+                  flush=True)
+            points[mm] = columns
+            break
+    return points
 
 
 def static_result(rows, target_mm):
@@ -199,20 +257,31 @@ def transition_result(rows, first_changed, insertion, max_interval_ms, fps):
     }
 
 
-def field_run(port, output, strip, level_deg):
+def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=None):
     output.mkdir(parents=True)
-    input("相机和纸尺固定，横尺调平，台灯正常，清空检测区。准备后按回车。")
+    input("相机和纸尺固定，横尺调平，台灯正常，清空检测区。准备好拍底图再按回车，五声低音后听高音。")
     image, reference = capture_reference(port, output)
     config = reference["config"]
-    calibration = build_calibration(image, strip or select_ruler(image), reference, config, level_deg)
-    if not confirm_numbering(image, calibration, output):
-        raise ValueError("ruler numbering was not confirmed")
+    static_seconds = max(2, ceil(120 / config["sensor"]["fps"]))
+    if compare_with is not None:
+        runtime_calibration(compare_with, config)
+        other_mode = "ball" if calib_mode == "ruler" else "ruler"
+        if compare_with.get("method", "ruler") != other_mode:
+            raise ValueError(f"comparison file must contain the {other_mode} calibration")
+    if calib_mode == "ball":
+        points = collect_ball_points(port, output / "ball-anchors", reference["fingerprint"])
+        calibration = build_ball_calibration(points, reference, config, level_deg)
+    else:
+        calibration = build_calibration(image, strip or select_ruler(image), reference, config, level_deg)
+        if not confirm_numbering(image, calibration, output):
+            raise ValueError("ruler numbering was not confirmed")
     pending = output / "calib.pending.json"
     write_json(pending, calibration)
     remote_pending = REMOTE + "calib.pending.json"
-    subprocess.run(board_command(port, "put", pending, remote_pending), check=True)
+    subprocess.run(board_command(port, "put", pending, remote_pending), check=True, timeout=120)
     input("把钢球球心对准尺子上实际印刷的 0 刻度。放稳后按回车。")
-    zero_rows, _ = record(port, output / "normal_+0mm", calibration_path=remote_pending)
+    zero_rows, _ = record(port, output / "normal_+0mm", calibration_path=remote_pending,
+                         seconds=static_seconds)
     zero = static_result(zero_rows, 0)
     zero["zero_check_passed"] = zero["valid"] >= 100 and abs(zero["mean_mm"]) < 3
     results = {"normal_+0mm": zero}
@@ -220,12 +289,19 @@ def field_run(port, output, strip, level_deg):
     if not zero["zero_check_passed"]:
         raise ValueError("zero check failed: put the ball on the physical 0 tick and verify numbering")
     subprocess.run(board_command(port, "put", pending, REMOTE + "calib.json"),
-                   check=True)
+                   check=True, timeout=120)
     pending.replace(output / "calib.json")
+
+    if compare_with is not None:
+        print("请重新摆放七个静态点，两套 LUT 将使用同一批新采集的像素坐标。", flush=True)
+        points = collect_ball_points(port, output / "comparison-points", reference["fingerprint"])
+        ruler, ball = (calibration, compare_with) if calib_mode == "ruler" else (compare_with, calibration)
+        write_json(output / "lut-comparison.json", compare_calibrations(ruler, ball, points, config))
+        return True
 
     def measure(label, prompt, target_mm):
         input(prompt + "，放稳后按回车。")
-        rows, _ = record(port, output / label)
+        rows, _ = record(port, output / label, seconds=static_seconds)
         results[label] = static_result(rows, target_mm)
         save_results(output, results)
         print(label, results[label], flush=True)
@@ -261,10 +337,15 @@ def main():
     parser.add_argument("--port", default="auto")
     parser.add_argument("--level-deg", type=float, required=True, help="measured ruler angle")
     parser.add_argument("--strip", type=int, nargs=4, metavar=("LEFT", "RIGHT", "TOP", "BOTTOM"))
+    parser.add_argument("--calib-mode", choices=("ruler", "ball"), default="ruler")
+    parser.add_argument("--compare-with", type=Path,
+                        help="after the zero check, compare with an existing LUT at seven fresh points")
     args = parser.parse_args()
     if not abs(args.level_deg) <= 0.2:
         parser.error("ruler must be level within ±0.2°")
-    return 0 if field_run(args.port, args.output.resolve(), args.strip, args.level_deg) else 2
+    other = json.loads(args.compare_with.read_text(encoding="utf-8")) if args.compare_with else None
+    return 0 if field_run(args.port, args.output.resolve(), args.strip, args.level_deg,
+                          args.calib_mode, other) else 2
 
 
 if __name__ == "__main__":

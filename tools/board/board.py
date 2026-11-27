@@ -4,6 +4,7 @@ import argparse
 from contextlib import ExitStack
 from hashlib import sha256
 import json
+import re
 from math import isfinite
 from pathlib import Path, PurePosixPath
 import sys
@@ -51,6 +52,15 @@ def send_interrupt(serial):
 
 
 class CanMVSerialTransport(SerialTransport):
+    def __init__(self, device, *args, **kwargs):
+        try:
+            super().__init__(device, *args, **kwargs)
+        except (OSError, TransportError) as error:
+            raise TransportError(
+                f"could not open host serial port {device}; "
+                "the port may be busy or its USB driver may be stuck"
+            ) from error
+
     def enter_raw_repl(self, soft_reset=False, timeout_overall=10):
         send_interrupt(self.serial)
         self.serial.reset_input_buffer()
@@ -87,7 +97,17 @@ class ControlledSerialTransport(CanMVSerialTransport):
             self.serial.dtr = dtr == "1"
         if rts != "default":
             self.serial.rts = rts == "1"
-        self.serial.open()
+        try:
+            self.serial.open()
+        except (OSError, TransportError) as error:
+            try:
+                self.serial.close()
+            except Exception:
+                pass
+            raise TransportError(
+                f"could not open host serial port {device}; "
+                "the port may be busy or its USB driver may be stuck"
+            ) from error
 
 
 def require_backup(directory=BACKUP):
@@ -204,6 +224,16 @@ def project_path(path):
             or ".." in parsed.parts or "\\" in path or "\x00" in path):
         raise ValueError("board writes must target a file inside /sdcard/hcv")
     return parsed
+
+
+def image_matches(output, version):
+    for line in output.splitlines():
+        fields = dict(re.findall(r"\b(machine|release|version)='([^']+)'", line))
+        if fields.get("machine") == "k230_canmv_hiwonder":
+            release = fields.get("release", "").split("-")[0]
+            build = fields.get("version", "").split(" on ")[0].split("-")[0]
+            return release == build == version
+    return False
 
 
 def upload(board, local, remote):
@@ -343,7 +373,8 @@ def run_command(board, args):
             pending.clear()
 
         try:
-            run_script(board, args.script.read_bytes(), args.timeout, emit)
+            source = sys.stdin.buffer.read() if args.script == Path("-") else args.script.read_bytes()
+            run_script(board, source, args.timeout, emit)
         finally:
             flush()
 
@@ -353,6 +384,13 @@ def positive_timeout(text):
     if not isfinite(value) or value <= 0:
         raise argparse.ArgumentTypeError("timeout must be a finite positive number")
     return value
+
+
+def read_chunk_size(text):
+    size = int(text)
+    if not 1 <= size <= 4096:
+        raise argparse.ArgumentTypeError("read chunk size must be between 1 and 4096")
+    return size
 
 
 def arguments():
@@ -368,11 +406,13 @@ def arguments():
     put = commands.add_parser("put")
     put.add_argument("local", type=Path)
     put.add_argument("remote")
+    put.add_argument("--hiwonder-v18", action="store_true")
     get = commands.add_parser("get")
     get.add_argument("remote")
     get.add_argument("local", type=Path)
+    get.add_argument("--chunk-size", type=read_chunk_size, default=256)
     run = commands.add_parser("run")
-    run.add_argument("script", type=Path)
+    run.add_argument("script", type=Path, help="script path, or - to read script bytes from stdin")
     run.add_argument("--timeout", type=positive_timeout, default=30.0)
     run.add_argument("--stream", action="store_true")
     run.add_argument("--log", type=Path)
@@ -407,13 +447,17 @@ def main():
                 for item in board.fs_listdir(args.remote):
                     print(item.name)
             elif args.command == "get":
-                args.local.write_bytes(board.fs_readfile(args.remote))
+                args.local.write_bytes(board.fs_readfile(args.remote, chunk_size=args.chunk_size))
             elif args.command == "put":
                 project_path(args.remote)
                 require_backup()
+                if args.hiwonder_v18:
+                    identity = board.exec("import os\nprint(os.uname())").decode()
+                    if not image_matches(identity, "v1.8"):
+                        raise ValueError("upload requires Hiwonder v1.8")
                 upload(board, args.local, args.remote)
             elif args.command == "run":
-                if not args.script.is_file():
+                if args.script != Path("-") and not args.script.is_file():
                     raise FileNotFoundError(str(args.script))
                 require_backup()
                 run_command(board, args)
@@ -426,13 +470,16 @@ def main():
             try:
                 if board.in_raw_repl:
                     board.exit_raw_repl()
-            except OSError:
+            except Exception:
                 pass
             finally:
                 try:
                     board.close()
-                except OSError:
-                    board.serial.close()
+                except Exception:
+                    try:
+                        board.serial.close()
+                    except Exception:
+                        pass
     except BoardRecoveryError as error:
         print(f"board: {error}", file=sys.stderr)
         return 3

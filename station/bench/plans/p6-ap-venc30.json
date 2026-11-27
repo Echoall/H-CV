@@ -1,0 +1,21 @@
+{
+  "id": "p6-ap-venc30",
+  "version": 1,
+  "title": "标准清晰度，编码降到每秒 30 帧",
+  "steps": [
+    "完全断电至少 10 秒后接上 K230，关掉可能占用板子的 CanMV。尽量沿用方案 1 的位置和灯光。",
+    "看到画面后先保持不动。大约 25 秒后缓慢移动镜头或物体 10 秒，观察是否出现大片色块。",
+    "录制结束后等电脑切回原网络，再按提示评价画面。中途停住也请保留记录。"
+  ],
+  "sensor_mode": [1280, 720, 90],
+  "firmware_encoder": true,
+  "width": 960,
+  "height": 540,
+  "fps": 30,
+  "bitrate_kbps": 1500,
+  "gop": 30,
+  "transport": "tcp",
+  "caching_ms": 200,
+  "seconds": 60,
+  "criteria": {"min_duration_ratio": 0.9666666666666667, "min_frame_ratio": 0.9666666666666667}
+}

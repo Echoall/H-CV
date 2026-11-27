@@ -1,0 +1,412 @@
+{
+  "date": "2026-11-25",
+  "commit": "01aecb0",
+  "firmware": "v1.4-19-ga7de1c8",
+  "runs": [
+    {
+      "run": "20261125-224206-537370-p8-link",
+      "board_info_exit": 0,
+      "started": "2026-11-25T22:42:06.537+08:00",
+      "ended": "2026-11-25T22:45:22.982+08:00",
+      "network": {
+        "manual": true
+      },
+      "board_exit_code": null,
+      "results_collected": null,
+      "trials": [
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 25,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:42:53.272+08:00",
+          "start_at": "2026-11-25T22:43:05.272+08:00",
+          "pc": {
+            "error": "link trial handshake did not match"
+          },
+          "pc_end_at": "2026-11-25T22:43:06.301+08:00",
+          "windows_wlan": {},
+          "board": {
+            "active_ms": 160,
+            "bytes": 4000,
+            "rssi": null,
+            "max_activity_gap_ms": 41,
+            "missing_datagrams": null,
+            "expected_bytes": 750000,
+            "elapsed_ms": 200,
+            "error": 104
+          },
+          "board_end_at": "2026-11-25T22:43:09.44+08:00",
+          "receive_kBps": null,
+          "rst_origin": "unknown",
+          "sustained_target": false
+        },
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 50,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:43:09.442+08:00",
+          "start_at": "2026-11-25T22:43:09.443+08:00",
+          "pc": {
+            "error": "link trial handshake did not match"
+          },
+          "pc_end_at": "2026-11-25T22:43:10.446+08:00",
+          "windows_wlan": {},
+          "board": {
+            "rssi": null,
+            "error": "no activity before timeout"
+          },
+          "board_end_at": "2026-11-25T22:43:27.443+08:00",
+          "receive_kBps": null,
+          "sustained_target": false
+        },
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 100,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:43:27.444+08:00",
+          "start_at": "2026-11-25T22:43:27.447+08:00",
+          "pc": {
+            "bytes": 3000000,
+            "elapsed_ms": 30084,
+            "active_ms": 30084,
+            "max_activity_gap_ms": 1317,
+            "expected_bytes": 3000000,
+            "error": null,
+            "missing_datagrams": null
+          },
+          "pc_end_at": "2026-11-25T22:43:57.711+08:00",
+          "windows_wlan": {}
+        },
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 200,
+          "seconds": 30
+        },
+        {
+          "protocol": "tcp",
+          "direction": "pc_to_board",
+          "target_kBps": 100,
+          "seconds": 30
+        },
+        {
+          "protocol": "udp",
+          "direction": "board_to_pc",
+          "target_kBps": 100,
+          "seconds": 30
+        },
+        {
+          "protocol": "udp",
+          "direction": "board_to_pc",
+          "target_kBps": 200,
+          "seconds": 30
+        },
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 300,
+          "seconds": 60
+        }
+      ],
+      "message": "链路体检没收到板端的后续状态。"
+    },
+    {
+      "run": "20261125-224903-619106-p8-link",
+      "board_info_exit": 0,
+      "started": "2026-11-25T22:49:03.619+08:00",
+      "ended": "2026-11-25T22:52:44.586+08:00",
+      "network": {
+        "automatic_switch": true,
+        "restore_command_exit": 0,
+        "restore_reason": "verified",
+        "restored": true
+      },
+      "board_exit_code": 0,
+      "results_collected": true,
+      "trials": [
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 25,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:49:07.551+08:00",
+          "start_at": "2026-11-25T22:49:11.098+08:00",
+          "pc": {
+            "bytes": 750000,
+            "elapsed_ms": 30002,
+            "active_ms": 30002,
+            "max_activity_gap_ms": 854,
+            "expected_bytes": 750000,
+            "error": null,
+            "missing_datagrams": null
+          },
+          "pc_end_at": "2026-11-25T22:49:41.112+08:00",
+          "windows_wlan": {
+            "signal_pct": 94.0,
+            "rx_mbps": 72.2,
+            "tx_mbps": 72.2
+          },
+          "board": {
+            "active_ms": 30000,
+            "bytes": 750000,
+            "rssi": null,
+            "max_activity_gap_ms": 42,
+            "missing_datagrams": null,
+            "expected_bytes": 750000,
+            "elapsed_ms": 30000,
+            "error": null
+          },
+          "board_end_at": "2026-11-25T22:49:41.112+08:00",
+          "receive_kBps": 25.0,
+          "sustained_target": true
+        },
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 50,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:49:41.113+08:00",
+          "start_at": "2026-11-25T22:49:41.321+08:00",
+          "pc": {
+            "bytes": 1500000,
+            "elapsed_ms": 29998,
+            "active_ms": 29998,
+            "max_activity_gap_ms": 70,
+            "expected_bytes": 1500000,
+            "error": null,
+            "missing_datagrams": null
+          },
+          "pc_end_at": "2026-11-25T22:50:11.339+08:00",
+          "windows_wlan": {
+            "signal_pct": 94.0,
+            "rx_mbps": 72.2,
+            "tx_mbps": 72.2
+          },
+          "board": {
+            "active_ms": 30000,
+            "bytes": 1500000,
+            "rssi": null,
+            "max_activity_gap_ms": 21,
+            "missing_datagrams": null,
+            "expected_bytes": 1500000,
+            "elapsed_ms": 30000,
+            "error": null
+          },
+          "board_end_at": "2026-11-25T22:50:11.336+08:00",
+          "receive_kBps": 50.0,
+          "sustained_target": true
+        },
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 100,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:50:11.337+08:00",
+          "start_at": "2026-11-25T22:50:11.571+08:00",
+          "pc": {
+            "bytes": 3000000,
+            "elapsed_ms": 29991,
+            "active_ms": 29991,
+            "max_activity_gap_ms": 46,
+            "expected_bytes": 3000000,
+            "error": null,
+            "missing_datagrams": null
+          },
+          "pc_end_at": "2026-11-25T22:50:41.589+08:00",
+          "windows_wlan": {
+            "signal_pct": 95.0,
+            "rx_mbps": 72.2,
+            "tx_mbps": 72.2
+          },
+          "board": {
+            "active_ms": 30000,
+            "bytes": 3000000,
+            "rssi": null,
+            "max_activity_gap_ms": 11,
+            "missing_datagrams": null,
+            "expected_bytes": 3000000,
+            "elapsed_ms": 30000,
+            "error": null
+          },
+          "board_end_at": "2026-11-25T22:50:41.586+08:00",
+          "receive_kBps": 100.03,
+          "sustained_target": true
+        },
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 200,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:50:41.587+08:00",
+          "start_at": "2026-11-25T22:50:41.79+08:00",
+          "pc": {
+            "bytes": 6000000,
+            "elapsed_ms": 29990,
+            "active_ms": 29990,
+            "max_activity_gap_ms": 46,
+            "expected_bytes": 6000000,
+            "error": null,
+            "missing_datagrams": null
+          },
+          "pc_end_at": "2026-11-25T22:51:11.804+08:00",
+          "windows_wlan": {
+            "signal_pct": 95.0,
+            "rx_mbps": 72.2,
+            "tx_mbps": 72.2
+          },
+          "board": {
+            "active_ms": 30000,
+            "bytes": 6000000,
+            "rssi": null,
+            "max_activity_gap_ms": 7,
+            "missing_datagrams": null,
+            "expected_bytes": 6000000,
+            "elapsed_ms": 30000,
+            "error": null
+          },
+          "board_end_at": "2026-11-25T22:51:11.812+08:00",
+          "receive_kBps": 200.07,
+          "sustained_target": true
+        },
+        {
+          "protocol": "tcp",
+          "direction": "pc_to_board",
+          "target_kBps": 100,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:51:11.813+08:00",
+          "start_at": "2026-11-25T22:51:12.012+08:00",
+          "pc": {
+            "bytes": 3000000,
+            "elapsed_ms": 30000,
+            "active_ms": 30000,
+            "max_activity_gap_ms": 13,
+            "expected_bytes": 3000000,
+            "error": null,
+            "missing_datagrams": null
+          },
+          "pc_end_at": "2026-11-25T22:51:42.031+08:00",
+          "windows_wlan": {
+            "signal_pct": 94.0,
+            "rx_mbps": 72.2,
+            "tx_mbps": 72.2
+          },
+          "board": {
+            "active_ms": 30010,
+            "bytes": 3000000,
+            "rssi": null,
+            "max_activity_gap_ms": 53,
+            "missing_datagrams": null,
+            "expected_bytes": 3000000,
+            "elapsed_ms": 30010,
+            "error": null
+          },
+          "board_end_at": "2026-11-25T22:51:42.037+08:00",
+          "receive_kBps": 99.97,
+          "sustained_target": true
+        },
+        {
+          "protocol": "udp",
+          "direction": "board_to_pc",
+          "target_kBps": 100,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:51:42.038+08:00",
+          "start_at": "2026-11-25T22:51:42.235+08:00",
+          "pc": {
+            "bytes": 0,
+            "elapsed_ms": 12,
+            "active_ms": 0,
+            "max_activity_gap_ms": 0,
+            "expected_bytes": 3000000,
+            "error": 10054,
+            "missing_datagrams": 3000
+          },
+          "pc_end_at": "2026-11-25T22:51:42.247+08:00",
+          "windows_wlan": {
+            "signal_pct": 94.0,
+            "rx_mbps": 72.2,
+            "tx_mbps": 72.2
+          },
+          "board": {
+            "rssi": null,
+            "error": "unexpected UDP control message"
+          },
+          "board_end_at": "2026-11-25T22:51:42.09+08:00",
+          "receive_kBps": null,
+          "rst_origin": "unknown",
+          "sustained_target": false
+        },
+        {
+          "protocol": "udp",
+          "direction": "board_to_pc",
+          "target_kBps": 200,
+          "seconds": 30,
+          "board_ready_at": "2026-11-25T22:51:42.091+08:00",
+          "start_at": "2026-11-25T22:51:42.441+08:00",
+          "pc": {
+            "bytes": 0,
+            "elapsed_ms": 9,
+            "active_ms": 0,
+            "max_activity_gap_ms": 0,
+            "expected_bytes": 6000000,
+            "error": 10054,
+            "missing_datagrams": 6000
+          },
+          "pc_end_at": "2026-11-25T22:51:42.45+08:00",
+          "windows_wlan": {
+            "signal_pct": 94.0,
+            "rx_mbps": 72.2,
+            "tx_mbps": 72.2
+          },
+          "board": {
+            "rssi": null,
+            "error": "unexpected UDP control message"
+          },
+          "board_end_at": "2026-11-25T22:51:42.143+08:00",
+          "receive_kBps": null,
+          "rst_origin": "unknown",
+          "sustained_target": false
+        },
+        {
+          "protocol": "tcp",
+          "direction": "board_to_pc",
+          "target_kBps": 300,
+          "seconds": 60,
+          "board_ready_at": "2026-11-25T22:51:42.143+08:00",
+          "start_at": "2026-11-25T22:51:42.645+08:00",
+          "pc": {
+            "bytes": 18000000,
+            "elapsed_ms": 59994,
+            "active_ms": 59994,
+            "max_activity_gap_ms": 75,
+            "expected_bytes": 18000000,
+            "error": null,
+            "missing_datagrams": null
+          },
+          "pc_end_at": "2026-11-25T22:52:42.661+08:00",
+          "windows_wlan": {
+            "signal_pct": 95.0,
+            "rx_mbps": 72.2,
+            "tx_mbps": 72.2
+          },
+          "board": {
+            "active_ms": 60000,
+            "bytes": 18000000,
+            "rssi": null,
+            "max_activity_gap_ms": 6,
+            "missing_datagrams": null,
+            "expected_bytes": 18000000,
+            "elapsed_ms": 60000,
+            "error": null
+          },
+          "board_end_at": "2026-11-25T22:52:42.662+08:00",
+          "receive_kBps": 300.03,
+          "sustained_target": true
+        }
+      ],
+      "message": "链路记录已保存，检查结果以各档收发日志为准。"
+    }
+  ]
+}

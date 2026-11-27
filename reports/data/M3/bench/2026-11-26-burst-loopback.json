@@ -1,0 +1,159 @@
+{
+  "simulation": true,
+  "trials": [
+    {
+      "shape": "A",
+      "protocol": "tcp",
+      "direction": "board_to_pc",
+      "target_kBps": 190,
+      "seconds": 60,
+      "board": {
+        "bytes": 11400000,
+        "active_ms": 60000,
+        "elapsed_ms": 60000,
+        "error": null,
+        "error_at_ms": null,
+        "completed_bursts": 11400,
+        "send_burst_p99_ms": 1,
+        "send_burst_max_ms": 1
+      },
+      "pc": {
+        "bytes": 11400000,
+        "elapsed_ms": 59994,
+        "error_at_ms": null,
+        "active_ms": 59994,
+        "max_activity_gap_ms": 9,
+        "expected_bytes": 11400000,
+        "error": null,
+        "missing_datagrams": null,
+        "terminal": "EOF",
+        "terminal_at_ms": 60001
+      },
+      "receive_kBps": 190.02,
+      "sustained_target": true
+    },
+    {
+      "shape": "B",
+      "protocol": "tcp",
+      "direction": "board_to_pc",
+      "target_kBps": 190,
+      "seconds": 60,
+      "board": {
+        "bytes": 11400000,
+        "active_ms": 60000,
+        "elapsed_ms": 60000,
+        "error": null,
+        "error_at_ms": null,
+        "completed_bursts": 1800,
+        "send_burst_p99_ms": 1,
+        "send_burst_max_ms": 1
+      },
+      "pc": {
+        "bytes": 11400000,
+        "elapsed_ms": 59968,
+        "error_at_ms": null,
+        "active_ms": 59968,
+        "max_activity_gap_ms": 36,
+        "expected_bytes": 11400000,
+        "error": null,
+        "missing_datagrams": null,
+        "terminal": "EOF",
+        "terminal_at_ms": 60001
+      },
+      "receive_kBps": 190.1,
+      "sustained_target": true
+    },
+    {
+      "shape": "C",
+      "protocol": "tcp",
+      "direction": "board_to_pc",
+      "target_kBps": 190,
+      "seconds": 60,
+      "board": {
+        "bytes": 11400000,
+        "active_ms": 60000,
+        "elapsed_ms": 60000,
+        "error": null,
+        "error_at_ms": null,
+        "completed_bursts": 600,
+        "send_burst_p99_ms": 1,
+        "send_burst_max_ms": 1
+      },
+      "pc": {
+        "bytes": 11400000,
+        "elapsed_ms": 59902,
+        "error_at_ms": null,
+        "active_ms": 59902,
+        "max_activity_gap_ms": 102,
+        "expected_bytes": 11400000,
+        "error": null,
+        "missing_datagrams": null,
+        "terminal": "EOF",
+        "terminal_at_ms": 60001
+      },
+      "receive_kBps": 190.31,
+      "sustained_target": true
+    },
+    {
+      "shape": "D",
+      "protocol": "tcp",
+      "direction": "board_to_pc",
+      "target_kBps": 190,
+      "seconds": 60,
+      "board": {
+        "bytes": 11400000,
+        "active_ms": 60001,
+        "elapsed_ms": 60001,
+        "error": null,
+        "error_at_ms": null,
+        "completed_bursts": 1860,
+        "send_burst_p99_ms": 1,
+        "send_burst_max_ms": 1
+      },
+      "pc": {
+        "bytes": 11400000,
+        "elapsed_ms": 59963,
+        "error_at_ms": null,
+        "active_ms": 59963,
+        "max_activity_gap_ms": 35,
+        "expected_bytes": 11400000,
+        "error": null,
+        "missing_datagrams": null,
+        "terminal": "EOF",
+        "terminal_at_ms": 59996
+      },
+      "receive_kBps": 190.12,
+      "sustained_target": true
+    },
+    {
+      "shape": "D",
+      "protocol": "udp",
+      "direction": "board_to_pc",
+      "target_kBps": 190,
+      "seconds": 60,
+      "board": {
+        "bytes": 11400000,
+        "active_ms": 60000,
+        "elapsed_ms": 60000,
+        "error": null,
+        "error_at_ms": null,
+        "completed_bursts": 1860,
+        "send_burst_p99_ms": 1,
+        "send_burst_max_ms": 1
+      },
+      "pc": {
+        "bytes": 11400000,
+        "elapsed_ms": 59979,
+        "error_at_ms": null,
+        "active_ms": 59979,
+        "max_activity_gap_ms": 35,
+        "expected_bytes": 11400000,
+        "error": null,
+        "missing_datagrams": 0
+      },
+      "receive_kBps": 190.07,
+      "udp_loss_pct": 0.0,
+      "sustained_target": true
+    }
+  ]
+}

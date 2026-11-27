@@ -1,0 +1,91 @@
+{
+  "date": "20261126",
+  "simulation": false,
+  "runs": [
+    {
+      "mode": "ap",
+      "run": "20261126-234424-714021-hubei/ap",
+      "board_stage": {
+        "started": "2026-11-26T23:45:06.809+08:00",
+        "ended": "2026-11-26T23:45:46.032+08:00",
+        "exit_code": 3,
+        "cleanup": false
+      },
+      "last_heartbeat": {
+        "at": "2026-11-26T23:45:44.463+08:00",
+        "elapsed_ms": 36812,
+        "frames": 2199,
+        "bytes": 4159768,
+        "fps": 59.7
+      },
+      "board_cleanup_marker": false,
+      "client_end_at": "2026-11-26T23:45:44.554+08:00",
+      "session_start_to_eof_s": 37.745,
+      "capture": {
+        "transport_observed": [
+          "tcp"
+        ],
+        "continuous_display_s": 10.533,
+        "video_track_seconds": 10.069556,
+        "frames": 402,
+        "width": 640,
+        "height": 360,
+        "frame_numbers": {
+          "reference_pictures": 402,
+          "idr": 57,
+          "skipped": 160,
+          "gap_pct": 28.469750889679716
+        },
+        "client_end_reason": "eof"
+      },
+      "clock_images": 3,
+      "restored_at_wizard_exit": true,
+      "result": "失败"
+    },
+    {
+      "mode": "sta",
+      "run": "20261126-234424-714021-hubei/sta",
+      "board_stage": {
+        "started": "2026-11-26T23:48:54.781+08:00",
+        "ended": "2026-11-26T23:51:07.344+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "last_heartbeat": {
+        "at": "2026-11-26T23:51:06.356+08:00",
+        "elapsed_ms": 126835,
+        "frames": 7853,
+        "bytes": 14789082,
+        "fps": 61.9
+      },
+      "board_cleanup_marker": true,
+      "client_end_at": "2026-11-26T23:49:21.534+08:00",
+      "session_start_to_eof_s": 26.753,
+      "capture": {
+        "transport_observed": [
+          "tcp"
+        ],
+        "continuous_display_s": 8.893,
+        "video_track_seconds": 8.434156,
+        "frames": 346,
+        "width": 640,
+        "height": 360,
+        "frame_numbers": {
+          "reference_pictures": 346,
+          "idr": 48,
+          "skipped": 125,
+          "gap_pct": 26.53927813163482
+        },
+        "client_end_reason": "eof"
+      },
+      "clock_images": 3,
+      "restored_at_wizard_exit": false,
+      "result": "失败"
+    }
+  ],
+  "network_followup": {
+    "checked_at": "2026-11-27T12:45:03+08:00",
+    "matches_pre_ap_daily_profile": true,
+    "source": "Current Windows WLAN snapshot matched the saved profile in the pre-AP disconnect event. WLAN 8001 also recorded its return at 23:51:31 +08:00."
+  }
+}

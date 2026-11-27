@@ -1,0 +1,8 @@
+{
+  "run": "20261124-232317-980306-p4-ap-latency",
+  "source": "Microsoft-Windows-WLAN-AutoConfig/Operational",
+  "event_id": 8002,
+  "local_time": "2026-11-24T23:25:37+08:00",
+  "reason_code": 163851,
+  "reason": "特定的网络不可用。"
+}

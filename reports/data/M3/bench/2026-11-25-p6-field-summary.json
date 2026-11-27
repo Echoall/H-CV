@@ -1,0 +1,83 @@
+{
+  "date": "20261125",
+  "runs": [
+    {
+      "run": "20261125-131056-047050-p6-ap-venc30",
+      "plan": "p6-ap-venc30",
+      "version": 1,
+      "rtsp_request_methods": [
+        "OPTIONS",
+        "DESCRIBE",
+        "SETUP",
+        "PLAY",
+        "TEARDOWN"
+      ],
+      "vlc_10s_no_data": true,
+      "board_telemetry": {
+        "sensor_mode": [
+          1280,
+          720,
+          90
+        ],
+        "sampled_status_rows": 124,
+        "cleanup": true,
+        "raw_repl_recovery_failed": false,
+        "last_status_at": "2026-11-25T13:13:39.378+08:00",
+        "last_elapsed_ms": 124520,
+        "last_packets": 11583,
+        "sampled_error_status_rows": 0,
+        "packets": 11628,
+        "bytes": 23474189
+      },
+      "board_stage": {
+        "started": "2026-11-25T13:11:32.18+08:00",
+        "ended": "2026-11-25T13:13:40.815+08:00",
+        "exit_code": 0,
+        "cleanup": true
+      },
+      "client_stage": {
+        "started": "2026-11-25T13:11:37.295+08:00",
+        "ended": "2026-11-25T13:12:09.29+08:00",
+        "exit_code": 0
+      },
+      "post_info_exit_code": 0,
+      "network_restored": false,
+      "capture": {
+        "frames": 365,
+        "seconds": 9.733322000000001,
+        "transport_observed": [
+          "tcp"
+        ],
+        "client_end_at": "2026-11-25T13:12:09.088+08:00",
+        "client_end_seconds": 20.563,
+        "client_end_reason": "eof",
+        "fps": 37.5000436644344
+      },
+      "video_track": {
+        "has_video_stream": true,
+        "width": 960,
+        "height": 540,
+        "r_frame_rate": "90/1",
+        "avg_frame_rate": "182500000/4866661",
+        "duration": "9.733322",
+        "nb_frames": "365",
+        "container_seconds": "9.733322"
+      },
+      "passed_by_wizard_v1": false,
+      "simulation": false,
+      "firmware_encoder_source_fps": 90,
+      "firmware_encoder_requested_output_fps": 30,
+      "motion_quality_out_of_5": 3,
+      "operator_reported_stutter": true,
+      "operator_reported_blocking": true,
+      "network_recovery": {
+        "reason": "original_network_not_confirmed_in_time",
+        "manual_prompt_shown": true,
+        "wlan_disconnect_event_ids_8003_during_client": 0,
+        "wlan_restore_failure_reason_codes": [
+          163851
+        ]
+      }
+    }
+  ]
+}

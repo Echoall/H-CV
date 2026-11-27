@@ -1,0 +1,42 @@
+{
+  "source": "PC loopback, simulated initial SETUP reset, subsequent live FFmpeg/MediaMTX/VLC",
+  "attempts": [
+    {
+      "index": 1,
+      "started": "2026-11-26T00:22:50.504+08:00",
+      "ended": "2026-11-26T00:22:50.504+08:00",
+      "exit_code": 1,
+      "playing": false,
+      "rtsp_stage": "SETUP",
+      "ping": {
+        "exit_code": 0,
+        "echo_reply": true
+      },
+      "socket_error_codes": [
+        "10054"
+      ]
+    },
+    {
+      "index": 2,
+      "started": "2026-11-26T00:22:52.528+08:00",
+      "ended": "2026-11-26T00:23:55.194+08:00",
+      "exit_code": 0,
+      "playing": true,
+      "rtsp_stage": "PLAY",
+      "ping": {
+        "exit_code": 0,
+        "echo_reply": true
+      },
+      "socket_error_codes": []
+    }
+  ],
+  "video": {
+    "frames": 1849,
+    "seconds": 61.63798888888889,
+    "overlap_ready": true,
+    "seconds_from_board_ready": 2.571,
+    "width": 960,
+    "height": 540
+  },
+  "physical_capture": false
+}

@@ -1,0 +1,57 @@
+{
+  "simulation": true,
+  "source": "Local FFmpeg -> MediaMTX -> VLC; no board or Wi-Fi switch",
+  "trials": {
+    "pass": [
+      {
+        "mode": "ap",
+        "result": "通过",
+        "display_s": 61.598,
+        "track_s": 62.169511,
+        "frames": 3723,
+        "gap_pct": 0.0,
+        "end": null
+      }
+    ],
+    "ap": [
+      {
+        "mode": "ap",
+        "result": "失败",
+        "display_s": 23.875,
+        "track_s": 23.921478,
+        "frames": 1429,
+        "gap_pct": 0.0,
+        "end": "eof"
+      },
+      {
+        "mode": "sta",
+        "result": "通过",
+        "display_s": 61.398,
+        "track_s": 62.160956,
+        "frames": 3723,
+        "gap_pct": 0.0,
+        "end": null
+      }
+    ],
+    "both": [
+      {
+        "mode": "ap",
+        "result": "失败",
+        "display_s": 23.875,
+        "track_s": 23.933722,
+        "frames": 1429,
+        "gap_pct": 0.0,
+        "end": "eof"
+      },
+      {
+        "mode": "sta",
+        "result": "失败",
+        "display_s": 23.874,
+        "track_s": 23.929033,
+        "frames": 1429,
+        "gap_pct": 0.0,
+        "end": "eof"
+      }
+    ]
+  }
+}

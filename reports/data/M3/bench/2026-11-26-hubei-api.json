@@ -1,0 +1,60 @@
+{
+  "firmware_revision": "a7de1c8b9a8eb84238fc6a9880d903c308079b30",
+  "source": {
+    "port/builtin_py/media/media.py": {
+      "sha256": "46caf2a457301891ad21632be12cc5c798cbfd107e06eb2b691fc2b46cdd1dcf",
+      "lines": [
+        {
+          "line": 93,
+          "text": "ALIGN_UP = VICAP_ALIGN_UP"
+        }
+      ]
+    },
+    "port/builtin_py/media/sensor.py": {
+      "sha256": "95e02cc469d07d255d859e7601ed26674f4fa07529353ff4c069419ae4354e65",
+      "lines": [
+        {
+          "line": 614,
+          "text": "def set_framesize(self, framesize = FRAME_SIZE_INVAILD, chn = CAM_CHN_ID_0, alignment=0, crop = None, **kwargs):"
+        },
+        {
+          "line": 673,
+          "text": "self._chn_attr[chn].alignment = alignment"
+        },
+        {
+          "line": 204,
+          "text": "ret = kd_mpi_sensor_adapt_get(cfg, info)"
+        }
+      ]
+    },
+    "port/builtin_py/media/vencoder.py": {
+      "sha256": "c9cc3ab8e52387e61a7f4be23fc8665ccd1f15fa5d49268e2f4a947e62e1d57f",
+      "lines": [
+        {
+          "line": 103,
+          "text": "def GetStream(self, chn, streamData,timeout=-1):"
+        },
+        {
+          "line": 133,
+          "text": "streamData.phy_addr[pack_idx] = self.output._pack[pack_idx].phys_addr"
+        },
+        {
+          "line": 76,
+          "text": "venc_chn_attr.rc_attr.cbr.src_frame_rate = chnAttr.src_frame_rate"
+        },
+        {
+          "line": 77,
+          "text": "venc_chn_attr.rc_attr.cbr.dst_frame_rate = chnAttr.dst_frame_rate"
+        }
+      ]
+    }
+  },
+  "archived_board_sensor": {
+    "file": "lcd_live_capture_check3.log",
+    "sha256": "a5310ae96834d3b6df86cfc619b27435dc08ac4dbf42b61ba1c7942e0c263b4f",
+    "first_line": "find sensor gc2093_csi2, type 30, output 1920x1080@60"
+  },
+  "archived_board_api": "reports/data/M3/m3-20261122-reconnect/api-inventory.log",
+  "fresh_usb_info": "could not enter raw repl",
+  "fresh_api_probe_ran": false
+}

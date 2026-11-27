@@ -1,0 +1,23 @@
+{
+  "simulation": true,
+  "complete": true,
+  "passed": true,
+  "step": "全部采集完毕",
+  "level_deg": 0.0,
+  "cases": {
+    "normal_+0mm": true,
+    "normal_empty": true,
+    "normal_-50mm": true,
+    "normal_+50mm": true,
+    "normal_-100mm": true,
+    "normal_+100mm": true,
+    "normal_-120mm": true,
+    "normal_+120mm": true,
+    "off_empty": true,
+    "off_+0mm": true,
+    "side_empty": true,
+    "side_+0mm": true,
+    "insertion": true,
+    "removal": true
+  }
+}

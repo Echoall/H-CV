@@ -1,0 +1,23 @@
+{
+  "id": "p7-ap-vicap30",
+  "version": 2,
+  "title": "仅给图传通道限帧，同时检查无线链路",
+  "steps": [
+    "完全断电至少 10 秒后接上 K230，关闭 CanMV。镜头和灯光尽量沿用上一轮。",
+    "会先运行约 60 秒的网络对照，这段没有画面。电脑保持连接板子的 Wi-Fi。",
+    "看到画面后先静止约 25 秒，再缓慢移动镜头前的物体 10 秒。",
+    "等录制、清理和切回原 Wi-Fi 完成后评画质。中途停住也请等待日志保存。"
+  ],
+  "sensor_mode": [1280, 720, 90],
+  "firmware_encoder": true,
+  "vicap_stream_limit": true,
+  "width": 960,
+  "height": 540,
+  "fps": 30,
+  "bitrate_kbps": 1500,
+  "gop": 30,
+  "transport": "tcp",
+  "caching_ms": 200,
+  "seconds": 60,
+  "criteria": {"min_duration_ratio": 0.9666666666666667, "min_frame_ratio": 0.9666666666666667}
+}

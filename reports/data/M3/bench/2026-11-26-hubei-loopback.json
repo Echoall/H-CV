@@ -1,0 +1,97 @@
+{
+  "simulation": true,
+  "vlc": "3.0.23",
+  "trials": {
+    "ap": [
+      {
+        "mode": "ap",
+        "result": "通过",
+        "display_s": 61.406,
+        "track_s": 61.957122,
+        "changed_display_samples": 307,
+        "frame_numbers": {
+          "reference_pictures": 3717,
+          "idr": 372,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "recorder_end": null,
+        "frames": 3717,
+        "bytes": 8048816,
+        "mp4_sha256": "4a3f765c72d6659910b259ca094466d059d76f9c05eb5340356e52ff73322f76"
+      }
+    ],
+    "mixed": [
+      {
+        "mode": "ap",
+        "result": "失败",
+        "display_s": 23.877,
+        "track_s": 23.646711,
+        "changed_display_samples": 119,
+        "frame_numbers": {
+          "reference_pictures": 1419,
+          "idr": 142,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "recorder_end": "eof",
+        "frames": 1419,
+        "bytes": 3101446,
+        "mp4_sha256": "0f601407622c7167932c9f33bba7e5f5b09f5eb8f4573c0c89fbf8ec6da536ff"
+      },
+      {
+        "mode": "sta",
+        "result": "通过",
+        "display_s": 61.597,
+        "track_s": 61.949122,
+        "changed_display_samples": 308,
+        "frame_numbers": {
+          "reference_pictures": 3717,
+          "idr": 372,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "recorder_end": null,
+        "frames": 3717,
+        "bytes": 8048664,
+        "mp4_sha256": "79f459abd45fb8c4d104fbbb622202b7cdeda9b78de6f220f22808c0ba5a509c"
+      }
+    ],
+    "both": [
+      {
+        "mode": "ap",
+        "result": "失败",
+        "display_s": 23.876,
+        "track_s": 23.645167,
+        "changed_display_samples": 119,
+        "frame_numbers": {
+          "reference_pictures": 1419,
+          "idr": 142,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "recorder_end": "eof",
+        "frames": 1419,
+        "bytes": 3101494,
+        "mp4_sha256": "6e415a3b6b0e1ebf6741fac440c6d66f4838ca4c56e7a034b28fda6be7a3e2d7"
+      },
+      {
+        "mode": "sta",
+        "result": "失败",
+        "display_s": 23.878,
+        "track_s": 23.646244,
+        "changed_display_samples": 120,
+        "frame_numbers": {
+          "reference_pictures": 1419,
+          "idr": 142,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "recorder_end": "eof",
+        "frames": 1419,
+        "bytes": 3101446,
+        "mp4_sha256": "6dc8dfbbeb7a49921cd02bdaa8bf566a87a41ad13ee1740cb6eea6cff549b64a"
+      }
+    ]
+  }
+}

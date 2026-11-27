@@ -1,0 +1,15 @@
+﻿case,frames,valid,target_mm,mean_mm,std_mm,mean_error_mm,passed,zero_check_passed,first_image_change,first_protocol_change,frames_including_change,frame_interval_max_ms
+normal_+0mm,180,180,0,0.0,0.0,0.0,True,True,,,,
+normal_empty,180,0,,,,,True,,,,,
+normal_-50mm,180,180,-50,-50.0,0.0,0.0,True,,,,,
+normal_+50mm,180,180,50,50.0,0.0,0.0,True,,,,,
+normal_-100mm,180,180,-100,-100.0,0.0,0.0,True,,,,,
+normal_+100mm,180,180,100,100.0,0.0,0.0,True,,,,,
+normal_-120mm,180,180,-120,-120.0,0.0,0.0,True,,,,,
+normal_+120mm,180,180,120,120.0,0.0,0.0,True,,,,,
+off_empty,180,0,,,,,True,,,,,
+off_+0mm,180,180,0,0.0,0.0,0.0,True,,,,,
+side_empty,180,0,,,,,True,,,,,
+side_+0mm,180,180,0,0.0,0.0,0.0,True,,,,,
+insertion,,,,,,,True,,92,94,3,12
+removal,,,,,,,True,,92,100,9,12

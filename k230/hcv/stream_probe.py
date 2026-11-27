@@ -7,6 +7,7 @@ from media.sensor import Sensor
 
 from .config import load_config
 from .guard import start, tick
+from .media_session_guard import claim
 from main_hcv import configure_detector_sensor
 
 
@@ -15,6 +16,7 @@ def run(stage, use_ap=False):
         raise ValueError("stage must be camera, encode or rtsp")
     start(5)
     config = load_config("/sdcard/hcv")
+    claim()
     mode = config["sensor"]
     sensor = None
     stream = None
