@@ -1,0 +1,44 @@
+{
+  "files": 161,
+  "bytes": 14816273,
+  "matching_any_tracked_file": 109,
+  "modules": {
+    "hcv/__init__.py": "matches",
+    "hcv/calibration.py": "matches",
+    "hcv/ch0_configurable_probe.py": "differs",
+    "hcv/ch0_rtsp_probe.py": "differs",
+    "hcv/compat.py": "matches",
+    "hcv/config.py": "matches",
+    "hcv/detect_blob.py": "matches",
+    "hcv/detect_profile.py": "matches",
+    "hcv/detector.py": "matches",
+    "hcv/geometry.py": "matches",
+    "hcv/guard.py": "matches",
+    "hcv/health.py": "matches",
+    "hcv/link_uart.py": "matches",
+    "hcv/markers.py": "matches",
+    "hcv/media_session_guard.py": "matches",
+    "hcv/proto.py": "matches",
+    "hcv/stream.py": "matches",
+    "hcv/stream_bind_probe.py": "differs",
+    "hcv/stream_probe.py": "differs",
+    "hcv/tcp_control.py": "matches",
+    "hcv/tracker.py": "matches",
+    "main_hcv.py": "differs"
+  },
+  "base_config_matches_m1": true,
+  "effective_config_different_sections": [
+    "chn_stream",
+    "stream",
+    "wifi"
+  ],
+  "has_active_calib_json": false,
+  "reference_files": {
+    "m2-reference.json": [
+      "reports/data/M2/reference.json"
+    ],
+    "m2-calibration-fixture.json": [
+      "reports/data/M2/fixture.json"
+    ]
+  }
+}
