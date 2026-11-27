@@ -1,4 +1,4 @@
-"""Operator-controlled comparison using the spare Hiwonder v1.8 card."""
+"""Operator-controlled comparison using Hiwonder v1.8."""
 import argparse
 from pathlib import Path
 import subprocess
@@ -26,7 +26,7 @@ def prepare(run, ask):
         code, _, _ = run.command('prepare-' + source.stem, bench.BOARD + [
             'put', str(source), '/sdcard/hcv/fw18/' + source.name, '--hiwonder-v18'], timeout=45)
         if code != 0:
-            raise RuntimeError('备用卡文件未准备好。停止并保留本轮日志。')
+            raise RuntimeError('v1.8 卡文件未准备好。停止并保留本轮日志。')
 
 
 def valid_failure(run):
@@ -45,8 +45,10 @@ def valid_failure(run):
             and (run.summary['simulation'] or any(run.directory.glob('latency-*.png'))))
 
 
-def interpretation(results):
+def interpretation(results, card_mode):
     if results and results[-1] == '通过':
+        if card_mode == 'same':
+            return '同一张 TF 卡升级后本轮通过。与旧记录相比支持固件因素，具体补丁尚未定位。'
         return 'v1.8 在本轮通过。结果支持固件因素；两张卡和镜像同时变化。另开任务评估迁移或双卡。'
     if results == ['失败', '失败']:
         return 'v1.8 两种网络均失败。下一步做受控供电对照，再评估板卡。'
@@ -67,12 +69,17 @@ def original_card(directory):
 def main(args, ask=input):
     if args.simulate:
         return hubei.wizard(args, ask)
-    choice = '2' if args.check_original else ask('输入 1 测 v1.8 备用卡，2 只读检查换回的 v1.4 原卡，回车退出 > ').strip()
+    choice = '2' if args.check_original else ask(
+        '1 测同一张卡升级后的 v1.8，2 只读检查 v1.4，3 测另一张 v1.8 备用卡，回车退出 > ').strip()
     if choice == '2':
         return int(not original_card(args.runs))
-    if choice != '1':
+    if choice not in ('1', '3'):
         return 1
+    args.card_mode = 'same' if choice == '1' else 'spare'
     code = hubei.wizard(args, ask)
+    if args.card_mode == 'same':
+        print('请保留卡上的 v1.8。换回 v1.4 见《M3-单卡固件切换记录》的恢复流程，暂不执行。')
+        return code
     if ask('测试已结束。完全断电再换回原卡，插好上电后输入「原卡」做只读检查；回车可稍后检查 > ').strip() == '原卡':
         ok = original_card(args.runs)
         return code if ok else 1

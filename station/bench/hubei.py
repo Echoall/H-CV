@@ -140,6 +140,7 @@ def assess(run, clean_board, ffmpeg):
 def wizard(args, ask=input):
     comparison = getattr(args, "firmware_compare", False)
     simulated = bool(args.simulate)
+    card_mode = "simulation" if simulated else getattr(args, "card_mode", None)
     vlc, sim_ffmpeg, mtx = bench.tools(*(args.simulate or ()))
     ffmpeg = sim_ffmpeg or shutil.which("ffmpeg") or bench.HERE / "runtime/ffmpeg.exe"
     original = None if simulated else wlan.snapshot()
@@ -162,6 +163,7 @@ def wizard(args, ask=input):
         run = bench.Run(root / mode, plan(mode), simulated)
         if comparison:
             run.summary["plan"]["firmware_compare"] = True
+            run.summary["plan"]["card_mode"] = card_mode
         outcome = "未验证"
         try:
             if simulated:
@@ -211,11 +213,13 @@ def wizard(args, ask=input):
             rows.append(dict(mode=mode, result=outcome, capture=run.summary["capture"], clock_images=images,
                              restored=None if simulated else restored))
             result = conclusion([row["result"] for row in rows])
+            summary = dict(simulation=simulated, rounds=rows)
             if comparison:
                 from station.bench.firmware import interpretation
+                summary["card_mode"] = card_mode
                 result = ("电脑模拟，" + " / ".join(r["mode"].upper() + " " + r["result"] for r in rows)
-                          if simulated else interpretation([row["result"] for row in rows]))
-            bench.write_json(root / "summary.json", dict(simulation=simulated, rounds=rows, conclusion=result))
+                          if simulated else interpretation([row["result"] for row in rows], card_mode))
+            bench.write_json(root / "summary.json", dict(summary, conclusion=result))
         if stop_requested or outcome != "失败" or not restored:
             break
     print(result, root)

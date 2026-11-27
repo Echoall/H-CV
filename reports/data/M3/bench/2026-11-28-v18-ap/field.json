@@ -1,0 +1,266 @@
+{
+  "simulation": false,
+  "started": "2026-11-28T00:16:37.484+08:00",
+  "ended": "2026-11-28T00:22:15.772+08:00",
+  "verified_image": "v1.8",
+  "power_connection": {
+    "port": "电脑 USB-A",
+    "location": "右侧",
+    "cable_length": "0.8m",
+    "observed_5v_volts": null
+  },
+  "usb_presence": {
+    "started": "2026-11-28T00:18:43.625+08:00",
+    "sample_period_s": 0.5,
+    "samples": 390,
+    "unknown": 0,
+    "first_absent_at": null,
+    "ended": "2026-11-28T00:21:58.328+08:00",
+    "poller_stopped": true,
+    "pnp_1010_at": []
+  },
+  "rtsp_ready_at": "2026-11-28T00:18:47.560+08:00",
+  "stages": {
+    "inventory": {
+      "started": "2026-11-28T00:17:43.932+08:00",
+      "ended": "2026-11-28T00:17:44.626+08:00",
+      "exit_code": 0
+    },
+    "hubei-api": {
+      "started": "2026-11-28T00:17:44.627+08:00",
+      "ended": "2026-11-28T00:17:45.333+08:00",
+      "exit_code": 0
+    },
+    "prepare-rtsp_camera_stream": {
+      "started": "2026-11-28T00:18:02.104+08:00",
+      "ended": "2026-11-28T00:18:03.473+08:00",
+      "exit_code": 0
+    },
+    "prepare-guard": {
+      "started": "2026-11-28T00:18:03.474+08:00",
+      "ended": "2026-11-28T00:18:04.356+08:00",
+      "exit_code": 0
+    },
+    "prepare-media_session_guard": {
+      "started": "2026-11-28T00:18:04.358+08:00",
+      "ended": "2026-11-28T00:18:05.297+08:00",
+      "exit_code": 0
+    },
+    "board-session": {
+      "started": "2026-11-28T00:18:43.625+08:00",
+      "ended": "2026-11-28T00:21:58.328+08:00",
+      "exit_code": 3,
+      "cleanup": false
+    },
+    "vlc-attempt-1": {
+      "started": "2026-11-28T00:18:51.611+08:00",
+      "ended": "2026-11-28T00:20:04.467+08:00",
+      "exit_code": 0
+    },
+    "vlc": {
+      "started": "2026-11-28T00:18:51.611+08:00",
+      "ended": "2026-11-28T00:20:04.467+08:00",
+      "exit_code": 0
+    },
+    "ffprobe-recording": {
+      "started": "2026-11-28T00:20:05.133+08:00",
+      "ended": "2026-11-28T00:20:05.585+08:00",
+      "exit_code": 0
+    }
+  },
+  "capture": {
+    "transport_observed": [
+      "tcp"
+    ],
+    "client_playing_at": "2026-11-28T00:19:02.198+08:00",
+    "changed_display_samples": 298,
+    "continuous_display_s": 61.923,
+    "display_start_epoch": 1795796342.1980937,
+    "display_end_epoch": 1795796404.1211557,
+    "client_done_at": "2026-11-28T00:20:04.366+08:00",
+    "exit_code": 0,
+    "frames": 3543,
+    "fps": 57.16248418651602,
+    "seconds": 61.981211111111115,
+    "width": 640,
+    "height": 360,
+    "bytes": 7427381,
+    "latency_screenshots": 7,
+    "r_frame_rate": "60/1",
+    "video_track_seconds": 61.981211,
+    "frame_numbers": {
+      "reference_pictures": 3543,
+      "idr": 355,
+      "skipped": 0,
+      "gap_pct": 0.0
+    }
+  },
+  "network": {
+    "switch_started": "2026-11-28T00:18:45.666+08:00",
+    "automatic_switch": true,
+    "manual": false,
+    "rtsp_port_open": true,
+    "board_reachable": true,
+    "reachability_checked_at": "2026-11-28T00:20:05.587+08:00",
+    "connected": "板子",
+    "restore_command_exit": 0,
+    "restore_reason": "verified",
+    "restored": true
+  },
+  "board_heartbeats": [
+    {
+      "at": "2026-11-28T00:18:52.560+08:00",
+      "elapsed_ms": 6897,
+      "frames": 314,
+      "bytes": 600463,
+      "fps": 45.5
+    },
+    {
+      "at": "2026-11-28T00:18:57.561+08:00",
+      "elapsed_ms": 11899,
+      "frames": 627,
+      "bytes": 1183133,
+      "fps": 52.7
+    },
+    {
+      "at": "2026-11-28T00:19:02.563+08:00",
+      "elapsed_ms": 16902,
+      "frames": 942,
+      "bytes": 1782204,
+      "fps": 55.7
+    },
+    {
+      "at": "2026-11-28T00:19:07.565+08:00",
+      "elapsed_ms": 21906,
+      "frames": 1257,
+      "bytes": 2370203,
+      "fps": 57.4
+    },
+    {
+      "at": "2026-11-28T00:19:12.566+08:00",
+      "elapsed_ms": 26910,
+      "frames": 1570,
+      "bytes": 2965646,
+      "fps": 58.3
+    },
+    {
+      "at": "2026-11-28T00:19:17.573+08:00",
+      "elapsed_ms": 31914,
+      "frames": 1885,
+      "bytes": 3561675,
+      "fps": 59.1
+    },
+    {
+      "at": "2026-11-28T00:19:22.573+08:00",
+      "elapsed_ms": 36916,
+      "frames": 2199,
+      "bytes": 4155633,
+      "fps": 59.6
+    },
+    {
+      "at": "2026-11-28T00:19:27.579+08:00",
+      "elapsed_ms": 41922,
+      "frames": 2513,
+      "bytes": 4751247,
+      "fps": 59.9
+    },
+    {
+      "at": "2026-11-28T00:19:32.586+08:00",
+      "elapsed_ms": 46927,
+      "frames": 2827,
+      "bytes": 5342863,
+      "fps": 60.2
+    },
+    {
+      "at": "2026-11-28T00:19:37.589+08:00",
+      "elapsed_ms": 51930,
+      "frames": 3142,
+      "bytes": 5942087,
+      "fps": 60.5
+    },
+    {
+      "at": "2026-11-28T00:19:42.599+08:00",
+      "elapsed_ms": 56939,
+      "frames": 3457,
+      "bytes": 6536819,
+      "fps": 60.7
+    },
+    {
+      "at": "2026-11-28T00:19:47.607+08:00",
+      "elapsed_ms": 61943,
+      "frames": 3771,
+      "bytes": 7126448,
+      "fps": 60.9
+    },
+    {
+      "at": "2026-11-28T00:19:52.602+08:00",
+      "elapsed_ms": 66947,
+      "frames": 4085,
+      "bytes": 7722392,
+      "fps": 61.0
+    },
+    {
+      "at": "2026-11-28T00:19:57.613+08:00",
+      "elapsed_ms": 71951,
+      "frames": 4399,
+      "bytes": 8315690,
+      "fps": 61.1
+    },
+    {
+      "at": "2026-11-28T00:20:02.618+08:00",
+      "elapsed_ms": 76955,
+      "frames": 4714,
+      "bytes": 8913614,
+      "fps": 61.3
+    }
+  ],
+  "result": "失败",
+  "passed": false,
+  "sta_message": "电脑未确认连接指定的随身 Wi-Fi。",
+  "recording_sha256": "C7A8781F35EFA4F53A388D5A23C1F46465FF56E060E1BE58CD97A700109BE667",
+  "clock_readings": {
+    "readings": [
+      {
+        "image": "latency-02.png",
+        "left_ms": 23936,
+        "right_ms": 23338,
+        "delay_ms": 598
+      },
+      {
+        "image": "latency-03.png",
+        "left_ms": 27933,
+        "right_ms": 27321,
+        "delay_ms": 612
+      },
+      {
+        "image": "latency-04.png",
+        "left_ms": 31929,
+        "right_ms": 31323,
+        "delay_ms": 606
+      },
+      {
+        "image": "latency-05.png",
+        "left_ms": 35931,
+        "right_ms": 35335,
+        "delay_ms": 596
+      },
+      {
+        "image": "latency-06.png",
+        "left_ms": 39937,
+        "right_ms": 39319,
+        "delay_ms": 618
+      },
+      {
+        "image": "latency-07.png",
+        "left_ms": 43932,
+        "right_ms": 43332,
+        "delay_ms": 600
+      }
+    ],
+    "sample_count": 6,
+    "median_ms": 603.0,
+    "max_ms": 618,
+    "limit_ms": 300,
+    "passed": false
+  }
+}

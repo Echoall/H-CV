@@ -78,6 +78,30 @@ def test_new_card_refused_by_original_check(tmp_path, monkeypatch):
     assert calls == ['info']
 
 
+@pytest.mark.parametrize('code', [0, 1])
+def test_same_card_returns_playback_result_without_prompting_for_restore(tmp_path, monkeypatch, code):
+    from types import SimpleNamespace
+    args = SimpleNamespace(simulate=None, check_original=False, runs=tmp_path)
+    prompts = iter(['1'])
+    monkeypatch.setattr(hubei, 'wizard', lambda args, ask: code)
+    assert firmware.main(args, lambda _: next(prompts)) == code
+    assert args.card_mode == 'same'
+    assert '同一张' in firmware.interpretation(['通过'], args.card_mode)
+
+
+@pytest.mark.parametrize('reply,expected', [('原卡', 0), ('', 1)])
+def test_spare_card_keeps_original_card_check(tmp_path, monkeypatch, reply, expected):
+    from types import SimpleNamespace
+    args = SimpleNamespace(simulate=None, check_original=False, runs=tmp_path)
+    prompts = iter(['3', reply])
+    checked = []
+    monkeypatch.setattr(hubei, 'wizard', lambda args, ask: 0)
+    monkeypatch.setattr(firmware, 'original_card', lambda path: checked.append(path) is None)
+    assert firmware.main(args, lambda _: next(prompts)) == expected
+    assert checked == ([tmp_path] if reply else [])
+    assert args.card_mode == 'spare'
+
+
 def test_cancelled_capture_is_inconclusive(tmp_path):
     run = bench.Run(tmp_path / 'run', hubei.plan('ap'), False)
     run.summary.update(rtsp_ready_at='ready', capture=dict(client_playing_at='playing', frames=20,
