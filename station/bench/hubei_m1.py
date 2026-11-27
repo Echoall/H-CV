@@ -135,8 +135,12 @@ def wizard(args, ask=input, *, v18_visit=None):
         run.summary["network"]["restored"] = restored
         if not restored:
             print(wlan.MANUAL_RESTORE)
-        run.summary.update(passed=measured and restored,
-                           message="已取得同步测量" if measured else "未取得完整的同步测量")
+        passed = measured and restored
+        message = "已取得同步测量" if measured else "未取得完整的同步测量"
+        if v18_visit is not None and measured and not sample["process_p95_within_6ms"]:
+            passed = False
+            message = "同步测量完成，找球处理 p95 超过 6 ms。"
+        run.summary.update(passed=passed, message=message)
         run.finish()
         print(run.summary["message"], run.directory)
-    return int(not (measured and restored))
+    return int(not passed)

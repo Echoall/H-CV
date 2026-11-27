@@ -100,6 +100,10 @@ def physical(run, mode, ask, original, vlc):
     comparison = run.summary["plan"].get("firmware_compare")
     v18_combined = run.summary["plan"].get("v18_combined", False)
     verify_power(run, ask, "v1.8" if comparison or v18_combined else "v1.4")
+    supervised_stop = run.summary["plan"].get("supervised_stop", False)
+    if supervised_stop:
+        from station.bench.m1_v18 import verify_modes
+        verify_modes(run)
     if comparison:
         from station.bench.firmware import prepare
         prepare(run, ask)
@@ -115,7 +119,7 @@ def physical(run, mode, ask, original, vlc):
     if comparison:
         from station.bench.usb_session import monitor as observe_usb
         monitor = observe_usb(run, run.usb_board)
-        source = (script + "\nrun(%r)\n" % wifi).encode()
+        source = (script + "\nrun(%r, supervised_stop=%r)\n" % (wifi, supervised_stop)).encode()
     elif combined:
         source = (script + "\n" + entry + "\nrun(%r, detection, private_pool=%r)\n" % (wifi, v18_combined)).encode()
     else:

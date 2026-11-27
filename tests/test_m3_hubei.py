@@ -33,8 +33,10 @@ def test_repeated_vlc_frames_are_not_display_progress():
     assert first is not None
     renderer.feed(b"FRAME\nabcdefFRAME\na")
     assert renderer.picture == first
+    assert renderer.frame_count == 2
     renderer.feed(b"bcdeX")
     assert renderer.picture != first
+    assert renderer.frame_count == 3
 
 
 @pytest.mark.parametrize("display,duration,gap,result", [

@@ -5,7 +5,7 @@ import time
 import network
 
 
-def run(wifi):
+def run(wifi, supervised_stop=False):
     identity = os.uname()
     if (identity.machine != 'k230_canmv_hiwonder' or identity.release.split('-')[0] != 'v1.8'
             or identity.version.split(' on ')[0].split('-')[0] != 'v1.8'):
@@ -46,18 +46,22 @@ def run(wifi):
         server.start()
         print('HCV_CH0_CONFIG_READY')
         began = last = time.ticks_ms()
-        while time.ticks_diff(time.ticks_ms(), began) < 125000:
+        duration_ms = 48000 if supervised_stop else 125000
+        interval_ms = 1000 if supervised_stop else 5000
+        while time.ticks_diff(time.ticks_ms(), began) < duration_ms:
             tick()
             time.sleep_ms(250)
             if server.thread_over:
                 raise RuntimeError('encoder worker stopped')
             now = time.ticks_ms()
-            if time.ticks_diff(now, last) >= 5000:
+            if time.ticks_diff(now, last) >= interval_ms:
                 elapsed = max(1, time.ticks_diff(now, server.started_ms))
                 print('HCV_HUBEI_STATUS,elapsed_ms=%d,frames=%d,bytes=%d,fps=%.1f' % (
                     elapsed, server.frame_count, server.byte_count, server.frame_count * 1000 / elapsed))
                 last = now
     finally:
+        if supervised_stop:
+            print('HCV_SERVICE_STOP_BEGIN')
         server.stop()
     if not server.thread_over:
         raise RuntimeError('worker stop not confirmed')

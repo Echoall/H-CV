@@ -1,0 +1,258 @@
+[
+  {
+    "label": "initial",
+    "simulation": true,
+    "run": "v18-visit-sim-20261128-005822",
+    "passed": true,
+    "samples": {
+      "first": {
+        "frames": 1200,
+        "continuous_display_s": 19.461,
+        "video_track_seconds": 20.100333,
+        "changed_display_samples": 98,
+        "frame_numbers": {
+          "reference_pictures": 1200,
+          "idr": 120,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": true,
+        "vlc_late_frame_warning_count": 0
+      },
+      "second": {
+        "frames": 1201,
+        "continuous_display_s": 19.463,
+        "video_track_seconds": 20.122922,
+        "changed_display_samples": 98,
+        "frame_numbers": {
+          "reference_pictures": 1201,
+          "idr": 121,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": true,
+        "vlc_late_frame_warning_count": 0
+      },
+      "combined": {
+        "frames": 4081,
+        "continuous_display_s": 67.412,
+        "video_track_seconds": 68.119156,
+        "changed_display_samples": 337,
+        "frame_numbers": {
+          "reference_pictures": 4081,
+          "idr": 409,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": true,
+        "vlc_late_frame_warning_count": 0
+      }
+    },
+    "simultaneous": {
+      "frames": 3960,
+      "wall_us": 66000351,
+      "source_fps": 60,
+      "estimated_drops": 0,
+      "process_us": [
+        522,
+        866,
+        907
+      ],
+      "after_capture_us": [
+        1990,
+        2326,
+        3099
+      ],
+      "anchor_offset_difference_s": 9.202957153320312e-05,
+      "serial_span_s": 92.01300001144409,
+      "process_p95_within_6ms": true
+    }
+  },
+  {
+    "label": "entrypoint",
+    "simulation": true,
+    "run": "20261128-010234-260095-v18-visit",
+    "passed": false,
+    "samples": {
+      "first": {
+        "frames": 1199,
+        "continuous_display_s": 19.463,
+        "video_track_seconds": 19.986378,
+        "changed_display_samples": 98,
+        "frame_numbers": {
+          "reference_pictures": 1199,
+          "idr": 120,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": true,
+        "vlc_late_frame_warning_count": 0
+      },
+      "second": {
+        "frames": 1194,
+        "continuous_display_s": 19.459,
+        "video_track_seconds": 19.899511,
+        "changed_display_samples": 97,
+        "frame_numbers": {
+          "reference_pictures": 1194,
+          "idr": 120,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": true,
+        "vlc_late_frame_warning_count": 0
+      },
+      "combined": {
+        "frames": 4079,
+        "continuous_display_s": 36.52,
+        "video_track_seconds": 67.979911,
+        "changed_display_samples": 310,
+        "frame_numbers": {
+          "reference_pictures": 4079,
+          "idr": 408,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": false,
+        "vlc_late_frame_warning_count": 118
+      }
+    },
+    "simultaneous": {
+      "frames": 2100,
+      "wall_us": 35000072,
+      "source_fps": 60,
+      "estimated_drops": 0,
+      "process_us": [
+        458,
+        855,
+        874
+      ],
+      "after_capture_us": [
+        1972,
+        2308,
+        2505
+      ],
+      "anchor_offset_difference_s": 0.0003371238708496094,
+      "serial_span_s": 92.01299977302551,
+      "process_p95_within_6ms": true
+    }
+  },
+  {
+    "label": "repeat",
+    "simulation": true,
+    "run": "20261128-010719-791733-v18-visit",
+    "passed": false,
+    "samples": {
+      "first": {
+        "frames": 1199,
+        "continuous_display_s": 10.032,
+        "video_track_seconds": 19.980278,
+        "changed_display_samples": 89,
+        "frame_numbers": {
+          "reference_pictures": 1199,
+          "idr": 120,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": false,
+        "vlc_late_frame_warning_count": 45
+      }
+    },
+    "simultaneous": null
+  },
+  {
+    "label": "thread-count trial (reverted)",
+    "simulation": true,
+    "run": "20261128-011058-021947-v18-visit",
+    "passed": false,
+    "samples": {
+      "first": {
+        "frames": 1198,
+        "continuous_display_s": 4.414,
+        "video_track_seconds": 19.961333,
+        "changed_display_samples": 59,
+        "frame_numbers": {
+          "reference_pictures": 1198,
+          "idr": 120,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": false,
+        "vlc_late_frame_warning_count": 179
+      }
+    },
+    "simultaneous": null
+  },
+  {
+    "label": "pipe-buffer trial (reverted)",
+    "simulation": true,
+    "run": "20261128-011253-629706-v18-visit",
+    "passed": false,
+    "samples": {
+      "first": {
+        "frames": 1199,
+        "continuous_display_s": 19.465,
+        "video_track_seconds": 19.988878,
+        "changed_display_samples": 98,
+        "headless_rendered_frames": 1159,
+        "frame_numbers": {
+          "reference_pictures": 1199,
+          "idr": 120,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": true,
+        "vlc_late_frame_warning_count": 0
+      },
+      "second": {
+        "frames": 1196,
+        "continuous_display_s": 12.239,
+        "video_track_seconds": 19.927444,
+        "changed_display_samples": 90,
+        "headless_rendered_frames": 1051,
+        "frame_numbers": {
+          "reference_pictures": 1196,
+          "idr": 120,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": false,
+        "vlc_late_frame_warning_count": 19
+      },
+      "combined": {
+        "frames": 4081,
+        "continuous_display_s": 12.04,
+        "video_track_seconds": 68.096522,
+        "changed_display_samples": 242,
+        "headless_rendered_frames": 2770,
+        "frame_numbers": {
+          "reference_pictures": 4081,
+          "idr": 409,
+          "skipped": 0,
+          "gap_pct": 0.0
+        },
+        "passed": false,
+        "vlc_late_frame_warning_count": 433
+      }
+    },
+    "simultaneous": {
+      "frames": 660,
+      "wall_us": 11000053,
+      "source_fps": 60,
+      "estimated_drops": 0,
+      "process_us": [
+        449,
+        731,
+        851
+      ],
+      "after_capture_us": [
+        1873,
+        2228,
+        2447
+      ],
+      "anchor_offset_difference_s": 6.628036499023438e-05,
+      "serial_span_s": 92.01399993896484,
+      "process_p95_within_6ms": true
+    }
+  }
+]

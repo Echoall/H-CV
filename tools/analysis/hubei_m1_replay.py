@@ -2,6 +2,7 @@
 
 import argparse
 from contextlib import ExitStack, redirect_stdout
+from datetime import datetime
 import gc
 import json
 from pathlib import Path
@@ -60,7 +61,20 @@ class ReplaySensor:
         data[:] = self.roi.mean(axis=0).astype(np.uint8).tobytes()
 
 
-def replay(output, seconds, fps, target):
+class TimestampedLog:
+    def __init__(self, stream):
+        self.stream = stream
+
+    def write(self, text):
+        if text.startswith("HCV_DUAL"):
+            self.stream.write(datetime.now().astimezone().isoformat(timespec="milliseconds") + " ")
+        return self.stream.write(text)
+
+    def flush(self):
+        self.stream.flush()
+
+
+def replay(output, seconds, fps, target, host_timestamps=False):
     sys.path.insert(0, str(ROOT / "k230"))
     from hcv.hubei_detection import HubeiDetection
     from hcv.proto import crc8
@@ -108,7 +122,7 @@ def replay(output, seconds, fps, target):
         thread = threading.Thread(target=video)
         thread.start()
         try:
-            with output.open("x", encoding="utf-8") as log, redirect_stdout(log):
+            with output.open("x", encoding="utf-8") as log, redirect_stdout(TimestampedLog(log) if host_timestamps else log):
                 print("HCV_REPLAY,fps=%d,seconds=%d,yield_ms=%d,synthetic_target=%d" %
                       (fps, seconds, dual.delay, target))
                 m1.run(max_runtime_s=seconds, shared=dual)
@@ -124,5 +138,6 @@ if __name__ == "__main__":
     parser.add_argument("--seconds", type=int, default=65)
     parser.add_argument("--fps", type=int, choices=(60, 90), default=90)
     parser.add_argument("--target", action="store_true", help="overlay a synthetic disk on alternate sequences")
+    parser.add_argument("--host-timestamps", action="store_true", help="timestamp dual timing markers on this PC")
     args = parser.parse_args()
-    replay(args.output, args.seconds, args.fps, args.target)
+    replay(args.output, args.seconds, args.fps, args.target, args.host_timestamps)

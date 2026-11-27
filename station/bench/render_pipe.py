@@ -16,6 +16,7 @@ class RenderedFrames:
         self.buffer = bytearray()
         self.started = False
         self.picture = None
+        self.frame_count = 0
 
     def feed(self, chunk):
         self.buffer.extend(chunk)
@@ -32,6 +33,7 @@ class RenderedFrames:
             if not self.buffer.startswith(b"FRAME\n"):
                 raise ValueError("invalid VLC frame boundary")
             self.picture = sha256(memoryview(self.buffer)[6:end]).digest()
+            self.frame_count += 1
             del self.buffer[:end]
 
 

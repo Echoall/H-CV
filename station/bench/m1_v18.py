@@ -57,13 +57,17 @@ def assess(path):
     return metrics
 
 
-def field(run, ask):
-    hubei.verify_power(run, ask, "v1.8")
+def verify_modes(run):
     code, output, _ = run.command("sensor-modes", bench.BOARD + [
         "run", str(bench.ROOT / "tools/board/m1_v18_modes.py"), "--timeout", "12"], timeout=30)
     if code != 0 or not re.search(r"^HCV_M1_SENSOR_MODE v1\.8-\S+ \S*gc2093\S* 1280x720@90 1\s*$",
                                   output, re.MULTILINE | re.IGNORECASE):
         raise RuntimeError("未确认板上 GC2093 的 720p90 模式，请保留枚举日志。")
+
+
+def field(run, ask):
+    hubei.verify_power(run, ask, "v1.8")
+    verify_modes(run)
     prepare(run)
     print("保持相机固定，让画面中的检测区空着。采集约 10 分钟。")
     hubei.confirm_capture(ask)

@@ -141,10 +141,13 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
                 time.sleep(min(0.01 if window is not None else 0.1, seconds - elapsed))
                 elapsed = time.monotonic() - started
             if hubei:
-                print("HCV_DISPLAY " + json.dumps(dict(changed_display_samples=samples,
+                display = dict(changed_display_samples=samples,
                       continuous_display_s=round(longest, 3),
                       display_start_epoch=display_epoch + longest_start,
-                      display_end_epoch=display_epoch + longest_start + longest)), flush=True)
+                      display_end_epoch=display_epoch + longest_start + longest)
+                if render_pipe is not None:
+                    display["headless_rendered_frames"] = render_pipe.frames.frame_count
+                print("HCV_DISPLAY " + json.dumps(display), flush=True)
     finally:
         dll_dir.close()
         if render_pipe is not None:
