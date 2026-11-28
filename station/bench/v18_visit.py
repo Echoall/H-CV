@@ -56,7 +56,7 @@ def service_stop(folder, ask):
 
 def visit(root, ask=input):
     root.mkdir(parents=True)
-    args = SimpleNamespace(runs=root, replay=None, skip_mode_list=False)
+    args = SimpleNamespace(runs=root, replay=None, skip_mode_list=False, timing_only=True)
 
     def longrun():
         mode = ask("M1 本轮回车按常规先枚举；若上次未进入采集，请输入 2，独立上电跳过枚举 > ").strip()

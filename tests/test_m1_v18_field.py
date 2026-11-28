@@ -35,6 +35,12 @@ def test_ten_minute_assessment_boundaries(tmp_path, process_us, span, expected):
     assert m1_v18.main(args, lambda _: pytest.fail("offline replay asked for user input")) == int(not expected)
     [result] = tmp_path.glob("*/summary.md")
     assert "历史日志回放" in result.read_text(encoding="utf-8")
+    if expected:
+        path.write_text(path.read_text(encoding="utf-8").replace("rx_len=0,valid=0", "rx_len=0,valid=7"),
+                        encoding="utf-8")
+        assert m1_v18.main(args) == 1
+        args.timing_only = True
+        assert m1_v18.main(args) == 0
 
 
 @pytest.mark.parametrize("skip_modes", [True, False])

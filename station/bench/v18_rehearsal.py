@@ -1,12 +1,49 @@
 """Exercise the Windows visit tools against a loopback camera and archived M1 pixels."""
 import argparse
+from contextlib import contextmanager
+import ctypes
 import json
 from pathlib import Path
 import subprocess
 import sys
+from threading import Event, Thread
 import time
 
 from station.bench import bench, hubei, hubei_m1, m1_v18
+
+
+@contextmanager
+def cpu_samples(directory):
+    from ctypes import wintypes
+    api = ctypes.WinDLL("kernel32", use_last_error=True)
+    def times():
+        idle, kernel, user = (wintypes.FILETIME() for _ in range(3))
+        if not api.GetSystemTimes(ctypes.byref(idle), ctypes.byref(kernel), ctypes.byref(user)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        return [(value.dwHighDateTime << 32) | value.dwLowDateTime for value in (idle, kernel, user)]
+    stop = Event()
+    rows = []
+    initial = times()
+    def sample():
+        previous = initial
+        while not stop.wait(1):
+            try:
+                current = times()
+            except OSError as exc:
+                rows.append(dict(at=bench.now(), error=type(exc).__name__))
+                return
+            idle, kernel, user = (v - old for v, old in zip(current, previous))
+            if kernel + user > 0:
+                rows.append(dict(at=bench.now(), busy_pct=round(100 * (1 - idle / (kernel + user)), 2)))
+            previous = current
+    worker = Thread(target=sample)
+    worker.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        worker.join()
+        bench.write_json(directory / "host-cpu.json", rows)
 
 
 def play(directory, url, tools, seconds):
@@ -17,7 +54,11 @@ def play(directory, url, tools, seconds):
     run = bench.Run(directory, plan, True)
     run.summary["rtsp_ready_at"] = bench.now()
     try:
-        cap = bench.receive(run, vlc, url, plan, True)
+        with cpu_samples(directory):
+            cap = bench.receive(run, vlc, url, plan, True)
+        cap["vlc_late_frame_warnings"] = sum(
+            p.read_text(encoding="utf-8", errors="replace").count("late frames, dropping frame")
+            for p in directory.glob("vlc-attempt-*.stderr.log"))
         if cap.get("frames"):
             cap["frame_numbers"] = hubei.frame_numbers(directory / "recording.mp4", ffmpeg)
         run.summary["passed"] = (cap.get("exit_code") == 0 and not cap.get("client_end_reason")

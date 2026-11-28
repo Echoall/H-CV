@@ -65,13 +65,14 @@ def verify_modes(run):
         raise RuntimeError("未确认板上 GC2093 的 720p90 模式，请保留枚举日志。")
 
 
-def field(run, ask, *, skip_mode_list=False):
+def field(run, ask, *, skip_mode_list=False, empty_scene=True):
     hubei.verify_power(run, ask, "v1.8")
     run.summary["mode_list_skipped"] = skip_mode_list
     if not skip_mode_list:
         verify_modes(run)
     prepare(run)
-    print("保持相机固定，让画面中的检测区空着。采集约 10 分钟。")
+    print("保持相机固定，让画面中的检测区空着。采集约 10 分钟。" if empty_scene else
+          "保持当前取景。采集约 10 分钟，记录 VALID 数量及处理耗时。")
     hubei.confirm_capture(ask)
     log = run.directory / "m1.serial.log"
     code, _, _ = run.command("m1", bench.BOARD + ["run", str(bench.ROOT / "tools/board/m1_v18_longrun.py"),
@@ -90,17 +91,23 @@ def field(run, ask, *, skip_mode_list=False):
 def main(args, ask=input):
     directory = args.runs / (bench.datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-m1-v18")
     run = bench.Run(directory, {"id": "m1-v18", "title": "v1.8 独占找球长跑"}, bool(args.replay))
+    empty_scene = not getattr(args, "timing_only", False)
+    run.summary["empty_scene_required"] = empty_scene
     try:
         if args.replay:
             run.summary["measurement"] = assess(args.replay)
         else:
-            field(run, ask, skip_mode_list=getattr(args, "skip_mode_list", False))
+            field(run, ask, skip_mode_list=getattr(args, "skip_mode_list", False), empty_scene=empty_scene)
         m = run.summary["measurement"]
         run.summary["timing_checks_passed"] = all(m["checks"].values())
-        run.summary["passed"] = (run.summary["timing_checks_passed"] and
-                                 m["wall_duration_dropped"] == 0 and m["summary"]["valid"] == 0)
-        run.summary["message"] = ("长跑指标达标" if run.summary["passed"] else
-                                  "长跑结果待复核，请查看丢帧、空场 VALID 和分项指标。")
+        run.summary["passed"] = (run.summary["timing_checks_passed"] and m["wall_duration_dropped"] == 0
+                                 and (not empty_scene or m["summary"]["valid"] == 0))
+        if run.summary["passed"]:
+            run.summary["message"] = "长跑指标达标"
+        elif empty_scene:
+            run.summary["message"] = "请复核丢帧、处理耗时和空场 VALID 计数。"
+        else:
+            run.summary["message"] = "请复核丢帧、处理耗时和分项指标。"
     except (RuntimeError, ValueError, KeyError, OSError, EOFError, KeyboardInterrupt) as error:
         run.summary.update(passed=False, message=str(error) or type(error).__name__)
     finally:
@@ -114,6 +121,7 @@ if __name__ == "__main__":
     parser.add_argument("--runs", type=Path, default=bench.HERE / "runs")
     parser.add_argument("--replay", type=Path, help="用既有串口日志离线复算")
     parser.add_argument("--skip-mode-list", action="store_true", help="独立上电后跳过 Sensor.list_mode 对照")
+    parser.add_argument("--timing-only", action="store_true", help="保留实际取景，VALID 仅记录")
     args = parser.parse_args()
     with bench.only_instance(args.runs):
         raise SystemExit(main(args))
