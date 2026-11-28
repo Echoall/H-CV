@@ -97,8 +97,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs", type=Path, default=bench.HERE / "runs")
     parser.add_argument("--simulate", type=Path, nargs=2, metavar=("FFMPEG", "MEDIAMTX"))
+    parser.add_argument("--from-receivers", action="store_true",
+                        help="从接收器对照继续，随后做 S4 两档")
     args = parser.parse_args()
     with bench.only_instance(args.runs):
         root = (args.runs / (datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-v18-visit")).resolve()
         from station.bench.field_visit import visit as field_visit
-        raise SystemExit(field_visit(root, simulation=args.simulate))
+        raise SystemExit(field_visit(root, simulation=args.simulate, from_receivers=args.from_receivers))

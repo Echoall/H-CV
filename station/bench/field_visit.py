@@ -7,12 +7,14 @@ from types import SimpleNamespace
 from station.bench import bench, m1_v18, player_compare, sensor_reuse, v18_dual
 
 
-def visit(root, ask=input, *, simulation=None):
+def visit(root, ask=input, *, simulation=None, from_receivers=False):
     root.mkdir(parents=True)
     simulated = bool(simulation)
     args = SimpleNamespace(runs=root, simulate=simulation, replay=None, skip_mode_list=False,
                            timing_only=True, framedrop=False, rtp_diagnostic=False, optical=True)
     result = {"simulation": simulated, "stages": []}
+    if from_receivers:
+        result["previous_stages_not_run"] = ["S0a", "S1"]
     print("各独立实拍轮按提示单独上电。视频轮保持播放器打开，等它自动结束。"
           "随后等板子记录至少 15 秒的状态并完成清理。", flush=True)
 
@@ -66,6 +68,8 @@ def visit(root, ask=input, *, simulation=None):
         ("S4-60", "镜头朝向不限。用 1080p60 同时传视频、找球。", lambda: v18_dual.run_mode(root, v18_dual.MODES[0], ask, simulation)),
         ("S4-90", "保持相同取景。改用 720p90 同时传视频、找球。", lambda: v18_dual.run_mode(root, v18_dual.MODES[1], ask, simulation)),
     )
+    if from_receivers:
+        stages = stages[2:]
     try:
         for name, prompt, action in stages:
             print(name, prompt, flush=True)
@@ -91,7 +95,7 @@ def visit(root, ask=input, *, simulation=None):
     finally:
         result["finished_available_steps"] = len(result["stages"]) == len(stages)
         complete = result["finished_available_steps"] and all(r["status"] == "passed" for r in result["stages"])
-        result["full_visit_accepted"] = bool(complete and not simulated)
+        result["full_visit_accepted"] = bool(complete and not simulated and not from_receivers)
         bench.write_json(root / "visit.json", result)
         print("结果目录", root, flush=True)
     if any(r["status"] == "failed" for r in result["stages"]):

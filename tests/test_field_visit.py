@@ -21,6 +21,39 @@ def test_cancel_and_failed_sensor_leave_following_stages_untouched(tmp_path, mon
     assert not record["full_visit_accepted"]
 
 
+def test_resuming_at_receivers_runs_only_remaining_stages(tmp_path, monkeypatch):
+    path = tmp_path / "remaining"
+    completed = []
+
+    def unexpected(*args):
+        pytest.fail("repeated an earlier stage")
+
+    def players(args, ask):
+        for name in ("vlc200", "ffplay"):
+            directory = path / "test-players" / name
+            directory.mkdir(parents=True)
+            (directory / "summary.json").write_text(json.dumps({
+                "plan": {"receiver_ab": name},
+                "optical_latency": {"sample_count": 5, "passed": False},
+            }), encoding="utf-8")
+        completed.append("receivers")
+        return 0
+
+    def dual(root, mode, ask, simulation):
+        completed.append(mode[-1])
+        return 0
+
+    monkeypatch.setattr(field_visit.sensor_reuse, "field", unexpected)
+    monkeypatch.setattr(field_visit.m1_v18, "main", unexpected)
+    monkeypatch.setattr(player_compare, "wizard", players)
+    monkeypatch.setattr(v18_dual, "run_mode", dual)
+    assert field_visit.visit(path, lambda _: "", from_receivers=True) == 0
+    record = json.loads((path / "visit.json").read_text(encoding="utf-8"))
+    assert completed == ["receivers", 60, 90]
+    assert record["previous_stages_not_run"] == ["S0a", "S1"]
+    assert record["finished_available_steps"] and not record["full_visit_accepted"]
+
+
 @pytest.mark.parametrize("fps", (60, 90))
 def test_dual_uses_driver_mode_and_the_receive_interval(monkeypatch, fps):
     mode = next(m for m in v18_dual.MODES if m[2] == fps)
