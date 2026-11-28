@@ -57,7 +57,7 @@ def _record_describe(header, body, from_board, at_ms, requests, redact):
 
 
 @contextmanager
-def trace(endpoint, stats, redact):
+def trace(endpoint, stats, redact, *, on_frame_end=None):
     target = urlsplit(endpoint)
     cancelled = Event()
     with socket.socket() as listener:
@@ -133,6 +133,8 @@ def trace(endpoint, stats, redact):
                                             last_ns = stamp
                                             sequence = int.from_bytes(header[6:8], "big")
                                             ssrc = header[12:16]
+                                            if on_frame_end is not None and header[5] & 0x80:
+                                                on_frame_end(stamp, int.from_bytes(header[8:12], "big"), sequence)
                                             if ssrc == last_ssrc and sequence != expected_sequence:
                                                 stats["rtp_sequence_discontinuities"] = (
                                                     stats.get("rtp_sequence_discontinuities", 0) + 1

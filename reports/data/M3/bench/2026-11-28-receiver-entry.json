@@ -1,0 +1,42 @@
+{
+  "vlc200": {
+    "simulation": true,
+    "readers": 1,
+    "passed": true,
+    "frames": 3719,
+    "arrival": {
+      "frames": 3726,
+      "max_gap_ms": 47.696,
+      "longest_s": 62.077,
+      "continuous_60s": true
+    },
+    "track_seconds": 61.984544,
+    "reference": {
+      "reference_pictures": 3719,
+      "idr": 372,
+      "skipped": 0,
+      "gap_pct": 0.0
+    },
+    "replay_exit": 0
+  },
+  "ffplay": {
+    "simulation": true,
+    "readers": 1,
+    "passed": true,
+    "frames": 3740,
+    "arrival": {
+      "frames": 3748,
+      "max_gap_ms": 33.77,
+      "longest_s": 62.448,
+      "continuous_60s": true
+    },
+    "track_seconds": 62.333333,
+    "reference": {
+      "reference_pictures": 3740,
+      "idr": 374,
+      "skipped": 0,
+      "gap_pct": 0.0
+    },
+    "replay_exit": 0
+  }
+}

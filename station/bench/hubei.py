@@ -111,7 +111,10 @@ def physical(run, mode, ask, original, vlc):
     if combined:
         from station.bench.hubei_m1 import prepare
         entry = prepare(run, v18=v18_combined)
-    print("请把镜头对准电脑屏幕左半边。")
+    if run.summary["plan"].get("receiver_ab"):
+        print("两轮请保持同样的取景和光照。")
+    else:
+        print("请把镜头对准电脑屏幕左半边。")
     confirm_capture(ask)
     monitor = nullcontext()
     script_name = "m3_firmware_v18.py" if comparison else "m3_hubei_rtsp.py"

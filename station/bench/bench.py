@@ -436,7 +436,9 @@ def receive(run, executable, endpoint, plan, simulated):
     ]
     if plan.get("hubei"):
         command.append("hubei")
-    if plan.get("direct_rtsp"):
+    if plan.get("receiver_ab") == "vlc200":
+        code, stdout, stderr = run.command("vlc", command, timeout=seconds + 20)
+    elif plan.get("direct_rtsp"):
         code, stdout, stderr = direct_playback(run, command, seconds, urlsplit(endpoint).hostname)
     else:
         code, stdout, stderr = run.command("vlc", command, timeout=seconds + 16)
@@ -738,7 +740,7 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                     print("板子已启动图传，正在等首个关键帧。", flush=True)
                 elif endpoint and (event == "HCV_CH0_CONFIG_READY"
                                    or (vicap and event.startswith("HCV_RTSP_FIRST_IDR,"))):
-                    if "vlc" in run.summary["stages"]:
+                    if "vlc" in run.summary["stages"] or "single-receiver" in run.summary["stages"]:
                         continue
                     if direct and (simulation or plan.get("hubei")):
                         run.summary["rtsp_ready_at"] = received_at
@@ -764,7 +766,11 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                         run.summary["rtp_arrival"] = {}
                         trace = rtp_trace.trace(endpoint, run.summary["rtp_arrival"], run.clean)
                     with trace as player_endpoint:
-                        receive(run, vlc, player_endpoint, plan, simulation)
+                        if plan.get("receiver_ab"):
+                            from station.bench.player_compare import capture
+                            capture(run, vlc, player_endpoint, plan, simulation)
+                        else:
+                            receive(run, vlc, player_endpoint, plan, simulation)
                     network = run.summary["network"]
                     if direct:
                         observed = bool(run.summary["capture"].get("transport_observed"))
@@ -1129,7 +1135,21 @@ if __name__ == "__main__":
     parser.add_argument("--hubei-m1", action="store_true", help="measure CHN1 alongside approved physical AP video")
     parser.add_argument("--simulate-cut", choices=("ap", "both"), help="end selected Hubei simulated sources early")
     parser.add_argument("--player", nargs="+", help=argparse.SUPPRESS)
+    parser.add_argument("--receive-low-delay", metavar="RTSP_URL", help="从已启动的视频源单路接收，同时显示和录像")
+    parser.add_argument("--compare-players", action="store_true", help="v1.8 同次到场分别测试 VLC 和单路低延迟接收")
+    parser.add_argument("--receive-seconds", type=int)
+    parser.add_argument("--framedrop", action="store_true", help="低延迟播放器可主动跳过迟到帧")
     args = parser.parse_args()
+    if (args.receive_low_delay or args.compare_players) and (
+            args.hubei or args.hubei_m1 or args.field or args.link_check or args.burst or args.player
+            or args.udp_only or args.automatic_only or args.simulate_cut):
+        parser.error("接收器测试需要独立运行")
+    if args.receive_low_delay and (args.compare_players or args.simulate):
+        parser.error("指定 RTSP 源时不能同时使用其他测试模式")
+    if args.receive_seconds is not None and (not args.receive_low_delay or args.receive_seconds <= 0):
+        parser.error("--receive-seconds 仅用于已指定 RTSP 源的正时长测试")
+    if args.framedrop and not (args.receive_low_delay or args.compare_players):
+        parser.error("--framedrop 仅用于低延迟接收器")
     if args.hubei_m1 and (args.simulate or args.hubei or args.field or args.link_check or args.player):
         parser.error("--hubei-m1 requires a standalone physical session")
     if args.simulate_cut and not (args.hubei and args.simulate):
@@ -1143,6 +1163,12 @@ if __name__ == "__main__":
     else:
         try:
             with only_instance(args.runs):
+                if args.receive_low_delay:
+                    from station.bench.low_delay import receiver_cli
+                    sys.exit(receiver_cli(args.receive_low_delay, args.runs, args.receive_seconds or 65, args.framedrop))
+                if args.compare_players:
+                    from station.bench.player_compare import wizard
+                    sys.exit(wizard(args))
                 if args.hubei_m1:
                     from station.bench.hubei_m1 import wizard
                     sys.exit(wizard(args))

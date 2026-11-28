@@ -1,6 +1,6 @@
 """Compare host-only synthetic video age at two headless player outputs on Windows."""
 import argparse
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 import json
 import os
 from pathlib import Path
@@ -129,16 +129,14 @@ def summarize(samples, started, rejected):
                 rows=unique)
 
 
-def compare(args):
-    out = args.output.resolve()
-    out.mkdir()
+@contextmanager
+def marked_source(out, ffmpeg, mediamtx):
     tcp = local_port()
     url = f"rtsp://127.0.0.1:{tcp}/hcv"
     cfg = out / "server.yml"
     cfg.write_text(f"rtspAddress: 127.0.0.1:{tcp}\nrtspTransports: [tcp]\n"
                    "rtmp: false\nhls: false\nwebrtc: false\nsrt: false\nmoq: false\npaths:\n  hcv: {}\n")
     stamps = {}
-    result = {}
     with ExitStack() as stack:
         def spawn(name, command, **kw):
             log = stack.enter_context((out / (name + ".log")).open("wb"))
@@ -146,7 +144,7 @@ def compare(args):
             stack.callback(stop, child)
             return child
 
-        server = spawn("server", [args.mediamtx.resolve(), cfg], cwd=out)
+        server = spawn("server", [mediamtx.resolve(), cfg], cwd=out)
         def wait_for(text):
             deadline = time.monotonic() + 12
             while text not in (out / "server.log").read_text(errors="replace"):
@@ -155,7 +153,7 @@ def compare(args):
                 time.sleep(0.05)
 
         wait_for("started with listeners")
-        encoder = spawn("publisher", [args.ffmpeg.resolve(), "-hide_banner", "-loglevel", "warning",
+        encoder = spawn("publisher", [ffmpeg.resolve(), "-hide_banner", "-loglevel", "warning",
                         "-f", "rawvideo", "-pixel_format", "gray", "-video_size", f"{WIDTH}x{HEIGHT}",
                         "-framerate", str(FPS), "-i", "pipe:0", "-an", "-c:v", "libx264", "-preset",
                         "ultrafast", "-tune", "zerolatency", "-g", "10", "-pix_fmt", "yuv420p",
@@ -174,6 +172,14 @@ def compare(args):
 
         stack.callback(stop_feeder)
         wait_for("stream is available and online")
+        yield url, stamps
+
+
+def compare(args):
+    out = args.output.resolve()
+    out.mkdir()
+    result = {}
+    with marked_source(out, args.ffmpeg, args.mediamtx) as (url, stamps):
         settings = [None if value == "ffplay" else int(value) for value in args.players]
         for run in range(1, args.rounds + 1):
             order = settings if run % 2 else reversed(settings)
