@@ -30,7 +30,7 @@ def stop(child):
 
 def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, show_video=False,
                        transport="tcp", cache_ms=200, observation=None, window=None, on_playing=None,
-                       hubei=False):
+                       hubei=False, on_rendered_frame=None):
     """Use the CLI's demux and recording options in a VLC 3 player."""
     argv = vlc_command(str(vlc), url, recording, display=show_video or hubei)
     options = [
@@ -45,7 +45,7 @@ def record_with_libvlc(vlc, url, recording, *, seconds=5, diagnostic_log=True, s
         options.extend([b"--no-one-instance", b"--live-caching=200", b"--no-audio"])
         if not show_video:
             from station.bench.render_pipe import RenderPipe
-            render_pipe = RenderPipe(640, 360)
+            render_pipe = RenderPipe(640, 360, on_rendered_frame)
             options.extend([b"--vout=yuv", b"--yuv-chroma=I420", ("--yuv-file=" + render_pipe.name).encode()])
     elif show_video:
         options.append(b"--vout=wingdi")

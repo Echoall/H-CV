@@ -10,13 +10,14 @@ import uuid
 class RenderedFrames:
     """Read the VLC 3 yuv vout stream, including its global header and FRAME lines."""
 
-    def __init__(self, width, height):
+    def __init__(self, width, height, on_frame=None):
         self.format = f"I420 W{width} H{height} ".encode()
         self.size = width * height * 3 // 2
         self.buffer = bytearray()
         self.started = False
         self.picture = None
         self.frame_count = 0
+        self.on_frame = on_frame
 
     def feed(self, chunk):
         self.buffer.extend(chunk)
@@ -33,14 +34,16 @@ class RenderedFrames:
             if not self.buffer.startswith(b"FRAME\n"):
                 raise ValueError("invalid VLC frame boundary")
             self.picture = sha256(memoryview(self.buffer)[6:end]).digest()
+            if self.on_frame is not None:
+                self.on_frame(memoryview(self.buffer)[6:end])
             self.frame_count += 1
             del self.buffer[:end]
 
 
 class RenderPipe:
-    def __init__(self, width, height):
+    def __init__(self, width, height, on_frame=None):
         self.name = r"\\.\pipe\hcv-sim-" + uuid.uuid4().hex
-        self.frames = RenderedFrames(width, height)
+        self.frames = RenderedFrames(width, height, on_frame)
         self.error = None
         self.stop = Event()
         self.api = ctypes.WinDLL("kernel32", use_last_error=True)

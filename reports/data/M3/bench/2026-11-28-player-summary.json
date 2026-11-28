@@ -1,0 +1,92 @@
+{
+  "round1-vlc100": {
+    "first_frame_ms": 570.22,
+    "frames": 949,
+    "rejected": 0,
+    "missing": 0,
+    "span_s": 15.8,
+    "max_gap_ms": 21.05,
+    "p50_age_ms": 453.73,
+    "p95_age_ms": 455.71
+  },
+  "round1-vlc150": {
+    "first_frame_ms": 643.41,
+    "frames": 946,
+    "rejected": 0,
+    "missing": 0,
+    "span_s": 15.75,
+    "max_gap_ms": 21.43,
+    "p50_age_ms": 503.71,
+    "p95_age_ms": 505.71
+  },
+  "round1-vlc200": {
+    "first_frame_ms": 585.12,
+    "frames": 951,
+    "rejected": 0,
+    "missing": 0,
+    "span_s": 15.832,
+    "max_gap_ms": 21.21,
+    "p50_age_ms": 553.72,
+    "p95_age_ms": 555.85
+  },
+  "round1-ffplay": {
+    "first_frame_ms": 620.59,
+    "frames": 918,
+    "rejected": 0,
+    "missing": 5,
+    "span_s": 15.383,
+    "max_gap_ms": 48.07,
+    "p50_age_ms": 162.65,
+    "p95_age_ms": 167.45
+  },
+  "round2-ffplay": {
+    "first_frame_ms": 737.62,
+    "frames": 907,
+    "rejected": 0,
+    "missing": 7,
+    "span_s": 15.25,
+    "max_gap_ms": 33.21,
+    "p50_age_ms": 162.19,
+    "p95_age_ms": 171.83
+  },
+  "round2-vlc200": {
+    "first_frame_ms": 968.6,
+    "frames": 928,
+    "rejected": 6,
+    "missing": 0,
+    "span_s": 15.45,
+    "max_gap_ms": 21.22,
+    "p50_age_ms": 553.69,
+    "p95_age_ms": 555.54
+  },
+  "round2-vlc150": {
+    "first_frame_ms": 838.48,
+    "frames": 935,
+    "rejected": 5,
+    "missing": 0,
+    "span_s": 15.569,
+    "max_gap_ms": 21.34,
+    "p50_age_ms": 503.68,
+    "p95_age_ms": 505.77
+  },
+  "round2-vlc100": {
+    "first_frame_ms": 975.79,
+    "frames": 927,
+    "rejected": 5,
+    "missing": 0,
+    "span_s": 15.433,
+    "max_gap_ms": 20.9,
+    "p50_age_ms": 453.75,
+    "p95_age_ms": 455.82
+  },
+  "70s-round1-ffplay": {
+    "first_frame_ms": 655.32,
+    "frames": 4018,
+    "rejected": 0,
+    "missing": 21,
+    "span_s": 67.351,
+    "max_gap_ms": 37.78,
+    "p50_age_ms": 177.88,
+    "p95_age_ms": 186.34
+  }
+}
