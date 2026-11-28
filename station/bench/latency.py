@@ -86,6 +86,7 @@ class ClockWindow:
                      font=("Arial", 17), pady=13).grid(row=2, column=i, sticky="ew")
         self.root.update()
         self.hwnd = video.winfo_id()
+        self.video_rect = (video.winfo_rootx(), video.winfo_rooty(), video.winfo_width(), video.winfo_height())
 
     def cancel(self):
         self.cancelled = True

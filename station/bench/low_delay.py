@@ -31,7 +31,7 @@ def continuity(rows):
     times = [r[0] for r in rows]
     if len(times) < 2:
         return dict(frames=len(times), max_gap_ms=None, longest_s=0, continuous_60s=False)
-    start = times[0]
+    start = best_start = best_end = times[0]
     longest = largest = 0
     for prev, now in zip(times, times[1:]):
         if now < prev:
@@ -40,9 +40,11 @@ def continuity(rows):
         largest = max(largest, gap)
         if gap > 1_000_000_000:
             start = now
-        longest = max(longest, now - start)
+        if now - start > longest:
+            longest = now - start
+            best_start, best_end = start, now
     return dict(frames=len(times), max_gap_ms=round(largest / 1e6, 3), longest_s=round(longest / 1e9, 3),
-                continuous_60s=longest >= 60_000_000_000)
+                continuous_60s=longest >= 60_000_000_000, start_ns=best_start, end_ns=best_end)
 
 
 @contextmanager
@@ -80,7 +82,8 @@ def remux_mp4(directory, ffmpeg):
         temporary.unlink(missing_ok=True)
 
 
-def receive(url, directory, ffmpeg, ffplay, seconds, framedrop, *, diagnostic=False, env=None, tick=None):
+def receive(url, directory, ffmpeg, ffplay, seconds, framedrop, *, diagnostic=False, env=None, tick=None,
+            display_rect=None):
     target = urlsplit(url)
     if (target.scheme != "rtsp" or not target.hostname or not target.port or target.username is not None
             or target.path in ("", "/") or target.query or target.fragment or seconds <= 0):
@@ -91,6 +94,10 @@ def receive(url, directory, ffmpeg, ffplay, seconds, framedrop, *, diagnostic=Fa
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     with receiver_path(url, directory, diagnostic, result) as local:
         ingest, display = commands(ffmpeg, ffplay, local, framedrop)
+        if display_rect:
+            left, top, width, height = display_rect
+            display[1:1] = ["-alwaysontop", "-noborder", "-left", str(left), "-top", str(top),
+                            "-x", str(width), "-y", str(height)]
         with ExitStack() as stack:
             log = stack.enter_context((directory / "receiver.log").open("wb"))
             plog = stack.enter_context((directory / "player.log").open("wb"))
@@ -126,7 +133,7 @@ def receive(url, directory, ffmpeg, ffplay, seconds, framedrop, *, diagnostic=Fa
                     viewer.wait(timeout=4)
                 except subprocess.TimeoutExpired:
                     stop(viewer)
-                if tick:
+                if tick and reason != "cancelled":
                     tick()
     result.update(reason=reason, recorder_exit=writer.returncode, player_exit=viewer.returncode,
                   framedrop=framedrop, mp4_ready=remux_mp4(directory, ffmpeg))

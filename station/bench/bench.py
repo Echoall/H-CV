@@ -1137,6 +1137,7 @@ if __name__ == "__main__":
     parser.add_argument("--player", nargs="+", help=argparse.SUPPRESS)
     parser.add_argument("--receive-low-delay", metavar="RTSP_URL", help="从已启动的视频源单路接收，同时显示和录像")
     parser.add_argument("--compare-players", action="store_true", help="v1.8 同次到场分别测试 VLC 和单路低延迟接收")
+    parser.add_argument("--optical", action="store_true", help="两轮接收器对照都显示电脑时钟并保存对照截图")
     parser.add_argument("--receive-seconds", type=int)
     parser.add_argument("--framedrop", action="store_true", help="低延迟播放器可主动跳过迟到帧")
     parser.add_argument("--rtp-diagnostic", action="store_true", help="本轮通过中继记录 RTP 到达时间，对照两端使用相同路径")
@@ -1153,6 +1154,8 @@ if __name__ == "__main__":
         parser.error("--framedrop 仅用于低延迟接收器")
     if args.rtp_diagnostic and not (args.receive_low_delay or args.compare_players):
         parser.error("--rtp-diagnostic 需要独立接收或播放器对照模式")
+    if args.optical and not args.compare_players:
+        parser.error("--optical 需要播放器对照模式")
     if args.hubei_m1 and (args.simulate or args.hubei or args.field or args.link_check or args.player):
         parser.error("--hubei-m1 requires a standalone physical session")
     if args.simulate_cut and not (args.hubei and args.simulate):

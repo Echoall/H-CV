@@ -399,7 +399,7 @@ def arguments():
     parser.add_argument("--dtr", choices=("default", "0", "1"), default="default")
     parser.add_argument("--rts", choices=("default", "0", "1"), default="default")
     commands = parser.add_subparsers(dest="command", required=True)
-    for command in ("ports", "info", "backup", "cleanup", "reset"):
+    for command in ("ports", "info", "backup", "cleanup", "reset", "soft-reset-confirmed"):
         commands.add_parser(command)
     listing = commands.add_parser("ls")
     listing.add_argument("remote", nargs="?", default=SDCARD)
@@ -436,8 +436,11 @@ def main():
             raise TransportError(str(error) + "; close CanMV IDE and other serial tools") from error
         try:
             board.serial.write_timeout = 2
-            board.enter_raw_repl(soft_reset=False)
-            if args.command == "info":
+            board.enter_raw_repl(soft_reset=args.command == "soft-reset-confirmed")
+            if args.command == "soft-reset-confirmed":
+                # enter_raw_repl checked both the soft reboot message and the new raw REPL banner.
+                print("HCV_S0_SOFT_REBOOT_CONFIRMED")
+            elif args.command == "info":
                 print(board.exec("import os, sys\nprint(os.uname())\nprint(sys.implementation)")
                       .decode("utf-8", errors="replace").strip())
             elif args.command == "backup":

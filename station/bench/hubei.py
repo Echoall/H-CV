@@ -111,7 +111,9 @@ def physical(run, mode, ask, original, vlc):
     if combined:
         from station.bench.hubei_m1 import prepare
         entry = prepare(run, v18=v18_combined)
-    if run.summary["plan"].get("receiver_ab"):
+    if run.summary["plan"].get("optical"):
+        print("请固定相机，对准电脑左半边，两轮保持位置和光照。")
+    elif run.summary["plan"].get("receiver_ab"):
         print("两轮请保持同样的取景和光照。")
     else:
         print("请把镜头对准电脑屏幕左半边。")
@@ -124,6 +126,11 @@ def physical(run, mode, ask, original, vlc):
         monitor = observe_usb(run, run.usb_board)
         source = (script + "\nrun(%r, supervised_stop=%r)\n" % (wifi, supervised_stop)).encode()
     elif combined:
+        if run.summary["plan"].get("sensor_mode"):
+            width, height, fps = run.summary["plan"]["sensor_mode"]
+            if (width, height, fps) not in ((1920, 1080, 60), (1280, 720, 90)):
+                raise ValueError("unexpected S4 sensor mode")
+            script += f"\nSENSOR_WIDTH, SENSOR_HEIGHT, SENSOR_FPS = {width}, {height}, {fps}\n"
         source = (script + "\n" + entry + "\nrun(%r, detection, private_pool=%r)\n" % (wifi, v18_combined)).encode()
     else:
         source = (f"HCV_HUBEI_WIFI = {wifi!r}\n" + script).encode()

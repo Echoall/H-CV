@@ -70,8 +70,12 @@ def metrics(rows, fps):
 
 
 def during_display(lines, capture):
-    rows = windows(lines)
     start, end = capture.get("display_start_epoch"), capture.get("display_end_epoch")
+    return during_interval(lines, start, end, 60)
+
+
+def during_interval(lines, start, end, fps):
+    rows = windows(lines)
     if start is None or end is None:
         return None
     anchors = []
@@ -91,7 +95,7 @@ def during_display(lines, capture):
               and max(offsets) + row[2] / 1e6 <= end]
     if not inside:
         return None
-    result = metrics(inside, 60)
+    result = metrics(inside, fps)
     result["anchor_offset_difference_s"] = max(offsets) - min(offsets)
     result["serial_span_s"] = host1 - host0
     result["process_p95_within_6ms"] = result["process_us"][1] <= 6000

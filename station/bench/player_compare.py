@@ -1,7 +1,8 @@
 """Run two separate v1.8 AP sessions using the same board setup and different PC receivers."""
 import os
+import time
 
-from station.bench import bench, hubei, low_delay, wlan
+from station.bench import bench, hubei, latency, low_delay, wlan
 from station.bench.field import frame_numbers
 
 
@@ -17,8 +18,23 @@ def capture(run, vlc, url, plan, simulated):
     folder = run.directory / "single"
     env = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_VIDEO_DRIVER="dummy",
                SDL_RENDER_DRIVER="software") if simulated else None
-    result = low_delay.receive(url, folder, *low_delay.binaries(), plan["seconds"] + 2, plan["framedrop"],
-                               diagnostic=diagnostic, env=env)
+    clock = latency.ClockWindow(run.directory) if plan.get("optical") and not simulated else None
+    try:
+        started = time.monotonic()
+        def update_clock():
+            try:
+                clock.tick(time.monotonic() - started)
+            except RuntimeError:
+                if clock.cancelled:
+                    raise KeyboardInterrupt from None
+                raise
+        result = low_delay.receive(url, folder, *low_delay.binaries(), plan["seconds"] + 2, plan["framedrop"],
+                                   env=env, diagnostic=diagnostic,
+                                   tick=update_clock if clock else None,
+                                   display_rect=clock.video_rect if clock else None)
+    finally:
+        if clock:
+            clock.close()
     stage["ended"] = bench.now()
     received = result["arrival"]["frames"] if diagnostic else result["mp4_ready"]
     cap.update(result, transport_observed=["tcp"] if received else [],
@@ -66,7 +82,8 @@ def wizard(args, ask=input):
         if not simulated and (not original or not original[2] or original[1] == bench.config_wifi()["ssid"]):
             raise RuntimeError("请先连接可恢复的日常 Wi-Fi。")
         plan = dict(hubei.plan("ap"), id="v18-" + name, receiver_ab=name, firmware_compare=True,
-                    framedrop=args.framedrop, rtp_diagnostic=args.rtp_diagnostic)
+                    framedrop=args.framedrop, rtp_diagnostic=args.rtp_diagnostic,
+                    optical=getattr(args, "optical", False))
         run = bench.Run(root / name, plan, simulated)
         passed = False
         restored = False
@@ -78,6 +95,8 @@ def wizard(args, ask=input):
             else:
                 clean = hubei.physical(run, "ap", ask, original, vlc)
             passed = evaluate(run, clean, ffmpeg)
+            if plan["optical"] and not simulated:
+                run.summary["optical_latency"] = latency.read_samples(run.directory, ask)
         finally:
             try:
                 restored = simulated or wlan.restore(original, diagnostics=run.summary["network"])

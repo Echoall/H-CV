@@ -100,7 +100,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     with bench.only_instance(args.runs):
         root = (args.runs / (datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-v18-visit")).resolve()
-        if args.simulate:
-            from station.bench.v18_rehearsal import rehearse
-            raise SystemExit(int(not rehearse(root, bench.tools(*(p.resolve() for p in args.simulate)))))
-        raise SystemExit(visit(root))
+        from station.bench.field_visit import visit as field_visit
+        raise SystemExit(field_visit(root, simulation=args.simulate))
