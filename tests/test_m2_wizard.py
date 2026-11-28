@@ -1,5 +1,6 @@
 import json
 import subprocess
+from types import SimpleNamespace
 
 from station.bench import m2
 
@@ -29,3 +30,30 @@ def test_no_board_creates_incomplete_report_without_capture(tmp_path, monkeypatc
     assert m2.wizard(output) == 2
     report = json.loads((output / "summary.json").read_text(encoding="utf-8"))
     assert not report["complete"] and report["cases"] == {} and "采集还没开始" in report["error"]
+
+
+def test_v18_prepares_verified_config_and_keeps_selected_port(tmp_path, monkeypatch):
+    inventory = ("(release='v1.8-0-gc2d1f5c', version='v1.8-0-gc2d1f5c on 2026-07-03', "
+                 "machine='k230_canmv_hiwonder')")
+    calls = []
+
+    def subprocess_run(command, **kwargs):
+        calls.append(command)
+        return SimpleNamespace(stdout=inventory)
+
+    def prepare(run, *, board_command):
+        assert run.directory.is_dir()
+        calls.append(board_command)
+
+    def field_run(port, output, strip, angle, *, config_directory):
+        calls.append((port, strip, angle, config_directory))
+        return True
+
+    monkeypatch.setattr(m2.subprocess, "run", subprocess_run)
+    monkeypatch.setattr(m2.m1_v18, "prepare", prepare)
+    monkeypatch.setattr(m2.field, "field_run", field_run)
+    monkeypatch.setattr("builtins.input", lambda _: "0.1")
+    assert m2.wizard(tmp_path / "v18", port="COM3") == 0
+    assert calls[0][-3:] == ["--port", "COM3", "info"]
+    assert calls[1][-2:] == ["--port", "COM3"]
+    assert calls[2] == ("COM3", None, 0.1, "/sdcard/hcv/m1_v18")

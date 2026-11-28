@@ -8,6 +8,8 @@ from pathlib import Path
 import subprocess
 
 from tools.calib import m2_field as field
+from station.bench import bench, m1_v18
+from tools.board.board import image_matches
 
 
 def wizard(output, simulate=False, port="auto"):
@@ -23,7 +25,8 @@ def wizard(output, simulate=False, port="auto"):
         with session:
             print("本轮按提示固定相机、摆球和切灯。每次准备好再按回车。结果保存在", output)
             try:
-                subprocess.run(field.board_command(port, "info"), check=True, timeout=20)
+                info = subprocess.run(field.board_command(port, "info"), check=True, timeout=20,
+                                      capture_output=True, text=True, encoding="utf-8", errors="replace")
             except subprocess.SubprocessError as exc:
                 raise RuntimeError("20 秒内未确认板子响应，采集还没开始。请保留本轮报告。") from exc
             summary["step"] = "输入水平仪角度"
@@ -31,8 +34,15 @@ def wizard(output, simulate=False, port="auto"):
             if not abs(angle) <= 0.2:
                 raise ValueError("请先把尺面调平至 ±0.2° 内")
             summary["level_deg"] = angle
+            options = {}
+            if not simulate and image_matches(info.stdout, "v1.8"):
+                summary["step"] = "部署幻尔 v1.8 标定依赖"
+                run = bench.Run(output / "deployment", {"id": "m2-v18", "title": "v1.8 标定依赖"}, False)
+                m1_v18.prepare(run, board_command=field.board_command(port))
+                options["config_directory"] = "/sdcard/hcv/m1_v18"
+                summary.update(verified_image="v1.8", **options)
             summary["step"] = "标定、七点、光照、进出球"
-            passed = field.field_run(port, measurements, None, angle)
+            passed = field.field_run(port, measurements, None, angle, **options)
             summary.update(complete=True, passed=passed, step="全部采集完毕")
     except (EOFError, KeyboardInterrupt, OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
         summary["error"] = str(exc) or type(exc).__name__

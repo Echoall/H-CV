@@ -11,14 +11,16 @@ MODULES = ("__init__", "calibration", "compat", "config", "detect_profile", "gua
            "link_uart", "media_session_guard", "proto", "tracker")
 
 
-def prepare(run, *, combined=False):
+def prepare(run, *, combined=False, board_command=None):
+    if board_command is None:
+        board_command = bench.BOARD
     modules = MODULES + ("hubei_detection", "video_observation") if combined else MODULES
     files = [(f"k230/hcv/{name}.py", f"hcv/{name}.py") for name in modules]
     runner = "hubei_m1_runner.py" if combined else "main_hcv.py"
     files.extend([("k230/main_hcv.py", runner),
                   ("reports/data/M1/m1-config.json", "m1_v18/config.json")])
     for source, target in files:
-        code, _, _ = run.command("upload-" + Path(target).name, bench.BOARD + [
+        code, _, _ = run.command("upload-" + Path(target).name, board_command + [
             "put", str(bench.ROOT / source), "/sdcard/hcv/" + target, "--hiwonder-v18"], timeout=45)
         if code != 0:
             raise RuntimeError("板端文件核对失败：" + target)

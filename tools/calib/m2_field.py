@@ -55,9 +55,12 @@ def board_command(port, *args):
     return [sys.executable, "-u", str(BOARD_TOOLS / "board.py"), "--port", port, *map(str, args)]
 
 
-def capture_reference(port, output):
+def capture_reference(port, output, *, config_directory=None):
     countdown()
-    run_cued_capture(port, output, "m2_reference.py", "HCV_CAPTURE_CUE = True\n",
+    params = "HCV_CAPTURE_CUE = True\n"
+    if config_directory:
+        params += f"HCV_M2_CONFIG_DIRECTORY = {config_directory!r}\n"
+    run_cued_capture(port, output, "m2_reference.py", params,
                      "HCV_M2_CAPTURE_CUE", 30, log_path=output / "reference.log")
     for name in ("m2-ruler.pgm", "m2-reference.json"):
         subprocess.run(board_command(port, "get", REMOTE + name, output / name), check=True, timeout=120)
@@ -164,12 +167,14 @@ def run_cued_capture(port, directory, source, params, cue, timeout, log_path=Non
                 timer.cancel()
 
 
-def record(port, directory, transition=False, calibration_path=None, seconds=2):
+def record(port, directory, transition=False, calibration_path=None, seconds=2, *, config_directory=None):
     params = "CAPTURE_SECONDS = %d\nSIGNAL_FRAME = %d\n" % (
         8 if transition else seconds, 90 if transition else 1,
     )
     if calibration_path is not None:
         params += "CALIBRATION_PATH = %r\n" % calibration_path
+    if config_directory:
+        params += f"HCV_M2_CONFIG_DIRECTORY = {config_directory!r}\n"
     countdown()
     run_cued_capture(port, directory, "m1_ball_insertion.py", params, "HCV_FIELD_CUE,", 38)
     capture = directory / "capture.bin"
@@ -257,10 +262,13 @@ def transition_result(rows, first_changed, insertion, max_interval_ms, fps):
     }
 
 
-def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=None):
+def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=None, *, config_directory=None):
     output.mkdir(parents=True)
+    if config_directory and (calib_mode != "ruler" or compare_with is not None):
+        raise ValueError("the alternate configuration is supported by the ruler wizard")
+    config_args = {"config_directory": config_directory} if config_directory else {}
     input("相机和纸尺固定，横尺调平，台灯正常，清空检测区。准备好拍底图再按回车，五声低音后听高音。")
-    image, reference = capture_reference(port, output)
+    image, reference = capture_reference(port, output, **config_args)
     config = reference["config"]
     static_seconds = max(2, ceil(120 / config["sensor"]["fps"]))
     if compare_with is not None:
@@ -281,7 +289,7 @@ def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=N
     subprocess.run(board_command(port, "put", pending, remote_pending), check=True, timeout=120)
     input("把钢球球心对准尺子上实际印刷的 0 刻度。放稳后按回车。")
     zero_rows, _ = record(port, output / "normal_+0mm", calibration_path=remote_pending,
-                         seconds=static_seconds)
+                         seconds=static_seconds, **config_args)
     zero = static_result(zero_rows, 0)
     zero["zero_check_passed"] = zero["valid"] >= 100 and abs(zero["mean_mm"]) < 3
     results = {"normal_+0mm": zero}
@@ -301,7 +309,7 @@ def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=N
 
     def measure(label, prompt, target_mm):
         input(prompt + "，放稳后按回车。")
-        rows, _ = record(port, output / label, seconds=static_seconds)
+        rows, _ = record(port, output / label, seconds=static_seconds, **config_args)
         results[label] = static_result(rows, target_mm)
         save_results(output, results)
         print(label, results[label], flush=True)
@@ -317,7 +325,7 @@ def field_run(port, output, strip, level_deg, calib_mode="ruler", compare_with=N
         if not insertion:
             input("保持球在检测区内。按回车后听五声低音，听到高音再拿走球。")
         directory = output / label
-        rows, result = record(port, directory, transition=True)
+        rows, result = record(port, directory, transition=True, **config_args)
         if result["valid_frames"] in (0, result["frames"]):
             results[label] = dict(result, passed=False, reason="recording did not change VALID")
         else:

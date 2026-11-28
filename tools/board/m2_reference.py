@@ -37,7 +37,7 @@ def sample_ball(sensor, bounds, pixels, profile, detector, fingerprint):
 
 def capture(preview_only=False, rehearsal_roi=None, cue=False, ball_samples=False):
     start(15 if ball_samples else 8)
-    config = load_config("/sdcard/hcv")
+    config = load_config(globals().pop("HCV_M2_CONFIG_DIRECTORY", "/sdcard/hcv"))
     rehearsal = preview_only or rehearsal_roi is not None
     if rehearsal:
         config["chn_detect"]["crop"] = None

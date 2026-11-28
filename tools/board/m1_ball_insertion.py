@@ -19,11 +19,12 @@ SECONDS = globals().get("CAPTURE_SECONDS", 8)
 SIGNAL_FRAME = globals().get("SIGNAL_FRAME", 0)
 FRAMES_PER_BLOCK = 64
 EVIDENCE = "/sdcard/hcv/m1-ball-insertion.bin"
+CONFIG_DIRECTORY = globals().pop("HCV_M2_CONFIG_DIRECTORY", "/sdcard/hcv")
 
 
 def record():
     start(5)
-    config = load_config("/sdcard/hcv")
+    config = load_config(CONFIG_DIRECTORY)
     roi = config["roi"]
     bounds = (roi["x"], roi["y"], roi["w"], roi["h"])
     # A quarter-size preview keeps eight seconds of frames within the board heap.
@@ -54,7 +55,7 @@ def record():
             print("HCV_FIELD_CUE,frame=%d" % (count - 1))
 
     run(max_runtime_s=SECONDS, max_frames=limit, observe_ball=observe,
-        calibration_path=globals().get("CALIBRATION_PATH"))
+        calibration_path=globals().get("CALIBRATION_PATH"), config_directory=CONFIG_DIRECTORY)
     start(12)
     with open(EVIDENCE, "wb") as output:
         output.write(("HCV1 %d %d %d\n" % (width, height, count)).encode())
