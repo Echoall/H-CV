@@ -37,13 +37,16 @@ def test_bad_receiver_input_leaves_no_run_directory(tmp_path, url):
 
 
 @pytest.mark.parametrize("name", ("vlc200", "ffplay"))
-def test_arrival_recording_and_replay_gate(tmp_path, monkeypatch, name):
-    path = tmp_path / ("recording.mp4" if name == "vlc200" else "single/recording.ts")
+@pytest.mark.parametrize("diagnostic", (True, False))
+def test_arrival_recording_and_replay_gate(tmp_path, monkeypatch, name, diagnostic):
+    path = tmp_path / ("recording.mp4" if name == "vlc200" else "single/recording.mp4")
     path.parent.mkdir(exist_ok=True)
     path.write_bytes(b"fixture")
-    cap = dict(frames=3600, exit_code=0, transport_observed=["tcp"], rtp_discontinuities=0,
-               arrival={"continuous_60s": True}, video_track_seconds=61, width=640, height=360)
-    run = SimpleNamespace(directory=tmp_path, summary={"plan":{"receiver_ab":name}, "capture":cap},
+    cap = dict(frames=3600, exit_code=0, transport_observed=["tcp"], video_track_seconds=61, width=640, height=360,
+               receiver_path="rtp_relay" if diagnostic else "direct")
+    if diagnostic:
+        cap.update(rtp_discontinuities=0, arrival={"continuous_60s": True})
+    run = SimpleNamespace(directory=tmp_path, summary={"plan":{"receiver_ab":name, "rtp_diagnostic":diagnostic}, "capture":cap},
                           command=lambda *args, **kwargs: (0, "", ""))
     monkeypatch.setattr(player_compare, "frame_numbers", lambda *_: {"reference_pictures":3600, "gap_pct":0})
     assert player_compare.evaluate(run, True, Path("ffmpeg"))
@@ -51,8 +54,33 @@ def test_arrival_recording_and_replay_gate(tmp_path, monkeypatch, name):
     run.command = lambda *args, **kwargs: (1, "", "")
     assert not player_compare.evaluate(run, True, Path("ffmpeg"))
     run.command = lambda *args, **kwargs: (0, "", "")
-    cap["arrival"]["continuous_60s"] = False
+    if diagnostic:
+        cap["arrival"]["continuous_60s"] = False
+    else:
+        cap["receiver_path"] = "rtp_relay"
     assert not player_compare.evaluate(run, True, Path("ffmpeg"))
+
+
+def test_direct_does_not_open_a_relay_or_write_arrival_evidence(tmp_path, monkeypatch):
+    monkeypatch.setattr(low_delay, "trace", lambda *_a, **_k: pytest.fail("direct mode started a relay"))
+    result = {}
+    with low_delay.receiver_path("rtsp://localhost:8554/cam", tmp_path, False, result) as url:
+        assert url == "rtsp://localhost:8554/cam"
+    assert result == {"receiver_path": "direct"}
+    assert not (tmp_path / "arrival.json").exists()
+
+
+def test_failed_remux_preserves_ts_and_removes_partial_mp4(tmp_path, monkeypatch):
+    source = tmp_path / "recording.ts"
+    source.write_bytes(b"preserve")
+    def fail(command, **options):
+        assert command[command.index("-c")+1] == "copy"
+        (tmp_path / command[-1]).write_bytes(b"partial")
+        return SimpleNamespace(returncode=1)
+    monkeypatch.setattr(low_delay.subprocess, "run", fail)
+    assert not low_delay.remux_mp4(tmp_path, "ffmpeg")
+    assert source.read_bytes() == b"preserve"
+    assert not list(tmp_path.glob("*.mp4"))
 
 
 def test_ending_comparison_before_first_round_never_accesses_board(tmp_path, monkeypatch):

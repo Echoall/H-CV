@@ -99,6 +99,8 @@ pktmon etl2txt $captureFile --timestamp --out (Join-Path $captureDir 'link.txt')
 
 在 `runtime` 中放好 `ffmpeg.exe`、`ffprobe.exe`、`ffplay.exe` 和原有 VLC。在现场确认可以实拍后，打开 `接收器对照.bat`。第一轮用 VLC 200 ms，第二轮用 FFmpeg 同时录像并把视频从管道送给 ffplay。按窗口提示分别上电和确认「拍」，两轮使用同一板卡、取景和板载 AP。每轮五声低音后一声高音开始拍摄。任一轮未完成板端清理或网络恢复，就先查看该轮日志。常用的 `图传调试台.bat` 仍使用原有入口。
 
-录像在 `runs/*-players/vlc200/recording.mp4` 和 `runs/*-players/ffplay/single/recording.ts`。用播放器打开文件可回放。每轮 `summary.json` 中的 `capture.arrival` 给出电脑收到 RTP 帧结束标志的数量、最大间隔和连续时长。两轮均运行完整解码检查；实板光学延迟需要另行测量。
+双击时两个播放器都直连板子。需要测量 RTP 到达间隔时，运行 `接收器对照.bat --rtp-diagnostic`，两轮都经过同一个版本的本机中继。此时每轮 `summary.json` 的 `capture.arrival` 给出帧结束包数量、最大到达间隔和连续时长。直连轮记录录像指标，到达时间线只在诊断轮生成。
+
+回放时打开 `runs/*-players/vlc200/recording.mp4` 或 `runs/*-players/ffplay/single/recording.mp4`。低延迟接收器先保存 `recording.ts`，录制结束后原样复制压缩视频到 MP4 容器，保留同目录的 TS 原件。如果 MP4 转封装失败，查看 `remux.log`。对照向导会完整解码两轮 MP4。实板光学延迟需要另行测量。
 
 有已经启动的图传源时，也可单独运行 `python -m station.bench.bench --receive-low-delay <RTSP地址> --receive-seconds 65`。默认低延迟接收器关闭主动丢帧，追加 `--framedrop` 可打开。接收器按指定时长结束并关闭录像。测速只使用本机合成视频时运行 `python -m station.bench.bench --compare-players --simulate <ffmpeg.exe> <mediamtx.exe>`。

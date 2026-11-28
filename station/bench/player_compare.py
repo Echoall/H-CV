@@ -1,32 +1,31 @@
 """Run two separate v1.8 AP sessions using the same board setup and different PC receivers."""
 import os
 
-from station.bench import bench, hubei, low_delay, rtp_trace, wlan
+from station.bench import bench, hubei, low_delay, wlan
 from station.bench.field import frame_numbers
 
 
 def capture(run, vlc, url, plan, simulated):
     cap = run.summary["capture"]
+    diagnostic = plan["rtp_diagnostic"]
     if plan["receiver_ab"] == "vlc200":
-        rows, stats = [], {}
-        with rtp_trace.trace(url, stats, run.clean, on_frame_end=lambda *r: rows.append(r)) as local:
+        with low_delay.receiver_path(url, run.directory, diagnostic, cap) as local:
             bench.receive(run, vlc, local, plan, simulated)
-        bench.write_json(run.directory / "arrival.json", rows)
-        cap.update(arrival=low_delay.continuity(rows), rtp_discontinuities=stats.get("rtp_sequence_discontinuities", 0),
-                   inspection_stopped=bool(stats.get("rtp_inspection_stopped")))
         return
 
     stage = run.summary["stages"]["single-receiver"] = {"started": bench.now()}
     folder = run.directory / "single"
     env = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_VIDEO_DRIVER="dummy",
                SDL_RENDER_DRIVER="software") if simulated else None
-    result = low_delay.receive(url, folder, *low_delay.binaries(), plan["seconds"] + 2, plan["framedrop"], env=env)
+    result = low_delay.receive(url, folder, *low_delay.binaries(), plan["seconds"] + 2, plan["framedrop"],
+                               diagnostic=diagnostic, env=env)
     stage["ended"] = bench.now()
-    cap.update(result, transport_observed=["tcp"] if result["arrival"]["frames"] else [],
+    received = result["arrival"]["frames"] if diagnostic else result["mp4_ready"]
+    cap.update(result, transport_observed=["tcp"] if received else [],
                exit_code=result["recorder_exit"])
     if result["reason"] != "deadline" or result["player_exit"] != 0:
         cap["client_end_reason"] = result["reason"] if result["reason"] != "deadline" else "player_error"
-    recording = folder / "recording.ts"
+    recording = folder / "recording.mp4"
     if recording.is_file() and recording.stat().st_size:
         cap.update(bench.decode(recording, run.directory / "preview.png"))
         bench.inspect_frame_rate(run, recording, bench.find_ffprobe())
@@ -35,15 +34,18 @@ def capture(run, vlc, url, plan, simulated):
 def evaluate(run, clean, ffmpeg):
     cap = run.summary["capture"]
     path = (run.directory / "recording.mp4" if run.summary["plan"]["receiver_ab"] == "vlc200"
-            else run.directory / "single/recording.ts")
+            else run.directory / "single/recording.mp4")
     if not path.is_file() or not cap.get("frames"):
         return False
     cap["frame_numbers"] = frame_numbers(path, ffmpeg)
     code, _, _ = run.command("replay-decode", [ffmpeg, "-nostdin", "-v", "error", "-xerror", "-i",
                                                str(path), "-map", "0:v:0", "-f", "null", "-"], timeout=45)
+    diagnostic = run.summary["plan"]["rtp_diagnostic"]
+    path_verified = cap.get("receiver_path") == ("rtp_relay" if diagnostic else "direct")
+    arrival_ok = (not diagnostic or (not cap.get("inspection_stopped") and cap.get("rtp_discontinuities") == 0
+                                     and cap.get("arrival", {}).get("continuous_60s")))
     return bool(clean and cap.get("exit_code") == 0 and not cap.get("client_end_reason")
-                and cap.get("transport_observed") == ["tcp"] and not cap.get("inspection_stopped")
-                and cap.get("rtp_discontinuities") == 0 and cap.get("arrival", {}).get("continuous_60s")
+                and cap.get("transport_observed") == ["tcp"] and path_verified and arrival_ok
                 and cap.get("video_track_seconds", 0) >= 58 and (cap.get("width"), cap.get("height")) == (640, 360)
                 and cap["frame_numbers"]["reference_pictures"] > 0 and cap["frame_numbers"]["gap_pct"] <= 1
                 and code == 0)
@@ -64,7 +66,7 @@ def wizard(args, ask=input):
         if not simulated and (not original or not original[2] or original[1] == bench.config_wifi()["ssid"]):
             raise RuntimeError("请先连接可恢复的日常 Wi-Fi。")
         plan = dict(hubei.plan("ap"), id="v18-" + name, receiver_ab=name, firmware_compare=True,
-                    framedrop=args.framedrop)
+                    framedrop=args.framedrop, rtp_diagnostic=args.rtp_diagnostic)
         run = bench.Run(root / name, plan, simulated)
         passed = False
         restored = False

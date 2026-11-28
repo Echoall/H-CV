@@ -1,0 +1,63 @@
+{
+  "scope": "PC synthetic video and archived synthetic TS",
+  "comparisons": {
+    "direct": {
+      "vlc200": {
+        "readers": 1,
+        "frames": 3722,
+        "seconds": 62.134611,
+        "arrival": null,
+        "reference_gap_pct": 0.0,
+        "replay_exit": 0
+      },
+      "ffplay": {
+        "readers": 1,
+        "frames": 3742,
+        "seconds": 62.366667,
+        "arrival": null,
+        "reference_gap_pct": 0.0,
+        "replay_exit": 0
+      }
+    },
+    "rtp_relay": {
+      "vlc200": {
+        "readers": 1,
+        "frames": 3713,
+        "seconds": 61.882111,
+        "arrival": {
+          "frames": 3726,
+          "max_gap_ms": 45.977,
+          "longest_s": 62.094,
+          "continuous_60s": true
+        },
+        "reference_gap_pct": 0.0,
+        "replay_exit": 0
+      },
+      "ffplay": {
+        "readers": 1,
+        "frames": 3714,
+        "seconds": 61.9,
+        "arrival": {
+          "frames": 3720,
+          "max_gap_ms": 46.76,
+          "longest_s": 61.976,
+          "continuous_60s": true
+        },
+        "reference_gap_pct": 0.0,
+        "replay_exit": 0
+      }
+    }
+  },
+  "archived_remux": {
+    "keep": {
+      "frames": 18587,
+      "ordered_frame_hash_digest": "25d736011f61facc6bcdf6d7f5fda197704fc1529ebd2160b0bc6a7337881712",
+      "original_ts_sha256": "35fc5a7056eaa4a7ef075c9afa2beade961062ba2a5a688ad356003ab2466323"
+    },
+    "drop": {
+      "frames": 18596,
+      "ordered_frame_hash_digest": "64b7a287aa9a59274f54b2d403842026d76e37801ad1097eb220622fdd4be78c",
+      "original_ts_sha256": "e25687dc2e61a6ce1412787c7b20f983bc4220f3d0dcf57a11dafd8210e62515"
+    }
+  }
+}

@@ -62,11 +62,12 @@ def experiment(args):
             started = time.time_ns()
             before = (out / "server.log").read_text(errors="replace").count("is reading from path")
             result = receive(url, folder, args.ffmpeg.resolve(), args.ffplay.resolve(), args.seconds,
-                             mode == "drop", env=env, tick=lambda: collect_bitmaps(folder, observe))
+                             mode == "drop", diagnostic=True, env=env, tick=lambda: collect_bitmaps(folder, observe))
             readers = (out / "server.log").read_text(errors="replace").count("is reading from path") - before
             age = summarize(samples, started, rejected)
             rows = age.pop("rows")
             recorded = recording_ids(folder / "recording.ts", samples[0][0])
+            replay_matches_ts = result["mp4_ready"] and recording_ids(folder / "recording.mp4", samples[0][0]) == recorded
             scored = [i for i in recorded if rows[0][0] <= i <= rows[-1][0]]
             scored_set = set(scored)
             if not all(row[0] in scored_set for row in rows):
@@ -75,7 +76,7 @@ def experiment(args):
                 decode = subprocess.run([args.ffmpeg.resolve(), "-nostdin", "-hide_banner", "-loglevel", "error",
                                          "-xerror", "-i", folder / "recording.ts", "-map", "0:v:0",
                                          "-f", "null", "-"], stdout=log, stderr=log, check=False)
-            result.update(display=age, readers=readers, replay_decode_exit=decode.returncode,
+            result.update(display=age, readers=readers, replay_decode_exit=decode.returncode, mp4_matches_ts=replay_matches_ts,
                           recorded_frames=len(recorded), recorded_first=recorded[0], recorded_last=recorded[-1],
                           recording_missing=recorded[-1]-recorded[0]+1-len(recorded),
                           recorded_in_display_window=len(scored),
@@ -84,7 +85,7 @@ def experiment(args):
             (folder / "recorded-ids.json").write_text(json.dumps(recorded), encoding="utf-8")
             result["single_reader_replay_passed"] = (
                 readers == 1 and result["reason"] == "deadline" and result["recorder_exit"] == 0
-                and result["player_exit"] == 0 and decode.returncode == 0 and not result["inspection_stopped"]
+                and result["player_exit"] == 0 and decode.returncode == 0 and replay_matches_ts and not result["inspection_stopped"]
                 and result["rtp_discontinuities"] == 0 and result["recording_missing"] == 0
                 and (args.seconds < 305 or min(age["span_s"], result["arrival"]["longest_s"]) >= 300)
             )

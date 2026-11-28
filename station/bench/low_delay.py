@@ -1,5 +1,5 @@
 """Receive one H.264 RTSP/TCP session and copy its video to disk and a local player."""
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from datetime import datetime
 import json
 from pathlib import Path
@@ -45,17 +45,51 @@ def continuity(rows):
                 continuous_60s=longest >= 60_000_000_000)
 
 
-def receive(url, directory, ffmpeg, ffplay, seconds, framedrop, *, env=None, tick=None):
+@contextmanager
+def receiver_path(url, directory, diagnostic, result):
+    result["receiver_path"] = "rtp_relay" if diagnostic else "direct"
+    if not diagnostic:
+        yield url
+        return
+    rows, stats = [], {}
+    try:
+        with trace(url, stats, lambda _: "[omitted]", on_frame_end=lambda *row: rows.append(row)) as local:
+            yield local
+    finally:
+        (directory / "arrival.json").write_text(json.dumps(rows), encoding="utf-8")
+        result.update(arrival=continuity(rows), rtp_discontinuities=stats.get("rtp_sequence_discontinuities", 0),
+                      inspection_stopped=bool(stats.get("rtp_inspection_stopped")))
+
+
+def remux_mp4(directory, ffmpeg):
+    source = directory / "recording.ts"
+    if not source.is_file() or not source.stat().st_size:
+        return False
+    temporary = directory / "recording.partial.mp4"
+    try:
+        with (directory / "remux.log").open("wb") as log:
+            command = [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-xerror",
+                       "-i", "recording.ts", "-map", "0:v:0", "-c", "copy", "-movflags", "+faststart",
+                       "-n", temporary.name]
+            process = subprocess.run(command, cwd=directory, stdout=log, stderr=log)
+        if process.returncode != 0 or not temporary.is_file() or not temporary.stat().st_size:
+            return False
+        temporary.replace(directory / "recording.mp4")
+        return True
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def receive(url, directory, ffmpeg, ffplay, seconds, framedrop, *, diagnostic=False, env=None, tick=None):
     target = urlsplit(url)
     if (target.scheme != "rtsp" or not target.hostname or not target.port or target.username is not None
             or target.path in ("", "/") or target.query or target.fragment or seconds <= 0):
         raise ValueError("请输入板子给出的 RTSP 地址（含端口和路径），时长须大于零。")
     directory.mkdir(parents=True)
-    rows = []
-    stats = {}
+    result = {}
     reason = "deadline"
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-    with trace(url, stats, lambda _: "[omitted]", on_frame_end=lambda *row: rows.append(row)) as local:
+    with receiver_path(url, directory, diagnostic, result) as local:
         ingest, display = commands(ffmpeg, ffplay, local, framedrop)
         with ExitStack() as stack:
             log = stack.enter_context((directory / "receiver.log").open("wb"))
@@ -94,10 +128,8 @@ def receive(url, directory, ffmpeg, ffplay, seconds, framedrop, *, env=None, tic
                     stop(viewer)
                 if tick:
                     tick()
-    (directory / "arrival.json").write_text(json.dumps(rows), encoding="utf-8")
-    result = dict(reason=reason, recorder_exit=writer.returncode, player_exit=viewer.returncode,
-                  arrival=continuity(rows), rtp_discontinuities=stats.get("rtp_sequence_discontinuities", 0),
-                  inspection_stopped=bool(stats.get("rtp_inspection_stopped")), framedrop=framedrop)
+    result.update(reason=reason, recorder_exit=writer.returncode, player_exit=viewer.returncode,
+                  framedrop=framedrop, mp4_ready=remux_mp4(directory, ffmpeg))
     (directory / "receiver.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     return result
 
@@ -114,9 +146,10 @@ def binaries():
     return paths
 
 
-def receiver_cli(url, runs, seconds, framedrop):
+def receiver_cli(url, runs, seconds, framedrop, *, diagnostic=False):
     directory = runs.resolve() / (datetime.now().strftime("%Y%m%d-%H%M%S-%f") + "-low-delay")
-    result = receive(url, directory, *binaries(), seconds, framedrop)
+    result = receive(url, directory, *binaries(), seconds, framedrop, diagnostic=diagnostic)
     print("接收结果", result, "\n录像与日志", directory)
     return int(result["reason"] != "deadline" or result["recorder_exit"] != 0
-               or result["player_exit"] != 0 or not result["arrival"]["frames"])
+               or result["player_exit"] != 0 or not result["mp4_ready"]
+               or (diagnostic and not result["arrival"]["frames"]))

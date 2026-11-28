@@ -1139,6 +1139,7 @@ if __name__ == "__main__":
     parser.add_argument("--compare-players", action="store_true", help="v1.8 同次到场分别测试 VLC 和单路低延迟接收")
     parser.add_argument("--receive-seconds", type=int)
     parser.add_argument("--framedrop", action="store_true", help="低延迟播放器可主动跳过迟到帧")
+    parser.add_argument("--rtp-diagnostic", action="store_true", help="本轮通过中继记录 RTP 到达时间，对照两端使用相同路径")
     args = parser.parse_args()
     if (args.receive_low_delay or args.compare_players) and (
             args.hubei or args.hubei_m1 or args.field or args.link_check or args.burst or args.player
@@ -1150,6 +1151,8 @@ if __name__ == "__main__":
         parser.error("--receive-seconds 仅用于已指定 RTSP 源的正时长测试")
     if args.framedrop and not (args.receive_low_delay or args.compare_players):
         parser.error("--framedrop 仅用于低延迟接收器")
+    if args.rtp_diagnostic and not (args.receive_low_delay or args.compare_players):
+        parser.error("--rtp-diagnostic 需要独立接收或播放器对照模式")
     if args.hubei_m1 and (args.simulate or args.hubei or args.field or args.link_check or args.player):
         parser.error("--hubei-m1 requires a standalone physical session")
     if args.simulate_cut and not (args.hubei and args.simulate):
@@ -1165,7 +1168,8 @@ if __name__ == "__main__":
             with only_instance(args.runs):
                 if args.receive_low_delay:
                     from station.bench.low_delay import receiver_cli
-                    sys.exit(receiver_cli(args.receive_low_delay, args.runs, args.receive_seconds or 65, args.framedrop))
+                    sys.exit(receiver_cli(args.receive_low_delay, args.runs, args.receive_seconds or 65,
+                                          args.framedrop, diagnostic=args.rtp_diagnostic))
                 if args.compare_players:
                     from station.bench.player_compare import wizard
                     sys.exit(wizard(args))
