@@ -20,8 +20,11 @@ def prepare(run, ask):
     if len(devices) != 1:
         raise RuntimeError('准备阶段没有唯一的板子，无法跟踪本轮 USB。')
     run.usb_board = devices[0]
-    for relative in ('tools/board/hubei_v18/rtsp_camera_stream.py', 'k230/hcv/guard.py',
-                     'k230/hcv/media_session_guard.py'):
+    files = ['tools/board/hubei_v18/rtsp_camera_stream.py', 'k230/hcv/guard.py',
+             'k230/hcv/media_session_guard.py']
+    if run.summary['plan'].get('receiver_ab'):
+        files.append('k230/hcv/video_observation.py')
+    for relative in files:
         source = bench.ROOT / relative
         code, _, _ = run.command('prepare-' + source.stem, bench.BOARD + [
             'put', str(source), '/sdcard/hcv/fw18/' + source.name, '--hiwonder-v18'], timeout=45)

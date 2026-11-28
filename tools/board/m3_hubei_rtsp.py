@@ -223,7 +223,12 @@ def run(wifi, detection=None, private_pool=False):
     print("HCV_RTSP_PRIVATE,%s,%d,%s" % (address, RTSP_PORT, RTSP_SESSION))
     if ap:
         print("HCV_AP_READY")
-    server = CameraRtspServer()
+    if private_pool and detection is not None:
+        from hcv.video_observation import MainHeartbeat, observed_server
+        detection.main_heartbeat = MainHeartbeat()
+        server = observed_server(CameraRtspServer)
+    else:
+        server = CameraRtspServer()
     try:
         server.start(detection, private_pool)
         if detection is not None:
@@ -239,6 +244,8 @@ def run(wifi, detection=None, private_pool=False):
                 server.status()
                 last = time.ticks_ms()
     finally:
+        if private_pool and detection is not None:
+            print("HCV_SERVICE_STOP_BEGIN")
         server.stop()
         print("HCV_CH0_CONFIG_CLEANUP")
 

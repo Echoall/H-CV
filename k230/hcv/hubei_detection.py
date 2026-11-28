@@ -9,6 +9,7 @@ class HubeiDetection:
         self.config = config
         self.settings = settings
         self.delay = settings["yield_ms"]
+        self.main_heartbeat = None
         if settings["yield_method"] != "sleep_ms" or type(self.delay) is not int or not 0 <= self.delay <= 10:
             raise ValueError("expected sleep_ms and 0..10 ms")
         # Bound is one extra second beyond the fixed 125-second media session.
@@ -42,6 +43,8 @@ class HubeiDetection:
         print("HCV_DUAL_ORIGIN,%d" % time.ticks_diff(time.ticks_us(), started_us))
 
     def end_frame(self, count, process_us, captured_us):
+        if self.main_heartbeat is not None:
+            self.main_heartbeat.tick()
         if self.server.thread_over:
             raise RuntimeError("video worker exited during M1")
         time.sleep_ms(self.delay)

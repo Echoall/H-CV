@@ -767,6 +767,12 @@ def stream(run, command, source, plan, wifi, original, vlc, simulation):
                         trace = rtp_trace.trace(endpoint, run.summary["rtp_arrival"], run.clean)
                     with trace as player_endpoint:
                         if plan.get("receiver_ab"):
+                            if not simulation:
+                                from station.bench.video_health import WINDOW
+                                elapsed = time.time() - datetime.fromisoformat(received_at).timestamp()
+                                # Reserve time to start and close the client within the 125 s session.
+                                if elapsed + plan["seconds"] + 12 + WINDOW > 125:
+                                    raise RuntimeError("视频会话剩余时间不足以观察正常退出，本轮结束。")
                             from station.bench.player_compare import capture
                             capture(run, vlc, player_endpoint, plan, simulation)
                         else:

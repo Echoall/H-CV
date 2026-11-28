@@ -30,6 +30,7 @@ def conclusion(results):
 
 
 def verify_power(run, ask, version="v1.4"):
+    began = time.monotonic()
     power.reconnect(ask)
     code, info, _ = run.command("inventory", bench.BOARD + ["info"], timeout=18)
     if code != 0:
@@ -37,6 +38,7 @@ def verify_power(run, ask, version="v1.4"):
     if not image_matches(info, version):
         raise RuntimeError("板型或版本不符，本轮需要 Hiwonder " + version)
     run.summary["verified_image"] = version
+    run.summary["power_prompt_to_verified_info_s"] = round(time.monotonic() - began, 3)
     probe = bench.ROOT / "tools/board/m3_hubei_inventory.py"
     code, out, _ = run.command("hubei-api", bench.BOARD + ["run", str(probe), "--timeout", "8"], timeout=20)
     tokens = out.strip().split()
@@ -111,6 +113,11 @@ def physical(run, mode, ask, original, vlc):
     if combined:
         from station.bench.hubei_m1 import prepare
         entry = prepare(run, v18=v18_combined)
+    if v18_combined:
+        devices = power.boards()
+        if len(devices) != 1:
+            raise RuntimeError("无法确认唯一的 USB 设备，本轮未开始。")
+        run.usb_board = devices[0]
     if run.summary["plan"].get("optical"):
         print("请固定相机，对准电脑左半边，两轮保持位置和光照。")
     elif run.summary["plan"].get("receiver_ab"):
@@ -121,10 +128,12 @@ def physical(run, mode, ask, original, vlc):
     monitor = nullcontext()
     script_name = "m3_firmware_v18.py" if comparison else "m3_hubei_rtsp.py"
     script = (bench.ROOT / "tools/board" / script_name).read_text(encoding="utf-8")
-    if comparison:
+    if comparison or v18_combined:
         from station.bench.usb_session import monitor as observe_usb
         monitor = observe_usb(run, run.usb_board)
-        source = (script + "\nrun(%r, supervised_stop=%r)\n" % (wifi, supervised_stop)).encode()
+    if comparison:
+        observe = bool(run.summary["plan"].get("receiver_ab"))
+        source = (script + "\nrun(%r, supervised_stop=%r, observe=%r)\n" % (wifi, supervised_stop, observe)).encode()
     elif combined:
         if run.summary["plan"].get("sensor_mode"):
             width, height, fps = run.summary["plan"]["sensor_mode"]

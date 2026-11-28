@@ -4,7 +4,7 @@ import subprocess
 import sys
 from types import SimpleNamespace
 
-from station.bench import bench, m1_v18, player_compare, sensor_reuse, session_review, v18_dual
+from station.bench import bench, m1_v18, player_compare, sensor_reuse, v18_dual
 
 
 def visit(root, ask=input, *, simulation=None):
@@ -12,22 +12,32 @@ def visit(root, ask=input, *, simulation=None):
     simulated = bool(simulation)
     args = SimpleNamespace(runs=root, simulate=simulation, replay=None, skip_mode_list=False,
                            timing_only=True, framedrop=False, rtp_diagnostic=False, optical=True)
-    result = {"simulation": simulated, "stages": [], "full_media_reuse": "unverified",
-              "live_reconnect_health": "unverified"}
-    print("本入口能检查相机单帧复用；完整视频会话的复用仍待验证。各独立实拍轮请按提示单独上电。"
-          "最后一步复核已有日志。", flush=True)
+    result = {"simulation": simulated, "stages": []}
+    print("各独立实拍轮按提示单独上电。视频轮保持播放器打开，等它自动结束。"
+          "随后等板子记录至少 15 秒的状态并完成清理。", flush=True)
+
+    def fixtures(suite, log):
+        trial = subprocess.run([sys.executable, "-m", "pytest", "-q", suite],
+                               cwd=bench.ROOT, capture_output=True, timeout=60)
+        (root / log).write_bytes(trial.stdout + trial.stderr)
+        return trial.returncode
 
     def sensor():
         if not simulated:
             return sensor_reuse.field(root, ask)
-        trial = subprocess.run([sys.executable, "-m", "pytest", "-q", "tests/test_v18_sensor_reuse.py"],
-                               cwd=bench.ROOT, capture_output=True, timeout=60)
-        (root / "sensor-repl-fixtures.log").write_bytes(trial.stdout + trial.stderr)
-        return trial.returncode
+        return fixtures("tests/test_v18_sensor_reuse.py", "sensor-repl-fixtures.log")
 
     def longrun():
         if simulated:
             args.replay = bench.ROOT / "reports/data/M1/pool-ref-longrun.log"
+            code = m1_v18.main(args, ask)
+            record = json.loads(next(root.glob("*-m1-v18/summary.json")).read_text(encoding="utf-8"))
+            checks = record.get("measurement", {}).get("checks", {})
+            if (code != 1 or checks.get("capture_span_complete") is not False
+                    or checks.get("process_windows_complete") is not False):
+                return 1
+            result["s1_history_accepted"] = False
+            return fixtures("tests/test_m1_v18_field.py", "s1-assessment-fixtures.log")
         else:
             mode = ask("独立长跑回车先枚举传感器。若此前枚举后采集未开始，输入 2 跳过枚举 > ").strip()
             if mode not in ("", "2"):
@@ -49,18 +59,12 @@ def visit(root, ask=input, *, simulation=None):
                                            for name, m in optical.items()}
         return 0 if result["optical_measured"] else "video_passed_optical_pending"
 
-    def review():
-        archive = bench.ROOT / "reports/data/M3/bench/2026-11-28-v18-ap"
-        session_review.review(archive / "board.log", archive / "field.json", root / "s2-history.json")
-        return None
-
     stages = (
         ("S0a", "取两次单帧，检查释放相机后能否重新打开。", sensor),
         ("S1", "保持相机固定，做约十分钟的独立找球计时。", longrun),
         ("接收器对照", "相机对准电脑左侧时钟，两轮保持相同取景，每轮单独确认。", players),
         ("S4-60", "镜头朝向不限。用 1080p60 同时传视频、找球。", lambda: v18_dual.run_mode(root, v18_dual.MODES[0], ask, simulation)),
         ("S4-90", "保持相同取景。改用 720p90 同时传视频、找球。", lambda: v18_dual.run_mode(root, v18_dual.MODES[1], ask, simulation)),
-        ("S2 历史记录", "最后复核已存的断连日志。这一步只读取电脑上的文件。", review),
     )
     try:
         for name, prompt, action in stages:
@@ -75,20 +79,21 @@ def visit(root, ask=input, *, simulation=None):
                 if isinstance(code, str):
                     row["status"] = code
                 else:
-                    row["status"] = ("history_only" if code is None else "passed" if code == 0 else "failed")
+                    row["status"] = "passed" if code == 0 else "failed"
             except (OSError, RuntimeError, ValueError, EOFError, KeyboardInterrupt, subprocess.SubprocessError) as exc:
                 row.update(status="failed", message=str(exc) or "已取消")
             finally:
                 row["ended"] = bench.now()
                 bench.write_json(root / "visit.json", result)
             if row["status"] == "failed" and not simulated:
-                print("这一步未完成，日志已保存。", flush=True)
+                print("这一步未完成，日志已保存，本次测试结束。若板子失联，完全断电 10 秒再上电。", flush=True)
                 break
     finally:
         result["finished_available_steps"] = len(result["stages"]) == len(stages)
-        result["full_visit_accepted"] = False
+        complete = result["finished_available_steps"] and all(r["status"] == "passed" for r in result["stages"])
+        result["full_visit_accepted"] = bool(complete and not simulated)
         bench.write_json(root / "visit.json", result)
         print("结果目录", root, flush=True)
     if any(r["status"] == "failed" for r in result["stages"]):
         return 1
-    return 2  # The complete physical visit still lacks S0b/S0c and live S2 evidence.
+    return 0 if complete else 2

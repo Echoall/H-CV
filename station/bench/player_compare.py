@@ -2,7 +2,7 @@
 import os
 import time
 
-from station.bench import bench, hubei, latency, low_delay, wlan
+from station.bench import bench, hubei, latency, low_delay, video_health, wlan
 from station.bench.field import frame_numbers
 
 
@@ -91,21 +91,24 @@ def wizard(args, ask=input):
             if simulated:
                 with bench.localhost_source(ffmpeg, server, run.directory, ("tcp",), size="640x360",
                                             fps=60, gop=10, bitrate_kbps=1000) as url:
-                    clean = bench.stream(run, bench.simulated_board(url, 68), None, plan, {}, None, vlc, True)
+                    clean = bench.stream(run, video_health.simulator(url, 86), None, plan, {}, None, vlc, True)
             else:
                 clean = hubei.physical(run, "ap", ask, original, vlc)
-            passed = evaluate(run, clean, ffmpeg)
-            if plan["optical"] and not simulated:
+            healthy = video_health.assess(run, clean)
+            passed = evaluate(run, clean, ffmpeg) and healthy
+            if passed and plan["optical"] and not simulated:
                 run.summary["optical_latency"] = latency.read_samples(run.directory, ask)
         finally:
             try:
                 restored = simulated or wlan.restore(original, diagnostics=run.summary["network"])
             finally:
+                if "post_client_health" not in run.summary:
+                    video_health.assess(run, False)
                 run.summary["network"]["restored"] = restored
                 run.summary["passed"] = outcomes[name] = passed and restored
                 run.finish()
                 bench.write_json(root / "comparison.json", outcomes)
-        if not restored or not clean:
+        if not passed or not restored:
             break
     print("接收器对照结果", outcomes, root)
     return int(len(outcomes) != 2 or not all(outcomes.values()))

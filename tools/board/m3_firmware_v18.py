@@ -5,7 +5,7 @@ import time
 import network
 
 
-def run(wifi, supervised_stop=False):
+def run(wifi, supervised_stop=False, observe=False):
     identity = os.uname()
     if (identity.machine != 'k230_canmv_hiwonder' or identity.release.split('-')[0] != 'v1.8'
             or identity.version.split(' on ')[0].split('-')[0] != 'v1.8'):
@@ -41,7 +41,12 @@ def run(wifi, supervised_stop=False):
     print('HCV_RTSP_PRIVATE,%s,%d,%s' % (address, RTSP_PORT, RTSP_SESSION))
     if ap:
         print('HCV_AP_READY')
-    server = CameraRtspServer()
+    if observe:
+        from video_observation import MainHeartbeat, observed_server
+        heartbeat = MainHeartbeat()
+        server = observed_server(CameraRtspServer)
+    else:
+        server = CameraRtspServer()
     try:
         server.start()
         print('HCV_CH0_CONFIG_READY')
@@ -51,6 +56,8 @@ def run(wifi, supervised_stop=False):
         while time.ticks_diff(time.ticks_ms(), began) < duration_ms:
             tick()
             time.sleep_ms(250)
+            if observe:
+                heartbeat.tick()
             if server.thread_over:
                 raise RuntimeError('encoder worker stopped')
             now = time.ticks_ms()
@@ -60,7 +67,7 @@ def run(wifi, supervised_stop=False):
                     elapsed, server.frame_count, server.byte_count, server.frame_count * 1000 / elapsed))
                 last = now
     finally:
-        if supervised_stop:
+        if supervised_stop or observe:
             print('HCV_SERVICE_STOP_BEGIN')
         server.stop()
     if not server.thread_over:

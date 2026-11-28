@@ -3,7 +3,7 @@ import re
 import subprocess
 import sys
 
-from station.bench import bench, hubei, hubei_m1, player_compare, wlan
+from station.bench import bench, hubei, hubei_m1, player_compare, video_health, wlan
 from station.bench.low_delay import binaries
 
 
@@ -46,7 +46,7 @@ def run_mode(root, mode, ask, simulation=None):
                        "--fps", str(mode[2]), "--target", "--host-timestamps"]
                 with subprocess.Popen(cmd, cwd=bench.ROOT) as replay:
                     try:
-                        clean = bench.stream(run, bench.simulated_board(url, 70), None, plan, {}, None, vlc, True)
+                        clean = bench.stream(run, video_health.simulator(url, 95), None, plan, {}, None, vlc, True)
                         if replay.wait(timeout=30):
                             raise RuntimeError("检测回放未正常结束。")
                     finally:
@@ -54,11 +54,14 @@ def run_mode(root, mode, ask, simulation=None):
                             replay.kill()
         else:
             clean = hubei.physical(run, "ap", ask, original, vlc)
-        passed = assess(run, clean, ffmpeg, mode, log.read_text(encoding="utf-8").splitlines())
+        healthy = video_health.assess(run, clean)
+        passed = assess(run, clean, ffmpeg, mode, log.read_text(encoding="utf-8").splitlines()) and healthy
     finally:
         try:
             restored = bool(simulation) or wlan.restore(original, diagnostics=run.summary["network"])
         finally:
+            if "post_client_health" not in run.summary:
+                video_health.assess(run, False)
             run.summary["network"]["restored"] = restored
             run.summary["passed"] = passed and restored
             run.finish()

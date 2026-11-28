@@ -60,6 +60,7 @@ def receiver_path(url, directory, diagnostic, result):
     finally:
         (directory / "arrival.json").write_text(json.dumps(rows), encoding="utf-8")
         result.update(arrival=continuity(rows), rtp_discontinuities=stats.get("rtp_sequence_discontinuities", 0),
+                      upstream_closed_ns=stats.get("upstream_closed_ns"),
                       inspection_stopped=bool(stats.get("rtp_inspection_stopped")))
 
 
@@ -129,6 +130,7 @@ def receive(url, directory, ffmpeg, ffplay, seconds, framedrop, *, diagnostic=Fa
                         writer.wait(timeout=5)
                     except (BrokenPipeError, subprocess.TimeoutExpired):
                         stop(writer)
+                result["receiver_exit_at"] = datetime.now().astimezone().isoformat(timespec="milliseconds")
                 try:
                     viewer.wait(timeout=4)
                 except subprocess.TimeoutExpired:

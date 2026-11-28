@@ -12,7 +12,7 @@ MODULES = ("__init__", "calibration", "compat", "config", "detect_profile", "gua
 
 
 def prepare(run, *, combined=False):
-    modules = MODULES + ("hubei_detection",) if combined else MODULES
+    modules = MODULES + ("hubei_detection", "video_observation") if combined else MODULES
     files = [(f"k230/hcv/{name}.py", f"hcv/{name}.py") for name in modules]
     runner = "hubei_m1_runner.py" if combined else "main_hcv.py"
     files.extend([("k230/main_hcv.py", runner),

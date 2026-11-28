@@ -113,6 +113,8 @@
 
 | 2026-11-20 | P0-T01（电脑端） | [codex/P0](https://github.com/Echoall/H-CV/tree/codex/P0) | cf17b61 | Claude 已验收，见 reports/review/P0-review.md |
 
+- 2026-11-28，Issue #6。按 `7233920387` 取消 S0b/S0c，将客户端退出后的 15 秒观察并入四个视频轮次。电脑演练与实板验收分别记录，见[离线演练报告](../reports/M3-v18现场顺序与离线演练.md)。
+
 ## 问题记录（Codex 追加，BLOCKED 时必填）
 
 | 日期 | 任务 | 问题 | 需要谁 | 状态 |

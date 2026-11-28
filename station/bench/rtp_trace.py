@@ -173,6 +173,9 @@ def trace(endpoint, stats, redact, *, on_frame_end=None):
             except (OSError, ValueError) as error:
                 if not cancelled.is_set():
                     stats["error"] = {"type": type(error).__name__, "peer": peer, "stage": stage}
+            finally:
+                if stats.get("upstream_connected"):
+                    stats["upstream_closed_ns"] = time.time_ns()
 
         worker = Thread(target=relay, daemon=True)
         worker.start()
