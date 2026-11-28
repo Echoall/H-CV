@@ -21,6 +21,7 @@ def analyze(path):
     rounds = []
     memory = []
     round_samples = []
+    boundary = None
     fps = None
     with Path(path).open(encoding="utf-8", errors="replace") as stream:
         for line in stream:
@@ -31,6 +32,7 @@ def analyze(path):
                 rounds.clear()
                 memory.clear()
                 round_samples.clear()
+                boundary = None
             elif line.startswith("HCV_M1_SAMPLE,"):
                 sample = _fields(line)
                 samples.append(sample)
@@ -51,6 +53,8 @@ def analyze(path):
                 })
             elif line.startswith("HCV_M1_SUMMARY,"):
                 summaries.append(_fields(line))
+            elif line.startswith("HCV_M1_BOUNDARY_TIMING,"):
+                boundary = {key: int(value) for key, value in _fields(line).items()}
     if not summaries:
         raise ValueError("no HCV_M1_SUMMARY line found")
     summary = summaries[-1]
@@ -95,6 +99,8 @@ def analyze(path):
         )
     if memory:
         result["memory"] = memory
+    if boundary is not None:
+        result["boundary_timing_us"] = boundary
     window_maxima = {}
     for stage in (
         "snapshot", "detect", "map", "track", "pack", "uart", "process", "total", "gc"

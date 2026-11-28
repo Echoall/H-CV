@@ -563,6 +563,7 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
     found_streak = 0
     round_index = 0
     round_start_us = None
+    pre_gc_log_us = post_gc_log_us = round_stats_us = round_log_us = round_bookkeeping_us = 0
     round_frame_start = 0
     round_dropped_start = 0
     round_valid_start = 0
@@ -862,13 +863,18 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
                 _log_memory(round_index, "before_gc")
                 gc_start = time.ticks_us()
                 gc.collect()
-                gc_elapsed_us = time.ticks_diff(time.ticks_us(), gc_start)
+                gc_end = time.ticks_us()
+                gc_elapsed_us = time.ticks_diff(gc_end, gc_start)
                 _log_memory(round_index, "after_gc")
+                if report_capture_span:
+                    stats_start = time.ticks_us()
                 health.add("gc", gc_elapsed_us)
                 gc_dropped_est = int(
                     gc_elapsed_us
                     / (1_000_000.0 / config["sensor"]["fps"])
                 )
+                if report_capture_span:
+                    log_start = time.ticks_us()
                 print(
                     "HCV_M1_ROUND,round=%d,frames=%d,dropped=%d,"
                     "active_us=%d,valid=%d,gc_us=%d,gc_dropped_est=%d,free=%d" % (
@@ -882,12 +888,22 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
                         gc.mem_free(),
                     )
                 )
+                if report_capture_span:
+                    log_end = time.ticks_us()
                 round_index += 1
-                round_start_us = time.ticks_us()
+                if not report_capture_span:
+                    round_start_us = time.ticks_us()
                 round_frame_start = frame_number
                 round_dropped_start = dropped
                 round_valid_start = valid_count
                 last_cap = None
+                if report_capture_span:
+                    pre_gc_log_us += time.ticks_diff(gc_start, round_now_us)
+                    post_gc_log_us += time.ticks_diff(stats_start, gc_end)
+                    round_stats_us += time.ticks_diff(log_start, stats_start)
+                    round_log_us += time.ticks_diff(log_end, log_start)
+                    round_start_us = time.ticks_us()
+                    round_bookkeeping_us += time.ticks_diff(round_start_us, log_end)
             if shared is not None:
                 shared.end_frame(frame_number, process_us, t_cap_us)
     finally:
@@ -913,6 +929,13 @@ def run(max_runtime_s=10, max_frames=None, allocation_probe=False, observe_ball=
                 if health.frame_count:
                     _print_stats(health, dropped, gc.mem_free(), run_info, parser)
                 print("HCV_M1_CAPTURE_SPAN_US,%d" % time.ticks_diff(stopped_us, started_us))
+                print(
+                    "HCV_M1_BOUNDARY_TIMING,boundaries=%d,pre_gc_log_us=%d,post_gc_log_us=%d,"
+                    "round_stats_us=%d,round_log_us=%d,bookkeeping_us=%d" % (
+                        round_index, pre_gc_log_us, post_gc_log_us,
+                        round_stats_us, round_log_us, round_bookkeeping_us,
+                    )
+                )
             _log_memory(round_index, "stopped")
             if round_start_us is not None and frame_number > round_frame_start:
                 print(

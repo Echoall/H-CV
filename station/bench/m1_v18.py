@@ -54,6 +54,11 @@ def assess(path):
     metrics["frames_in_sample_windows"] = sample_count
     metrics["capture_span_us"] = span
     metrics["wall_duration_dropped"] = None if span is None else max(0, span * 90 // 1_000_000 - summary["frames"])
+    timing = metrics.get("boundary_timing_us")
+    if timing and span is not None and "active_us" in metrics:
+        attributed = sum(timing[key] for key in ("pre_gc_log_us", "post_gc_log_us", "round_stats_us",
+                                                   "round_log_us", "bookkeeping_us"))
+        metrics["boundary_unattributed_us"] = span - metrics["active_us"] - metrics["inter_round_gc_us"] - attributed
     return metrics
 
 

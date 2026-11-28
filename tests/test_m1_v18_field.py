@@ -16,6 +16,23 @@ def test_legacy_measurement_replays_without_inventing_capture_span():
     assert not result["checks"]["capture_span_complete"]
 
 
+def test_boundary_timing_reconciles_active_gc_and_other_work(tmp_path):
+    log = tmp_path / "boundary.log"
+    log.write_text(
+        "HCV_M1_BEGIN,mode=1280x720x90,detector_fast=1,roi=0:150:640:48\n"
+        "HCV_M1_ROUND,round=0,frames=2700,active_us=30000000,gc_us=80000,gc_dropped_est=7\n"
+        "HCV_M1_ROUND,round=1,final=1,frames=90,active_us=1000000,gc_us=0,gc_dropped_est=0\n"
+        "HCV_M1_BOUNDARY_TIMING,boundaries=1,pre_gc_log_us=2000,post_gc_log_us=3000,"
+        "round_stats_us=500,round_log_us=6500,bookkeeping_us=40\n"
+        "HCV_M1_CAPTURE_SPAN_US,31092060\n"
+        "HCV_M1_SUMMARY,frames=2790,elapsed_us=31100000,rx_crc=0,rx_len=0,valid=0\n",
+        encoding="utf-8",
+    )
+    result = m1_v18.assess(log)
+    assert result["boundary_timing_us"]["round_log_us"] == 6500
+    assert result["boundary_unattributed_us"] == 20
+
+
 @pytest.mark.parametrize("process_us,span,expected", [(6000, 600_000_000, True),
                                                       (6001, 600_000_000, False),
                                                       (6000, 600_020_000, False)])
